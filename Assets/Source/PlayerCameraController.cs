@@ -7,12 +7,16 @@ public class PlayerCameraController : MonoBehaviour{
     
     [SerializeField] private float sense;
     
+    private void Start(){
+        Utils.ToggleCursor(false);
+    }
+    
     private void Update(){
         Look();        
     }
     
     private void LateUpdate(){
-        transform.position = Vector3.Lerp(transform.position, cameraTarget.position, 10 * Time.deltaTime);
+        transform.position = Vector3.Lerp(transform.position, cameraTarget.position, 30 * Time.deltaTime);
     }
     
     private void Look(){
