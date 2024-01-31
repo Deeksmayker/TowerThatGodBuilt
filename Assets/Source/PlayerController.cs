@@ -3,9 +3,11 @@ using System.Collections.Generic;
 
 public class PlayerController : MonoBehaviour{
     public class PlayerBall{
+        public int index = -1;
         public Transform transform;
         public SphereCollider collider;
         public Vector3 velocity;
+        public Vector3 angularVelocity;
     }
     [Header("Player")]
     [SerializeField] private Transform directionTransform;
@@ -18,7 +20,6 @@ public class PlayerController : MonoBehaviour{
     
     private Vector3 _lastVelocity;
     private Vector3 _velocity;
-    
     private Vector3 _moveInput;
     
     private CapsuleCollider _collider;
@@ -26,6 +27,11 @@ public class PlayerController : MonoBehaviour{
     [Header("Balls")]
     [SerializeField] private float maxBallSpeed;
     [SerializeField] private float ballGravity;
+    [SerializeField] private float angularVelocityPower;
+    [SerializeField] private float angularVelocitySense;
+    [SerializeField] private float maxAngularVelocity = 40;
+    
+    private Vector3 _currentStartAngularVelocity;
     
     private LineRenderer     _ballPredictionLineRenderer;
     private GameObject       _playerBallPrefab;
@@ -95,22 +101,40 @@ public class PlayerController : MonoBehaviour{
     private void UpdateBalls(){
         if (Input.GetMouseButton(1)){
             var imaginaryBall = SpawnPlayerBall();
+            imaginaryBall.transform.gameObject.name += "IMAGINE";
+            
+            _currentStartAngularVelocity += new Vector3(Input.GetAxis("Mouse Y"), Input.GetAxis("Mouse X"), 0) * angularVelocitySense;
+            _currentStartAngularVelocity.x = Mathf.Clamp(_currentStartAngularVelocity.x, -maxAngularVelocity, maxAngularVelocity);
+            _currentStartAngularVelocity.y = Mathf.Clamp(_currentStartAngularVelocity.y, -maxAngularVelocity, maxAngularVelocity);
+            
+            imaginaryBall.angularVelocity = _currentStartAngularVelocity;
+            
             var iterationCount = 50;
-            var step = 0.1f;
+            var step = 0.02f;
             
             _ballPredictionLineRenderer.positionCount = iterationCount;
             for (int i = 0; i < iterationCount; i++){
                 _ballPredictionLineRenderer.SetPosition(i, imaginaryBall.transform.position);
-                UpdateBall(imaginaryBall, step);
+                UpdateBall(imaginaryBall, step, true);
             }
+            imaginaryBall.collider.enabled = false;
             Destroy(imaginaryBall.transform.gameObject);
+            Destroy(imaginaryBall.collider);
+            
+            Time.timeScale = 0.05f;
+        } else{
+            _currentStartAngularVelocity = Vector3.Lerp(_currentStartAngularVelocity, Vector3.zero, Time.deltaTime * 4);
+            Time.timeScale = 1f;
         }
         if (Input.GetMouseButtonUp(1)){
             _ballPredictionLineRenderer.positionCount = 0;
         }
     
         if (Input.GetMouseButtonDown(0)){
-            _balls.Add(SpawnPlayerBall());
+            PlayerBall newBall = SpawnPlayerBall();
+            newBall.index = _balls.Count;
+            newBall.angularVelocity = _currentStartAngularVelocity;
+            _balls.Add(newBall);
         }
         
         for (int i = 0; i < _balls.Count; i++){
@@ -118,28 +142,50 @@ public class PlayerController : MonoBehaviour{
         }
     }
     
-    private void UpdateBall(PlayerBall ball, float delta){
+    private void UpdateBall(PlayerBall ball, float delta, bool imaginaryBall = false){
         ball.velocity += Vector3.down * ballGravity * delta;
+        ball.velocity += (ball.transform.up * ball.angularVelocity.x + ball.transform.right * ball.angularVelocity.y) * angularVelocityPower * delta;
+        
+        ball.transform.forward = ball.velocity;
     
-        CalculateBallCollisions(ball, delta);
+        CalculateBallCollisions(ball, delta, imaginaryBall);
     
-        ball.transform.Translate(ball.velocity * delta);
+        ball.transform.Translate(ball.velocity * delta, Space.World);
     }
     
-    private void CalculateBallCollisions(PlayerBall ball, float delta){
+    private void CalculateBallCollisions(PlayerBall ball, float delta, bool imaginaryBall = false){
+        //Layers. - gives us proper flag, but gameObject.layer gives us layer number from unity editor
         var deltaVelocity = ball.velocity * delta;
         
-        RaycastHit[] velocityHits = Physics.SphereCastAll(ball.transform.position, ball.collider.radius, ball.velocity.normalized, deltaVelocity.magnitude, Layers.PlayerBallHitable);
+        var hitableLayers = Layers.PlayerBallHitable;
+        
+        if (imaginaryBall){
+            hitableLayers &= ~(int)Layers.PlayerProjectile;
+        }
+        RaycastHit[] velocityHits = Physics.SphereCastAll(ball.transform.position, ball.collider.radius, ball.velocity.normalized, deltaVelocity.magnitude, hitableLayers);
         
         for (int i = 0; i < velocityHits.Length; i++){
             if (velocityHits[i].transform == ball.transform) continue;
+            
+            bool hitBallLayer = ((1 << velocityHits[i].transform.gameObject.layer) & (int)Layers.PlayerProjectile) > 0;
+            if (hitBallLayer){
+            }
+            
+            var enemy = velocityHits[i].collider.GetComponentInParent<Enemy>();
+            if (enemy){
+                if (!imaginaryBall){
+                    enemy.TakeHit(velocityHits[i].collider);
+                }
+            }
+            
         
             ball.velocity = Vector3.Reflect(ball.velocity, velocityHits[i].normal);
         }
-        
+        /*
         if (Physics.CheckSphere(ball.transform.position, ball.collider.radius, Layers.Environment)){
             ball.velocity.y = 50;
         }
+        */
     }
     
     private PlayerBall SpawnPlayerBall(){
