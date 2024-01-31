@@ -6,6 +6,9 @@ public class PlayerCameraController : MonoBehaviour{
     [SerializeField] private Transform yRotationTarget;
     
     [SerializeField] private float sense;
+    [SerializeField] private float rmbSenseMultiplier = 0.1f;
+    
+    private float _currentSenseMultiplier = 1;
     
     private void Start(){
         Utils.ToggleCursor(false);
@@ -20,8 +23,15 @@ public class PlayerCameraController : MonoBehaviour{
     }
     
     private void Look(){
-        var xInputRotation =  Input.GetAxis("Mouse X") * sense;
-        var yInputRotation = -Input.GetAxis("Mouse Y") * sense;
+        if (Input.GetMouseButton(1)){
+            _currentSenseMultiplier = rmbSenseMultiplier;
+        }
+        if (Input.GetMouseButtonUp(1)){
+            _currentSenseMultiplier = 1;
+        }
+    
+        var xInputRotation =  Input.GetAxis("Mouse X") * sense * _currentSenseMultiplier;
+        var yInputRotation = -Input.GetAxis("Mouse Y") * sense * _currentSenseMultiplier;
         
         xRotationTarget.localRotation *= Quaternion.Euler(yInputRotation, 0, 0);
         yRotationTarget.localRotation *= Quaternion.Euler(0, xInputRotation, 0);
