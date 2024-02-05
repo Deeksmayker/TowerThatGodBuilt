@@ -19,11 +19,10 @@ public class ConsoleController : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.BackQuote))
         {
-            Debug.Log("SwitchConsoleWindow");
             SwitchConsoleWindow();
         }
 
-        if (Input.GetKeyDown(KeyCode.KeypadEnter) /*&& _isConsoleOpened*/)
+        if (Input.GetKeyDown(KeyCode.Return) && _isConsoleOpened)
         {
             Debug.Log("Enter");
         }
@@ -34,6 +33,7 @@ public class ConsoleController : MonoBehaviour
         consoleWindow.SetActive(!_isConsoleOpened);
         _isConsoleOpened = !_isConsoleOpened;
     }
+
 
     public void OnInputFieldEndEdit()
     {
