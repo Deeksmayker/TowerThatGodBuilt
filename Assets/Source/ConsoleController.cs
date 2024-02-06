@@ -1,92 +1,90 @@
-using System.Collections;
 using System.Collections.Generic;
-using System.Text;
-using TMPro;
 using UnityEngine;
-using UnityEngine.UIElements;
+using TMPro;
 
 public class ConsoleController : MonoBehaviour
 {
-    [SerializeField] private TMP_InputField inputField;
-    [SerializeField] private ScrollView historyScrollView;
-    // prefab
-
+    [Header("Objects")]
+    [SerializeField] private GameObject historyTextPrefab;
+    [SerializeField] private GameObject historyContent;
     [SerializeField] private GameObject consoleWindow;
-    [SerializeField] private List<string> commands;
+    [SerializeField] private GameObject historyPanel;
+    [SerializeField] private TMP_InputField consoleLine;
+
+    [Header("Lists")]
+    [SerializeField] private List<GameObject> hintObjects;
     [SerializeField] private List<string> commandMeanings;
+    [SerializeField] private List<string> commands;
 
     private bool _isConsoleOpened = false;
 
     private void Start()
     {
-        inputField.onValueChanged.AddListener(delegate { ToLower(); });
-
-    }
-
-    public void ToLower()
-    {
-        inputField.text = inputField.text.ToLower();
-
-
-        for (int i = 0; i < hints.Count; i++)
-        {
-            hints[i].SetActive(false);
-        }
-        if (inputField.text.Length > 1)
-        {
-            CheckForHint();
-        }
-
-    }
-
-
-    [SerializeField] private List<GameObject> hints;
-
-    public void CheckForHint()
-    {
-        List<string> hintsStr = new List<string>();
-
-        for (int i = 0; i < commands.Count; i++)
-        {
-            if (commands[i].Contains(inputField.text))
-            {
-                hintsStr.Add(commands[i]);
-            }
-
-            if (hintsStr.Count == 3)
-                break;
-        }
-
-        if (hintsStr.Count > 0)
-        {
-            for (int i = 0; i < hintsStr.Count; i++)
-            {
-                hints[i].SetActive(true);
-                hints[i].GetComponentInChildren<TextMeshProUGUI>().text = hintsStr[i];
-            }
-        }
+        consoleLine.onValueChanged.AddListener(delegate { CheckForHint(); });
     }
 
     private void Update()
     {
         if (Input.GetKeyDown(KeyCode.BackQuote))
-        {
             SwitchConsoleWindow();
-        }
 
         if (Input.GetKeyDown(KeyCode.Return) && _isConsoleOpened)
-        {
-            Debug.Log("Enter");
-            OnInputFieldEndEdit();
-        }
+            SendCommand();
 
         if (Input.GetKeyDown(KeyCode.Tab))
         {
-            if (hints[0].activeInHierarchy)
+            if (hintObjects[0].activeInHierarchy)
             {
-                inputField.text = hints[0].GetComponentInChildren<TextMeshProUGUI>().text;
+                consoleLine.text = hintObjects[0].GetComponentInChildren<TextMeshProUGUI>().text;
+                SendCommand();
+            }
+        }
+    }
 
-                OnInputFieldEndEdit();
+    public void CreateNewHistoryText(string text, bool isWrongCommand = false)
+    {
+        historyPanel.SetActive(true);
+
+        var newTextObject = Instantiate(historyTextPrefab, historyContent.transform);
+        historyContent.GetComponent<RectTransform>().sizeDelta = new Vector2(0, historyContent.transform.childCount * 50);
+        newTextObject.GetComponent<TextMeshProUGUI>().text = text;
+
+        if (isWrongCommand)
+        {
+            var wrongTextObject = Instantiate(historyTextPrefab, historyContent.transform);
+            historyContent.GetComponent<RectTransform>().sizeDelta = new Vector2(0, historyContent.transform.childCount * 50);
+            wrongTextObject.GetComponent<TextMeshProUGUI>().text = "No such command found";
+        }
+
+        historyContent.transform.localPosition = new Vector3(historyContent.transform.localPosition.x, 0, 0);
+        // ???
+    }
+
+    public void CheckForHint()
+    {
+        consoleLine.text = consoleLine.text.ToLower();
+        HideHints();
+
+        if (consoleLine.text.Length > 1)
+        {
+            List<string> hintsStr = new();
+
+            for (int i = 0; i < commands.Count; i++)
+            {
+                if (commands[i].Contains(consoleLine.text))
+                    hintsStr.Add(commands[i]);
+
+                if (hintsStr.Count == 3)
+                    break;
+            }
+
+            if (hintsStr.Count > 0)
+            {
+                for (int i = 0; i < hintsStr.Count; i++)
+                {
+                    hintObjects[i].SetActive(true);
+                    hintObjects[i].GetComponentInChildren<TextMeshProUGUI>().text = hintsStr[i];
+                }
             }
         }
     }
@@ -97,44 +95,35 @@ public class ConsoleController : MonoBehaviour
         _isConsoleOpened = !_isConsoleOpened;
     }
 
-
-    public void OnInputFieldEndEdit()
+    public void SendCommand()
     {
-
-        if (inputField != null)
+        if (consoleLine != null)
         {
-            string fieldResult = inputField.text;
-
-            switch (fieldResult)
+            switch (consoleLine.text)
             {
                 case "help":
                     Command_Help();
                     break;
+                default:
+                    CreateNewHistoryText("--" + consoleLine.text, true);
+                    break;
             }
         }
 
-        for (int i = 0; i < hints.Count; i++)
-        {
-            hints[i].SetActive(false);
-        }
-
-        inputField.text = string.Empty;
-
-
+        HideHints();
+        consoleLine.text = string.Empty;
     }
 
-
-    [SerializeField] private TextMeshProUGUI helpText;
+    public void HideHints()
+    {
+        for (int i = 0; i < hintObjects.Count; i++)
+            hintObjects[i].SetActive(false);
+    }
 
     public void Command_Help()
     {
-        StringBuilder sb = new StringBuilder();
-
-        for (int i = 0; i < commands.Count; i++)
-        {
-            sb.AppendLine(commands[i] + " - " + commandMeanings[i]);
-        }
-
-        helpText.text = sb.ToString();
+        CreateNewHistoryText("--help");
+        for (int i = 1; i < commands.Count; i++)
+            CreateNewHistoryText(commands[i] + " - " + commandMeanings[i]);
     }
 }
