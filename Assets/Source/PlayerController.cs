@@ -2,6 +2,7 @@ using UnityEngine;
 using System.Collections.Generic;
 using System;
 using TMPro;
+using UnityEngine.UI;
 
 public class PlayerController : MonoBehaviour{
     [Serializable]
@@ -17,12 +18,23 @@ public class PlayerController : MonoBehaviour{
     }
     [Header("Player")]
     [SerializeField] private Transform directionTransform;
-    [SerializeField] private float maxSpeed;
+    [SerializeField] private float baseSpeed, sprintSpeed;
+    [SerializeField] private float sprintStaminaDrain;
     [SerializeField] private float groundAcceleration, groundDeceleration, airAcceleration, airDeceleration;
     [SerializeField] private float friction;
     [SerializeField] private float gravity;
-    [SerializeField] private float jumpForce;
+    [SerializeField] private float minJumpForce, maxJumpForce;
+    [SerializeField] private float timeToChargeMaxJump;
+    [SerializeField] private float jumpChargeStaminaDrain;
     [SerializeField] private float jumpForwardBoost;
+    [SerializeField] private float maxStamina;
+    [SerializeField] private float staminaRecoveryRate;
+    
+    private float _currentStamina;
+    private float _jumpChargeProgress;
+    private float _currentSpeed;
+    
+    private Slider _staminaSlider;
     
     private bool _grounded;
     
@@ -57,6 +69,11 @@ public class PlayerController : MonoBehaviour{
         _playerBallPrefab           = Utils.GetPrefab("PlayerBall");
         _ballPredictionLineRenderer = Instantiate(Utils.GetPrefab("PredictionTrail")).GetComponent<LineRenderer>();
         
+        _currentStamina = maxStamina;
+        _currentSpeed   = baseSpeed;
+        
+        _staminaSlider = GameObject.FindWithTag("StaminaSlider").GetComponent<Slider>();
+        
         _speedTextMesh = GameObject.FindWithTag("SpeedText").GetComponent<TextMeshProUGUI>();
         
         if (!showPlayerStats){
@@ -67,23 +84,68 @@ public class PlayerController : MonoBehaviour{
     private void Update(){
         _moveInput = new Vector3(Input.GetAxisRaw("Horizontal"), 0, Input.GetAxisRaw("Vertical"));
         
+        var wishDirection = new Vector3(_moveInput.x, 0, _moveInput.z);
+        wishDirection = directionTransform.right * wishDirection.x + directionTransform.forward * wishDirection.z;
+        wishDirection.Normalize();
+
+        
         if (IsGrounded()){
-            GroundMove();
+            GroundMove(wishDirection);
         } else{
-            AirMove();
+            AirMove(wishDirection);
         }
         
-        var gravityMultiplierProgress = Mathf.InverseLerp(0, jumpForce, _playerVelocity.y);
+        var gravityMultiplierProgress = Mathf.InverseLerp(0, minJumpForce, _playerVelocity.y);
         var gravityMultiplier         = Mathf.Lerp(1, 2, gravityMultiplierProgress * gravityMultiplierProgress);
         _playerVelocity += Vector3.down * gravity * gravityMultiplier * Time.deltaTime;
+        
+        if (Input.GetKey(KeyCode.Space)){   
+            if (_currentStamina > 0 && _jumpChargeProgress < 1){
+                _jumpChargeProgress += Time.unscaledDeltaTime / timeToChargeMaxJump;
+                _currentStamina -= Time.deltaTime * jumpChargeStaminaDrain;
+            }
+        } 
+        if (Input.GetKey(KeyCode.LeftShift)){
+            if (_currentStamina > 0){
+                _currentSpeed = sprintSpeed;
+                _currentStamina -= Time.deltaTime * sprintStaminaDrain;
+            } else{
+                _currentSpeed = baseSpeed;
+            }
+        }
+        
+        if (Input.GetKeyUp(KeyCode.Space)){
+            if (IsGrounded()){
+                _playerVelocity.y += Mathf.Lerp(minJumpForce, maxJumpForce, _jumpChargeProgress);
+                _playerVelocity += wishDirection * jumpForwardBoost;
+            } else{
+                _currentStamina += _jumpChargeProgress * timeToChargeMaxJump * jumpChargeStaminaDrain;
+            }
+            _jumpChargeProgress = 0;
+        }
+        
+        if (Input.GetKeyUp(KeyCode.LeftShift)){
+            _currentSpeed = baseSpeed;
+        }
+        
+        if (!Input.GetKey(KeyCode.Space) && !Input.GetKey(KeyCode.LeftShift)){
+            _currentStamina = Mathf.Clamp(_currentStamina + staminaRecoveryRate * Time.deltaTime, 0, maxStamina);
+        }
+        
+        _staminaSlider.value = _currentStamina / maxStamina;
+
         
         CalculatePlayerCollisions(ref _playerVelocity);
         
         transform.Translate(_playerVelocity * Time.deltaTime);
         
+        
+        
         if (transform.position.y < -30){
             transform.position = Vector3.up * 10;
         }
+
+
         
         UpdateBalls();
         BulletTime();
@@ -94,11 +156,8 @@ public class PlayerController : MonoBehaviour{
         }
     }
     
-    private void GroundMove(){
-        var wishDirection = new Vector3(_moveInput.x, 0, _moveInput.z);
-        wishDirection = directionTransform.right * wishDirection.x + directionTransform.forward * wishDirection.z;
-        wishDirection.Normalize();
-        var wishSpeed = wishDirection.sqrMagnitude * maxSpeed;
+    private void GroundMove(Vector3 wishDirection){
+        var wishSpeed = wishDirection.sqrMagnitude * _currentSpeed;
         
         ApplyFriction();
         
@@ -106,19 +165,10 @@ public class PlayerController : MonoBehaviour{
         var acceleration = directionDotVelocity < 0.5f ? groundDeceleration : groundAcceleration;
         
         Accelerate(wishDirection, wishSpeed, acceleration);
-        
-    
-        if (Input.GetKeyDown(KeyCode.Space)){
-            _playerVelocity.y += jumpForce;
-            _playerVelocity += wishDirection * jumpForwardBoost;
-        }
     }
     
-    private void AirMove(){
-        var wishDirection = new Vector3(_moveInput.x, 0, _moveInput.z);
-        wishDirection = directionTransform.right * wishDirection.x + directionTransform.forward * wishDirection.z;
-        wishDirection.Normalize();
-        var wishSpeed = wishDirection.sqrMagnitude * maxSpeed;
+    private void AirMove(Vector3 wishDirection){
+        var wishSpeed = wishDirection.sqrMagnitude * _currentSpeed;
         
         var directionDotVelocity = Vector3.Dot(wishDirection, _playerVelocity.normalized);
         var acceleration = directionDotVelocity < 0f ? airDeceleration : airAcceleration;
@@ -293,10 +343,10 @@ public class PlayerController : MonoBehaviour{
     }
     
     private void BulletTime(){
-        if (Input.GetKey(KeyCode.LeftShift)){
+        if (Input.GetKey(KeyCode.Q)){
             Time.timeScale = 0.05f;
         } 
-        if (Input.GetKeyUp(KeyCode.LeftShift)){
+        if (Input.GetKeyUp(KeyCode.Q)){
             Time.timeScale = 1f;
         }
     }
