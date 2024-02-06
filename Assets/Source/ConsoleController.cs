@@ -19,15 +19,53 @@ public class ConsoleController : MonoBehaviour
 
     private void Start()
     {
-        inputField.onValueChanged.AddListener( delegate { ToLower(); });
+        inputField.onValueChanged.AddListener(delegate { ToLower(); });
 
     }
 
     public void ToLower()
     {
-        inputField.text =  inputField.text.ToLower();
+        inputField.text = inputField.text.ToLower();
+
+
+        for (int i = 0; i < hints.Count; i++)
+        {
+            hints[i].SetActive(false);
+        }
+        if (inputField.text.Length > 1)
+        {
+            CheckForHint();
+        }
+
     }
 
+
+    [SerializeField] private List<GameObject> hints;
+
+    public void CheckForHint()
+    {
+        List<string> hintsStr = new List<string>();
+
+        for (int i = 0; i < commands.Count; i++)
+        {
+            if (commands[i].Contains(inputField.text))
+            {
+                hintsStr.Add(commands[i]);
+            }
+
+            if (hintsStr.Count == 3)
+                break;
+        }
+
+        if (hintsStr.Count > 0)
+        {
+            for (int i = 0; i < hintsStr.Count; i++)
+            {
+                hints[i].SetActive(true);
+                hints[i].GetComponentInChildren<TextMeshProUGUI>().text = hintsStr[i];
+            }
+        }
+    }
 
     private void Update()
     {
@@ -40,6 +78,16 @@ public class ConsoleController : MonoBehaviour
         {
             Debug.Log("Enter");
             OnInputFieldEndEdit();
+        }
+
+        if (Input.GetKeyDown(KeyCode.Tab))
+        {
+            if (hints[0].activeInHierarchy)
+            {
+                inputField.text = hints[0].GetComponentInChildren<TextMeshProUGUI>().text;
+
+                OnInputFieldEndEdit();
+            }
         }
     }
 
@@ -64,6 +112,15 @@ public class ConsoleController : MonoBehaviour
                     break;
             }
         }
+
+        for (int i = 0; i < hints.Count; i++)
+        {
+            hints[i].SetActive(false);
+        }
+
+        inputField.text = string.Empty;
+
+
     }
 
 
