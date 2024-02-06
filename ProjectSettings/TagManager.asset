@@ -6,6 +6,7 @@ TagManager:
   tags:
   - SpeedText
   - StaminaSlider
+  - PlayerBall
   layers:
   - Default
   - TransparentFX

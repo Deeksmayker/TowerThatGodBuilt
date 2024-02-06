@@ -8,8 +8,10 @@ public class PlayerController : MonoBehaviour{
     [Serializable]
     public class PlayerBall{
         public int index = -1;
+        public float lifeTime;
         public Transform transform;
         public SphereCollider collider;
+        public bool hitEnemy;
         public Vector3 velocity;
         public Vector3 velocityNormalized;
         public Vector3 velocityUp;
@@ -45,12 +47,14 @@ public class PlayerController : MonoBehaviour{
     private CapsuleCollider _collider;
     
     [Header("Balls")]
+    [SerializeField] private float ballCollectRadius;
     [SerializeField] private float maxBallSpeed;
     [SerializeField] private float ballGravity;
     [SerializeField] private float angularVelocityPower;
     [SerializeField] private float angularVelocitySense;
     [SerializeField] private float maxAngularVelocity;
     [SerializeField] private float angularVelocityDecreaseRate;
+    [SerializeField] private float findEnemiesRadius;
     
     private Vector3 _currentStartAngularVelocity;
     
@@ -237,26 +241,7 @@ public class PlayerController : MonoBehaviour{
     
     private void UpdateBalls(){
         if (Input.GetMouseButton(1)){
-            var imaginaryBall = SpawnPlayerBall();
-            imaginaryBall.transform.gameObject.name += "IMAGINE";
-            
-            _currentStartAngularVelocity += new Vector3(Input.GetAxis("Mouse Y"), Input.GetAxis("Mouse X"), 0) * angularVelocitySense;
-            _currentStartAngularVelocity.x = Mathf.Clamp(_currentStartAngularVelocity.x, -maxAngularVelocity, maxAngularVelocity);
-            _currentStartAngularVelocity.y = Mathf.Clamp(_currentStartAngularVelocity.y, -maxAngularVelocity, maxAngularVelocity);
-            
-            imaginaryBall.angularVelocity = _currentStartAngularVelocity;
-            
-            var iterationCount = 50;
-            var step = 0.02f;
-            
-            _ballPredictionLineRenderer.positionCount = iterationCount;
-            for (int i = 0; i < iterationCount; i++){
-                _ballPredictionLineRenderer.SetPosition(i, imaginaryBall.transform.position);
-                UpdateBall(imaginaryBall, step, true);
-            }
-            imaginaryBall.collider.enabled = false;
-            Destroy(imaginaryBall.transform.gameObject);
-            Destroy(imaginaryBall.collider);
+            PredictAndDrawBallTrajectory();
         } else{
             //_currentStartAngularVelocity = Vector3.Lerp(_currentStartAngularVelocity, Vector3.zero, Time.deltaTime * 4);
         }
@@ -275,6 +260,10 @@ public class PlayerController : MonoBehaviour{
         
         
         for (int i = 0; i < _balls.Count; i++){
+            if (_balls[i].transform == null){
+                //_balls.RemoveAt(i);
+                continue;
+            }
             UpdateBall(_balls[i], Time.deltaTime);    
         }
     }
@@ -291,10 +280,20 @@ public class PlayerController : MonoBehaviour{
         ball.velocity += (ball.velocityUp * ball.angularVelocity.x + ball.velocityRight * ball.angularVelocity.y) * angularVelocityPower * delta;
         
         //ball.transform.forward = ball.velocity;
+        
+        ball.lifeTime += delta;
     
         CalculateBallCollisions(ball, delta, imaginaryBall);
     
         ball.transform.Translate(ball.velocity * delta, Space.World);
+        
+        if (imaginaryBall || (ball.lifeTime < 1 && !ball.hitEnemy)) return;
+        var playerToBallVector = ball.transform.position - transform.position;
+        if (playerToBallVector.sqrMagnitude < ballCollectRadius * ballCollectRadius){
+            Destroy(ball.transform.gameObject);
+            //_balls.RemoveAt(ball.index);
+            _playerVelocity.y += 20;
+        }
     }
     
     private void CalculateBallCollisions(PlayerBall ball, float delta, bool imaginaryBall = false){
@@ -319,11 +318,32 @@ public class PlayerController : MonoBehaviour{
             if (enemy){
                 if (!imaginaryBall){
                     enemy.TakeHit(velocityHits[i].collider);
+                    ball.hitEnemy = true;
+                } else{
+                    Animations.Instance.ChangeMaterialColor(enemy.gameObject, Colors.PredictionHitColor * 3, 0.02f);
                 }
             }
             
-        
-            ball.velocity = Vector3.Reflect(ball.velocity, velocityHits[i].normal);
+            var reflectVectorNormalized = Vector3.Reflect(ball.velocity, velocityHits[i].normal).normalized;
+            
+            var enemiesInRange = Physics.OverlapSphere(ball.transform.position, findEnemiesRadius, Layers.EnemyHurtBox);
+            bool foundEnemy = false;
+            
+            float ballSpeed = ball.velocity.magnitude;
+            
+            for (int e = 0; i < enemiesInRange.Length; i++){
+                //if (velocityHits[i].normal.y == 1) return;
+                var ballToEnemyVectorNormalized = (enemiesInRange[e].transform.position - ball.transform.position).normalized;
+                if (Vector3.Dot(ballToEnemyVectorNormalized, reflectVectorNormalized) > 0.4f){
+                    ball.velocity = ballToEnemyVectorNormalized * ballSpeed;
+                    foundEnemy = true;
+                }
+            }
+            if (!foundEnemy){
+                ball.angularVelocity += reflectVectorNormalized * ballSpeed * 0.5f;
+                ball.velocity = reflectVectorNormalized * ballSpeed * 0.3f;
+                //ball.velocity.y += 10f;
+            }
             
             //ball.velocity += ball.transform.forward * ball.angularVelocity.x + ball.transform.right * ball.angularVelocity.y;
         }
@@ -332,6 +352,29 @@ public class PlayerController : MonoBehaviour{
             ball.velocity.y = 50;
         }
         */
+    }
+    
+    private void PredictAndDrawBallTrajectory(){
+        var imaginaryBall = SpawnPlayerBall();
+        imaginaryBall.transform.gameObject.name += "IMAGINE";
+        
+        _currentStartAngularVelocity += new Vector3(Input.GetAxis("Mouse Y"), Input.GetAxis("Mouse X"), 0) * angularVelocitySense;
+        _currentStartAngularVelocity.x = Mathf.Clamp(_currentStartAngularVelocity.x, -maxAngularVelocity, maxAngularVelocity);
+        _currentStartAngularVelocity.y = Mathf.Clamp(_currentStartAngularVelocity.y, -maxAngularVelocity, maxAngularVelocity);
+        
+        imaginaryBall.angularVelocity = _currentStartAngularVelocity;
+        
+        var iterationCount = 50;
+        var step = 0.02f;
+        
+        _ballPredictionLineRenderer.positionCount = iterationCount;
+        for (int i = 0; i < iterationCount; i++){
+            _ballPredictionLineRenderer.SetPosition(i, imaginaryBall.transform.position);
+            UpdateBall(imaginaryBall, step, true);
+        }
+        imaginaryBall.collider.enabled = false;
+        Destroy(imaginaryBall.transform.gameObject);
+        Destroy(imaginaryBall.collider);
     }
     
     private PlayerBall SpawnPlayerBall(){
@@ -353,5 +396,11 @@ public class PlayerController : MonoBehaviour{
     
     public bool IsGrounded(){
         return _grounded;
+    }
+    
+    private void OnDrawGizmosSelected(){
+        Gizmos.color = Color.blue;
+        
+        Gizmos.DrawWireSphere(transform.position, ballCollectRadius);
     }
 }
