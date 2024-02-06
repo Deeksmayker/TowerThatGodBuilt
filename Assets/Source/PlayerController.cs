@@ -1,25 +1,33 @@
 using UnityEngine;
 using System.Collections.Generic;
+using System;
+using TMPro;
 
 public class PlayerController : MonoBehaviour{
+    [Serializable]
     public class PlayerBall{
         public int index = -1;
         public Transform transform;
         public SphereCollider collider;
         public Vector3 velocity;
+        public Vector3 velocityNormalized;
+        public Vector3 velocityUp;
+        public Vector3 velocityRight;
         public Vector3 angularVelocity;
     }
     [Header("Player")]
     [SerializeField] private Transform directionTransform;
-    [SerializeField] private float speed;
-    [SerializeField] private float acceleration;
+    [SerializeField] private float maxSpeed;
+    [SerializeField] private float groundAcceleration, groundDeceleration, airAcceleration, airDeceleration;
+    [SerializeField] private float friction;
     [SerializeField] private float gravity;
     [SerializeField] private float jumpForce;
+    [SerializeField] private float jumpForwardBoost;
     
     private bool _grounded;
     
     private Vector3 _lastVelocity;
-    private Vector3 _velocity;
+    private Vector3 _playerVelocity;
     private Vector3 _moveInput;
     
     private CapsuleCollider _collider;
@@ -29,7 +37,8 @@ public class PlayerController : MonoBehaviour{
     [SerializeField] private float ballGravity;
     [SerializeField] private float angularVelocityPower;
     [SerializeField] private float angularVelocitySense;
-    [SerializeField] private float maxAngularVelocity = 40;
+    [SerializeField] private float maxAngularVelocity;
+    [SerializeField] private float angularVelocityDecreaseRate;
     
     private Vector3 _currentStartAngularVelocity;
     
@@ -37,39 +46,117 @@ public class PlayerController : MonoBehaviour{
     private GameObject       _playerBallPrefab;
     private List<PlayerBall> _balls = new();
     
+    [Header("Debug")]
+    [SerializeField] private bool showPlayerStats;
+    
+    private TextMeshProUGUI _speedTextMesh;
+    
     private void Awake(){
         _collider = GetComponent<CapsuleCollider>();
         
         _playerBallPrefab           = Utils.GetPrefab("PlayerBall");
         _ballPredictionLineRenderer = Instantiate(Utils.GetPrefab("PredictionTrail")).GetComponent<LineRenderer>();
+        
+        _speedTextMesh = GameObject.FindWithTag("SpeedText").GetComponent<TextMeshProUGUI>();
+        
+        if (!showPlayerStats){
+            _speedTextMesh.gameObject.SetActive(false);
+        }
     }
     
     private void Update(){
         _moveInput = new Vector3(Input.GetAxisRaw("Horizontal"), 0, Input.GetAxisRaw("Vertical"));
-        _moveInput.Normalize();
         
-        var wishVelocity = directionTransform.right * _moveInput.x + directionTransform.forward * _moveInput.z;
-            wishVelocity*= speed;
-        _velocity.x      = wishVelocity.x;
-        _velocity.z      = wishVelocity.z;
-    
-        var gravityMultiplierProgress = Mathf.InverseLerp(0, jumpForce, _velocity.y);
-        var gravityMultiplier         = Mathf.Lerp(1, 2, gravityMultiplierProgress * gravityMultiplierProgress);
-        _velocity += Vector3.down * gravity * gravityMultiplier * Time.deltaTime;
-        
-        CalculatePlayerCollisions(ref _velocity);
-        
-        if (Input.GetKeyDown(KeyCode.Space) && _grounded){
-            _velocity.y += jumpForce;
+        if (IsGrounded()){
+            GroundMove();
+        } else{
+            AirMove();
         }
         
-        transform.Translate(_velocity * Time.deltaTime);
+        var gravityMultiplierProgress = Mathf.InverseLerp(0, jumpForce, _playerVelocity.y);
+        var gravityMultiplier         = Mathf.Lerp(1, 2, gravityMultiplierProgress * gravityMultiplierProgress);
+        _playerVelocity += Vector3.down * gravity * gravityMultiplier * Time.deltaTime;
+        
+        CalculatePlayerCollisions(ref _playerVelocity);
+        
+        transform.Translate(_playerVelocity * Time.deltaTime);
         
         if (transform.position.y < -30){
             transform.position = Vector3.up * 10;
         }
         
         UpdateBalls();
+        BulletTime();
+        
+        if (showPlayerStats){
+            var horizontalSpeed = (new Vector3(_playerVelocity.x, 0, _playerVelocity.z)).magnitude;
+            _speedTextMesh.text = "Horizontal: " + horizontalSpeed;
+        }
+    }
+    
+    private void GroundMove(){
+        var wishDirection = new Vector3(_moveInput.x, 0, _moveInput.z);
+        wishDirection = directionTransform.right * wishDirection.x + directionTransform.forward * wishDirection.z;
+        wishDirection.Normalize();
+        var wishSpeed = wishDirection.sqrMagnitude * maxSpeed;
+        
+        ApplyFriction();
+        
+        var directionDotVelocity = Vector3.Dot(wishDirection, _playerVelocity.normalized);
+        var acceleration = directionDotVelocity < 0.5f ? groundDeceleration : groundAcceleration;
+        
+        Accelerate(wishDirection, wishSpeed, acceleration);
+        
+    
+        if (Input.GetKeyDown(KeyCode.Space)){
+            _playerVelocity.y += jumpForce;
+            _playerVelocity += wishDirection * jumpForwardBoost;
+        }
+    }
+    
+    private void AirMove(){
+        var wishDirection = new Vector3(_moveInput.x, 0, _moveInput.z);
+        wishDirection = directionTransform.right * wishDirection.x + directionTransform.forward * wishDirection.z;
+        wishDirection.Normalize();
+        var wishSpeed = wishDirection.sqrMagnitude * maxSpeed;
+        
+        var directionDotVelocity = Vector3.Dot(wishDirection, _playerVelocity.normalized);
+        var acceleration = directionDotVelocity < 0f ? airDeceleration : airAcceleration;
+
+        Accelerate(wishDirection, wishSpeed, acceleration);
+    }
+    
+    private void Accelerate(Vector3 targetDirection, float wishSpeed, float acceleration){
+        var speedInWishDirection = Vector3.Dot(_playerVelocity, targetDirection);
+        
+        var speedDifference = wishSpeed - speedInWishDirection;        
+        
+        if (speedDifference <= 0){
+            return;
+        }
+        
+        var accelerationSpeed = acceleration * speedDifference * Time.deltaTime;  
+        
+        _playerVelocity.x += targetDirection.x * accelerationSpeed;
+        _playerVelocity.z += targetDirection.z * accelerationSpeed;
+    }
+    
+    private void ApplyFriction(){
+        float speed = _playerVelocity.magnitude;
+        float speedDrop = friction * Time.deltaTime;
+        
+        if (speedDrop < 0) speedDrop = 0;
+        
+        float newSpeedMultiplier = speed - speedDrop;
+        
+        if (newSpeedMultiplier > 0){
+            newSpeedMultiplier /= speed;  
+        } else{
+            newSpeedMultiplier = 0;
+        }
+        
+        _playerVelocity.x *= newSpeedMultiplier;
+        _playerVelocity.z *= newSpeedMultiplier;
     }
     
     private void CalculatePlayerCollisions(ref Vector3 velocity){
@@ -120,11 +207,8 @@ public class PlayerController : MonoBehaviour{
             imaginaryBall.collider.enabled = false;
             Destroy(imaginaryBall.transform.gameObject);
             Destroy(imaginaryBall.collider);
-            
-            Time.timeScale = 0.05f;
         } else{
-            _currentStartAngularVelocity = Vector3.Lerp(_currentStartAngularVelocity, Vector3.zero, Time.deltaTime * 4);
-            Time.timeScale = 1f;
+            //_currentStartAngularVelocity = Vector3.Lerp(_currentStartAngularVelocity, Vector3.zero, Time.deltaTime * 4);
         }
         if (Input.GetMouseButtonUp(1)){
             _ballPredictionLineRenderer.positionCount = 0;
@@ -137,6 +221,9 @@ public class PlayerController : MonoBehaviour{
             _balls.Add(newBall);
         }
         
+        _currentStartAngularVelocity = Vector3.Lerp(_currentStartAngularVelocity, Vector3.zero, Time.unscaledDeltaTime * 2);
+        
+        
         for (int i = 0; i < _balls.Count; i++){
             UpdateBall(_balls[i], Time.deltaTime);    
         }
@@ -144,9 +231,16 @@ public class PlayerController : MonoBehaviour{
     
     private void UpdateBall(PlayerBall ball, float delta, bool imaginaryBall = false){
         ball.velocity += Vector3.down * ballGravity * delta;
-        ball.velocity += (ball.transform.up * ball.angularVelocity.x + ball.transform.right * ball.angularVelocity.y) * angularVelocityPower * delta;
+        ball.angularVelocity = Vector3.Lerp(ball.angularVelocity, Vector3.zero, delta * angularVelocityDecreaseRate);
         
-        ball.transform.forward = ball.velocity;
+        ball.velocityNormalized = ball.velocity.normalized;
+        
+        ball.velocityRight = Quaternion.Euler(0, 90, 0) * ball.velocityNormalized;
+        ball.velocityUp    = Quaternion.AngleAxis(-90, ball.velocityRight)* ball.velocityNormalized;
+        
+        ball.velocity += (ball.velocityUp * ball.angularVelocity.x + ball.velocityRight * ball.angularVelocity.y) * angularVelocityPower * delta;
+        
+        //ball.transform.forward = ball.velocity;
     
         CalculateBallCollisions(ball, delta, imaginaryBall);
     
@@ -180,6 +274,8 @@ public class PlayerController : MonoBehaviour{
             
         
             ball.velocity = Vector3.Reflect(ball.velocity, velocityHits[i].normal);
+            
+            //ball.velocity += ball.transform.forward * ball.angularVelocity.x + ball.transform.right * ball.angularVelocity.y;
         }
         /*
         if (Physics.CheckSphere(ball.transform.position, ball.collider.radius, Layers.Environment)){
@@ -192,8 +288,17 @@ public class PlayerController : MonoBehaviour{
         var newBall = new PlayerBall();
         newBall.transform = Instantiate(_playerBallPrefab, Utils.GetCameraTransform().position + Utils.GetCameraTransform().forward, Quaternion.identity).transform;
         newBall.collider = newBall.transform.GetComponent<SphereCollider>();
-        newBall.velocity = Utils.GetCameraTransform().forward * maxBallSpeed;
+        newBall.velocity = Utils.GetCameraTransform().forward * maxBallSpeed;// + _playerVelocity;
         return newBall;        
+    }
+    
+    private void BulletTime(){
+        if (Input.GetKey(KeyCode.LeftShift)){
+            Time.timeScale = 0.05f;
+        } 
+        if (Input.GetKeyUp(KeyCode.LeftShift)){
+            Time.timeScale = 1f;
+        }
     }
     
     public bool IsGrounded(){
