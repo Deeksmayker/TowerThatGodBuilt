@@ -161,8 +161,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: -0.000058398}
-  m_SizeDelta: {x: 1000.1, y: 482.91}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 1300, y: 482.91}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &53880583
 MonoBehaviour:
@@ -272,29 +272,23 @@ MonoBehaviour:
   - {fileID: 619505434}
   - {fileID: 227426143}
   commandMeanings:
-  - 0
-  - 1
-  - 2
-  - 3
-  - 4
-  - 5
-  - 6
-  - 7
-  - 8
-  - 9
-  - 10
+  - shows all available commands
+  - kills all enemies in the level
+  - reloads the current level
+  - restores player's health
+  - moves the player to the level's starting point
+  - saves progress at the current point
+  - exit the game
+  - shows player stats
   commands:
   - help
   - kill_all
   - reload_level
-  - attack_[target]
   - heal
-  - stats
   - teleport
-  - block
-  - analyze_[enemy]
   - save
   - exit
+  - stats
 --- !u!4 &92842152
 Transform:
   m_ObjectHideFlags: 0
@@ -617,7 +611,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -250.42, y: -462.4}
+  m_AnchoredPosition: {x: -399.99997, y: -462.4}
   m_SizeDelta: {x: 500, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &227426145
@@ -695,7 +689,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: -0.00012207031, y: 129.0539}
-  m_SizeDelta: {x: 1000.12, y: 482.908}
+  m_SizeDelta: {x: 1300, y: 482.908}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &370413836
 MonoBehaviour:
@@ -889,7 +883,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -250, y: -362.39996}
+  m_AnchoredPosition: {x: -400, y: -362.4}
   m_SizeDelta: {x: 500, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &619505436
@@ -966,7 +960,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -250.42, y: -262.4}
+  m_AnchoredPosition: {x: -400.00012, y: -262.4}
   m_SizeDelta: {x: 500, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &634484709
@@ -1690,7 +1684,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: -162.4}
-  m_SizeDelta: {x: 1000, y: 100}
+  m_SizeDelta: {x: 1300, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1143557402
 MonoBehaviour:
@@ -2420,7 +2414,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 0}
-  m_AnchoredPosition: {x: 10, y: 0}
+  m_AnchoredPosition: {x: 9.999939, y: 0}
   m_SizeDelta: {x: -20.000006, y: 482.91}
   m_Pivot: {x: 0.5, y: 0}
 --- !u!114 &2035014071
@@ -2443,7 +2437,7 @@ MonoBehaviour:
   m_ChildAlignment: 6
   m_StartCorner: 0
   m_StartAxis: 0
-  m_CellSize: {x: 983, y: 50}
+  m_CellSize: {x: 1300, y: 50}
   m_Spacing: {x: 0, y: 0}
   m_Constraint: 1
   m_ConstraintCount: 1
