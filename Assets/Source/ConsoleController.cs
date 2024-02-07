@@ -41,23 +41,18 @@ public class ConsoleController : MonoBehaviour
         }
     }
 
-    public void CreateNewHistoryText(string text, bool isWrongCommand = false)
+    public void CreateNewHistoryText(string text)
     {
         historyPanel.SetActive(true);
 
         var newTextObject = Instantiate(historyTextPrefab, historyContent.transform);
         historyContent.GetComponent<RectTransform>().sizeDelta = new Vector2(0, historyContent.transform.childCount * 50);
         newTextObject.GetComponent<TextMeshProUGUI>().text = text;
+    }
 
-        if (isWrongCommand)
-        {
-            var wrongTextObject = Instantiate(historyTextPrefab, historyContent.transform);
-            historyContent.GetComponent<RectTransform>().sizeDelta = new Vector2(0, historyContent.transform.childCount * 50);
-            wrongTextObject.GetComponent<TextMeshProUGUI>().text = "No such command found";
-        }
-
-        historyContent.transform.localPosition = new Vector3(historyContent.transform.localPosition.x, 0, 0);
-        // ???
+    public void CreateWrongHistoryText()
+    {
+        CreateNewHistoryText("No such command found");
     }
 
     public void CheckForHint()
@@ -99,13 +94,36 @@ public class ConsoleController : MonoBehaviour
     {
         if (consoleLine != null)
         {
+            CreateNewHistoryText("--" + consoleLine.text);
+
             switch (consoleLine.text)
             {
                 case "help":
                     Command_Help();
                     break;
+                case "kill_all":
+                    Command_KillAll();
+                    break;
+                case "reload_level":
+                    Command_ReloadLevel();
+                    break;
+                case "heal":
+                    Command_Heal();
+                    break;
+                case "teleport":
+                    Command_Teleport();
+                    break;
+                case "save":
+                    Command_Save();
+                    break;
+                case "exit":
+                    Command_Exit();
+                    break;
+                case "stats":
+                    Command_Stats();
+                    break;
                 default:
-                    CreateNewHistoryText("--" + consoleLine.text, true);
+                    CreateWrongHistoryText();
                     break;
             }
         }
@@ -122,8 +140,42 @@ public class ConsoleController : MonoBehaviour
 
     public void Command_Help()
     {
-        CreateNewHistoryText("--help");
-        for (int i = 1; i < commands.Count; i++)
+        for (int i = 0; i < commands.Count; i++)
             CreateNewHistoryText(commands[i] + " - " + commandMeanings[i]);
+    }
+
+    public void Command_KillAll()
+    {
+        CreateNewHistoryText("All enemies are killed.");
+    }
+
+    public void Command_ReloadLevel()
+    {
+        CreateNewHistoryText("The level has been reloaded.");
+    }
+
+    public void Command_Heal()
+    {
+        CreateNewHistoryText("The player's health is restored.");
+    }
+
+    public void Command_Teleport()
+    {
+        CreateNewHistoryText("The player is moved to the starting point.");
+    }
+
+    public void Command_Save()
+    {
+        CreateNewHistoryText("The game is saved.");
+    }
+
+    public void Command_Exit()
+    {
+        CreateNewHistoryText("The game is exiting.");
+    }
+
+    public void Command_Stats()
+    {
+        CreateNewHistoryText("The player's stats are shown.");
     }
 }
