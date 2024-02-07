@@ -522,15 +522,18 @@ MonoBehaviour:
   friction: 100
   gravity: 40
   minJumpForce: 20
-  maxJumpForce: 60
-  timeToChargeMaxJump: 1
+  maxJumpForce: 140
+  timeToChargeMaxJump: 3
   jumpChargeStaminaDrain: 30
   jumpForwardBoost: 10
+  coyoteTime: 0.2
+  jumpBufferTime: 0.3
   maxStamina: 100
   staminaRecoveryRate: 5
   ballCollectRadius: 6
-  maxBallSpeed: 60
-  ballGravity: 15
+  shootCooldown: 0.05
+  maxBallSpeed: 50
+  ballGravity: 25
   angularVelocityPower: 2
   angularVelocitySense: 1
   maxAngularVelocity: 100
@@ -896,7 +899,7 @@ MonoBehaviour:
   xRotationTarget: {fileID: 487328578}
   yRotationTarget: {fileID: 405827257}
   sense: 2
-  rmbSenseMultiplier: 0.4
+  rmbSenseMultiplier: 0.2
 --- !u!1 &994570587
 GameObject:
   m_ObjectHideFlags: 0
