@@ -145,6 +145,7 @@ public class PlayerController : MonoBehaviour{
             _jumpBufferTimer -= Time.deltaTime;
             if (_jumpBufferTimer <= 0){
                 _currentStamina += _jumpChargeProgress * timeToChargeMaxJump * jumpChargeStaminaDrain;
+                _jumpChargeProgress = 0;
             }
         }
         
@@ -232,8 +233,8 @@ public class PlayerController : MonoBehaviour{
     
     private void ApplyFriction(){
         float speed = _playerVelocity.magnitude;
-        /*
-        float speedDrop = Mathf.Pow(_currentFriction, Time.deltaTime * _currentFriction);
+        
+        float speedDrop = _currentFriction * Time.deltaTime;
         
         if (speedDrop < 0) speedDrop = 0;
         
@@ -244,11 +245,10 @@ public class PlayerController : MonoBehaviour{
         } else{
             newSpeedMultiplier = 0;
         }
-        */
-        var newSpeedMultiplier = 1 / (1 + (Time.deltaTime * _currentFriction));
         
         _playerVelocity.x *= newSpeedMultiplier;
         _playerVelocity.z *= newSpeedMultiplier;
+        
     }
     
     private void CalculatePlayerCollisions(ref Vector3 velocity){
