@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System;
 using TMPro;
 using UnityEngine.UI;
+using static UnityEngine.Mathf;
+using static UnityEngine.Physics;
+using static Utils;
 
 public class PlayerController : MonoBehaviour{
     [Serializable]
@@ -81,8 +84,8 @@ public class PlayerController : MonoBehaviour{
         Application.targetFrameRate = 200;
         _collider = GetComponent<CapsuleCollider>();
         
-        _playerBallPrefab           = Utils.GetPrefab("PlayerBall");
-        _ballPredictionLineRenderer = Instantiate(Utils.GetPrefab("PredictionTrail")).GetComponent<LineRenderer>();
+        _playerBallPrefab           = GetPrefab("PlayerBall");
+        _ballPredictionLineRenderer = Instantiate(GetPrefab("PredictionTrail")).GetComponent<LineRenderer>();
         
         _currentStamina  = maxStamina;
         _currentSpeed    = baseSpeed;
@@ -118,14 +121,14 @@ public class PlayerController : MonoBehaviour{
             AirMove(wishDirection);
         }
         
-        var gravityMultiplierProgress = Mathf.InverseLerp(0, minJumpForce, _playerVelocity.y);
-        var gravityMultiplier         = Mathf.Lerp(1, 2, gravityMultiplierProgress * gravityMultiplierProgress);
+        var gravityMultiplierProgress = InverseLerp(0, minJumpForce, _playerVelocity.y);
+        var gravityMultiplier         = Lerp(1, 2, gravityMultiplierProgress * gravityMultiplierProgress);
         _playerVelocity += Vector3.down * gravity * gravityMultiplier * Time.deltaTime;
         
         if (Input.GetKey(KeyCode.Space)){   
             if (_currentStamina > 0 && _jumpChargeProgress < 1){
                 _jumpChargeProgress += Time.unscaledDeltaTime / timeToChargeMaxJump;
-                _currentStamina -= Time.deltaTime * jumpChargeStaminaDrain;
+                _currentStamina -= Time.unscaledDeltaTime * jumpChargeStaminaDrain;
                 _jumpBufferTimer = 0;
                 _currentFriction = friction * 0.5f;
             } else{
@@ -136,7 +139,7 @@ public class PlayerController : MonoBehaviour{
             if (_currentStamina > 0){
                 _currentSpeed = sprintSpeed;
                 _currentStamina -= Time.deltaTime * sprintStaminaDrain;
-            } else{
+            } else {
                 _currentSpeed = baseSpeed;
             }
         }
@@ -163,7 +166,7 @@ public class PlayerController : MonoBehaviour{
         }
         
         if (!Input.GetKey(KeyCode.Space) && !Input.GetKey(KeyCode.LeftShift)){
-            _currentStamina = Mathf.Clamp(_currentStamina + staminaRecoveryRate * Time.deltaTime, 0, maxStamina);
+            _currentStamina = Clamp(_currentStamina + staminaRecoveryRate * Time.deltaTime, 0, maxStamina);
         }
         
         _staminaSlider.value = _currentStamina / maxStamina;
@@ -187,7 +190,7 @@ public class PlayerController : MonoBehaviour{
     }
     
     private void Jump(Vector3 wishDirection){
-        _playerVelocity.y += Mathf.Lerp(minJumpForce, maxJumpForce, _jumpChargeProgress);
+        _playerVelocity.y += Lerp(minJumpForce, maxJumpForce, _jumpChargeProgress);
         _playerVelocity += wishDirection * jumpForwardBoost;
         _jumpBufferTimer = 0;
         _jumpChargeProgress = 0;
@@ -257,21 +260,21 @@ public class PlayerController : MonoBehaviour{
         
         var deltaVelocity = velocity * Time.deltaTime;
         
-        RaycastHit[] velocityHits = Physics.CapsuleCastAll(sphereCenter1, sphereCenter2, _collider.radius, velocity.normalized, deltaVelocity.magnitude, Layers.Environment);
+        RaycastHit[] enemyHits = CapsuleCastAll(sphereCenter1, sphereCenter2, _collider.radius, velocity.normalized, deltaVelocity.magnitude, Layers.Environment);
         
         bool foundGround = false;
         
-        for (int i = 0; i < velocityHits.Length; i++){
-            velocity -= velocityHits[i].normal * Vector3.Dot(velocity, velocityHits[i].normal);
+        for (int i = 0; i < enemyHits.Length; i++){
+            velocity -= enemyHits[i].normal * Vector3.Dot(velocity, enemyHits[i].normal);
             
-            if (Vector3.Angle(velocityHits[i].normal, Vector3.up) <= 30){
+            if (Vector3.Angle(enemyHits[i].normal, Vector3.up) <= 30){
                 foundGround = true;
             }
         }
         
         _grounded = foundGround;
         
-        if (Physics.CheckCapsule(sphereCenter1, sphereCenter2, _collider.radius, Layers.Environment)){
+        if (CheckCapsule(sphereCenter1, sphereCenter2, _collider.radius, Layers.Environment)){
             velocity.y = 50;
             _grounded = true;
         }
@@ -282,10 +285,17 @@ public class PlayerController : MonoBehaviour{
             _shootCooldownTimer -= Time.deltaTime;
         }
     
+        var angularVelocityDecreaseMultiplier = 0.5f; 
+        
+        if (Input.GetMouseButtonDown(1)){
+            _currentStartAngularVelocity = Vector3.zero;
+        }
+        
         if (Input.GetMouseButton(1)){
             PredictAndDrawBallTrajectory();
         } else{
             //_currentStartAngularVelocity = Vector3.Lerp(_currentStartAngularVelocity, Vector3.zero, Time.deltaTime * 4);
+            angularVelocityDecreaseMultiplier = 2f;
         }
         if (Input.GetMouseButtonUp(1)){
             _ballPredictionLineRenderer.positionCount = 0;
@@ -300,7 +310,7 @@ public class PlayerController : MonoBehaviour{
             _shootCooldownTimer = shootCooldown;
         }
         
-        _currentStartAngularVelocity = Vector3.Lerp(_currentStartAngularVelocity, Vector3.zero, Time.unscaledDeltaTime * 0.5f);
+        _currentStartAngularVelocity = Vector3.Lerp(_currentStartAngularVelocity, Vector3.zero, Time.unscaledDeltaTime * angularVelocityDecreaseMultiplier);
         
         
         for (int i = 0; i < _balls.Count; i++){
@@ -314,7 +324,9 @@ public class PlayerController : MonoBehaviour{
     
     private void UpdateBall(PlayerBall ball, float delta, bool imaginaryBall = false){
         ball.velocity += Vector3.down * ballGravity * delta;
-        ball.angularVelocity = Vector3.Lerp(ball.angularVelocity, Vector3.zero, delta * angularVelocityDecreaseRate);
+        
+        ball.angularVelocity.y = Lerp(ball.angularVelocity.y, 0, delta * angularVelocityDecreaseRate);
+        ball.angularVelocity.x = Lerp(ball.angularVelocity.x, 0, delta * angularVelocityDecreaseRate * 2);
         
         ball.velocityNormalized = ball.velocity.normalized;
         
@@ -349,40 +361,42 @@ public class PlayerController : MonoBehaviour{
         var deltaVelocity = ball.velocity * delta;
         
         var hitableLayers = Layers.PlayerBallHitable;
-        
+        /*
         if (imaginaryBall){
             hitableLayers &= ~(int)Layers.PlayerProjectile;
         }
-        RaycastHit[] velocityHits = Physics.SphereCastAll(ball.transform.position, ball.collider.radius, ball.velocity.normalized, deltaVelocity.magnitude, hitableLayers);
+        */
+        RaycastHit[] enemyHits = SphereCastAll(ball.transform.position, ball.collider.radius, ball.velocity.normalized, deltaVelocity.magnitude, Layers.EnemyHurtBox);
         
-        for (int i = 0; i < velocityHits.Length; i++){
-            if (velocityHits[i].transform == ball.transform) continue;
+        for (int i = 0; i < enemyHits.Length; i++){
+            if (enemyHits[i].transform == ball.transform) continue;
             
-            ball.bounceCount++;
+            if (ball.velocity.sqrMagnitude > 25){
+                ball.bounceCount++;
+            }
             
-            bool hitBallLayer = ((1 << velocityHits[i].transform.gameObject.layer) & (int)Layers.PlayerProjectile) > 0;
+            bool hitBallLayer = ((1 << enemyHits[i].transform.gameObject.layer) & (int)Layers.PlayerProjectile) > 0;
             if (hitBallLayer){
             }
             
-            var enemy = velocityHits[i].collider.GetComponentInParent<Enemy>();
+            var enemy = enemyHits[i].collider.GetComponentInParent<Enemy>();
             if (enemy){
                 if (!imaginaryBall){
-                    enemy.TakeHit(velocityHits[i].collider);
+                    enemy.TakeHit(enemyHits[i].collider);
                     ball.hitEnemy = true;
                 } else{
                     Animations.Instance.ChangeMaterialColor(enemy.gameObject, Colors.PredictionHitColor * 3, 0.02f);
                 }
             }
             
-            var reflectVectorNormalized = Vector3.Reflect(ball.velocity, velocityHits[i].normal).normalized;
+            var reflectVectorNormalized = Vector3.Reflect(ball.velocity, enemyHits[i].normal).normalized;
             
-            var enemiesInRange = Physics.OverlapSphere(ball.transform.position, findEnemiesRadius, Layers.EnemyHurtBox);
+            var enemiesInRange = OverlapSphere(ball.transform.position, findEnemiesRadius, Layers.EnemyHurtBox);
             bool foundEnemy = false;
             
             float ballSpeed = ball.velocity.magnitude;
             
             for (int e = 0; i < enemiesInRange.Length; i++){
-                //if (velocityHits[i].normal.y == 1) return;
                 var ballToEnemyVectorNormalized = (enemiesInRange[e].transform.position - ball.transform.position).normalized;
                 if (Vector3.Dot(ballToEnemyVectorNormalized, reflectVectorNormalized) > 1f - (ball.bounceCount * 0.1f)){
                     ball.velocity = ballToEnemyVectorNormalized * ballSpeed;
@@ -390,19 +404,15 @@ public class PlayerController : MonoBehaviour{
                 }
             }
             if (!foundEnemy){
-                //ball.angularVelocity += reflectVectorNormalized * ballSpeed * 0.5f;
-                //ball.angularVelocity.x = Mathf.Abs(ball.angularVelocity.x);
                 ball.velocity = reflectVectorNormalized * ballSpeed * 0.6f;
-                //ball.velocity.y += 10f;
             }
-            
-            //ball.velocity += ball.transform.forward * ball.angularVelocity.x + ball.transform.right * ball.angularVelocity.y;
         }
-        /*
-        if (Physics.CheckSphere(ball.transform.position, ball.collider.radius, Layers.Environment)){
-            ball.velocity.y = 50;
+        
+        RaycastHit[] environmentHits = SphereCastAll(ball.transform.position, 0.5f, ball.velocity.normalized, deltaVelocity.magnitude, Layers.Environment);
+        
+        for (int i = 0; i < environmentHits.Length; i++){
+            ball.velocity = Vector3.Reflect(ball.velocity, environmentHits[i].normal) * 0.6f;
         }
-        */
     }
     
     private void PredictAndDrawBallTrajectory(){
@@ -410,8 +420,8 @@ public class PlayerController : MonoBehaviour{
         imaginaryBall.transform.gameObject.name += "IMAGINE";
         
         _currentStartAngularVelocity += new Vector3(Input.GetAxis("Mouse Y"), Input.GetAxis("Mouse X"), 0) * angularVelocitySense;
-        _currentStartAngularVelocity.x = Mathf.Clamp(_currentStartAngularVelocity.x, -maxAngularVelocity, maxAngularVelocity);
-        _currentStartAngularVelocity.y = Mathf.Clamp(_currentStartAngularVelocity.y, -maxAngularVelocity, maxAngularVelocity);
+        _currentStartAngularVelocity.x = Clamp(_currentStartAngularVelocity.x, -maxAngularVelocity, maxAngularVelocity);
+        _currentStartAngularVelocity.y = Clamp(_currentStartAngularVelocity.y, -maxAngularVelocity, maxAngularVelocity);
         
         imaginaryBall.angularVelocity = _currentStartAngularVelocity;
         
@@ -430,9 +440,13 @@ public class PlayerController : MonoBehaviour{
     
     private PlayerBall SpawnPlayerBall(){
         var newBall = new PlayerBall();
-        newBall.transform = Instantiate(_playerBallPrefab, Utils.GetCameraTransform().position + Utils.GetCameraTransform().forward, Quaternion.identity).transform;
+        newBall.transform = Instantiate(_playerBallPrefab, GetCameraTransform().position + GetCameraTransform().forward, Quaternion.identity).transform;
         newBall.collider = newBall.transform.GetComponent<SphereCollider>();
-        newBall.velocity = Utils.GetCameraTransform().forward * maxBallSpeed;// + _playerVelocity;
+        newBall.velocity = GetCameraTransform().forward * maxBallSpeed + _playerVelocity * 0.5f;
+        
+        var colliderSizeProgress = Clamp01(_playerVelocity.magnitude / 50);
+        newBall.collider.radius = Lerp(1, 3, colliderSizeProgress);
+        
         return newBall;        
     }
     
