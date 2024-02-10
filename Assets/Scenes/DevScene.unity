@@ -173,7 +173,7 @@ PrefabInstance:
     - target: {fileID: 3680361219257454953, guid: 4aeacc321b779d04f972906b7946d35b,
         type: 3}
       propertyPath: m_LocalPosition.x
-      value: -22.920895
+      value: -28.8
       objectReference: {fileID: 0}
     - target: {fileID: 3680361219257454953, guid: 4aeacc321b779d04f972906b7946d35b,
         type: 3}
@@ -427,6 +427,7 @@ GameObject:
   m_Component:
   - component: {fileID: 719753534}
   - component: {fileID: 719753535}
+  - component: {fileID: 719753536}
   m_Layer: 0
   m_Name: BaseStuff
   m_TagString: Untagged
@@ -463,6 +464,18 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8ffd565b813a03c48bce45a1943ec15b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &719753536
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 719753533}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 344b692c18e253d46ae34bce345f861c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
 --- !u!1 &732867776
@@ -518,7 +531,7 @@ MonoBehaviour:
   groundAcceleration: 15
   groundDeceleration: 5
   airAcceleration: 2
-  airDeceleration: 20
+  airDeceleration: 5
   friction: 100
   gravity: 40
   minJumpForce: 20
@@ -535,7 +548,7 @@ MonoBehaviour:
   maxBallSpeed: 50
   ballGravity: 25
   angularVelocityPower: 2
-  angularVelocitySense: 1
+  angularVelocitySense: 2
   maxAngularVelocity: 100
   angularVelocityDecreaseRate: 1
   findEnemiesRadius: 100
@@ -656,7 +669,7 @@ PrefabInstance:
     - target: {fileID: 3680361219257454953, guid: 4aeacc321b779d04f972906b7946d35b,
         type: 3}
       propertyPath: m_LocalPosition.x
-      value: -10.171188
+      value: -16.050293
       objectReference: {fileID: 0}
     - target: {fileID: 3680361219257454953, guid: 4aeacc321b779d04f972906b7946d35b,
         type: 3}
@@ -965,7 +978,7 @@ PrefabInstance:
     - target: {fileID: 3680361219257454953, guid: 4aeacc321b779d04f972906b7946d35b,
         type: 3}
       propertyPath: m_LocalPosition.x
-      value: -11.6131115
+      value: -17.492216
       objectReference: {fileID: 0}
     - target: {fileID: 3680361219257454953, guid: 4aeacc321b779d04f972906b7946d35b,
         type: 3}
