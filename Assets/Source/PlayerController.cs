@@ -8,20 +8,6 @@ using static UnityEngine.Physics;
 using static Utils;
 
 public class PlayerController : MonoBehaviour{
-    [Serializable]
-    public class PlayerBall{
-        public int index = -1;
-        public int bounceCount;
-        public float lifeTime;
-        public Transform transform;
-        public SphereCollider collider;
-        public bool hitEnemy;
-        public Vector3 velocity;
-        public Vector3 velocityNormalized;
-        public Vector3 velocityUp;
-        public Vector3 velocityRight;
-        public Vector3 angularVelocity;
-    }
     [Header("Player")]
     [SerializeField] private Transform directionTransform;
     [SerializeField] private float baseSpeed, sprintSpeed;
@@ -72,7 +58,7 @@ public class PlayerController : MonoBehaviour{
     private float _shootCooldownTimer;
     
     private LineRenderer     _ballPredictionLineRenderer;
-    private GameObject       _playerBallPrefab;
+    private PlayerBall       _playerBallPrefab;
     private List<PlayerBall> _balls = new();
     
     [Header("Debug")]
@@ -84,7 +70,7 @@ public class PlayerController : MonoBehaviour{
         Application.targetFrameRate = 200;
         _collider = GetComponent<CapsuleCollider>();
         
-        _playerBallPrefab           = GetPrefab("PlayerBall");
+        _playerBallPrefab           = GetPrefab("PlayerBall").GetComponent<PlayerBall>();
         _ballPredictionLineRenderer = Instantiate(GetPrefab("PredictionTrail")).GetComponent<LineRenderer>();
         
         _currentStamina  = maxStamina;
@@ -314,7 +300,7 @@ public class PlayerController : MonoBehaviour{
         
         
         for (int i = 0; i < _balls.Count; i++){
-            if (_balls[i].transform == null){
+            if (_balls[i] == null){
                 //_balls.RemoveAt(i);
                 continue;
             }
@@ -346,7 +332,7 @@ public class PlayerController : MonoBehaviour{
         if (imaginaryBall || (ball.lifeTime < 1 && !ball.hitEnemy)) return;
         var playerToBallVector = ball.transform.position - transform.position;
         if (playerToBallVector.sqrMagnitude < ballCollectRadius * ballCollectRadius){
-            Destroy(ball.transform.gameObject);
+            Destroy(ball.gameObject);
             //_balls.RemoveAt(ball.index);
             if (_playerVelocity.y < 10){
                 _playerVelocity.y = 30;
@@ -366,7 +352,7 @@ public class PlayerController : MonoBehaviour{
             hitableLayers &= ~(int)Layers.PlayerProjectile;
         }
         */
-        RaycastHit[] enemyHits = SphereCastAll(ball.transform.position, ball.collider.radius, ball.velocity.normalized, deltaVelocity.magnitude, Layers.EnemyHurtBox);
+        RaycastHit[] enemyHits = SphereCastAll(ball.transform.position, ball.sphere.radius, ball.velocity.normalized, deltaVelocity.magnitude, Layers.EnemyHurtBox);
         
         for (int i = 0; i < enemyHits.Length; i++){
             if (enemyHits[i].transform == ball.transform) continue;
@@ -417,7 +403,7 @@ public class PlayerController : MonoBehaviour{
     
     private void PredictAndDrawBallTrajectory(){
         var imaginaryBall = SpawnPlayerBall();
-        imaginaryBall.transform.gameObject.name += "IMAGINE";
+        imaginaryBall.gameObject.name += "IMAGINE";
         
         _currentStartAngularVelocity += new Vector3(Input.GetAxis("Mouse Y"), Input.GetAxis("Mouse X"), 0) * angularVelocitySense;
         _currentStartAngularVelocity.x = Clamp(_currentStartAngularVelocity.x, -maxAngularVelocity, maxAngularVelocity);
@@ -425,7 +411,7 @@ public class PlayerController : MonoBehaviour{
         
         imaginaryBall.angularVelocity = _currentStartAngularVelocity;
         
-        var iterationCount = 50;
+        var iterationCount = 100;
         var step = 0.02f;
         
         _ballPredictionLineRenderer.positionCount = iterationCount;
@@ -433,19 +419,18 @@ public class PlayerController : MonoBehaviour{
             _ballPredictionLineRenderer.SetPosition(i, imaginaryBall.transform.position);
             UpdateBall(imaginaryBall, step, true);
         }
-        imaginaryBall.collider.enabled = false;
-        Destroy(imaginaryBall.transform.gameObject);
-        Destroy(imaginaryBall.collider);
+        imaginaryBall.sphere.enabled = false;
+        Destroy(imaginaryBall.sphere);
+        Destroy(imaginaryBall.gameObject);
     }
     
     private PlayerBall SpawnPlayerBall(){
-        var newBall = new PlayerBall();
-        newBall.transform = Instantiate(_playerBallPrefab, GetCameraTransform().position + GetCameraTransform().forward, Quaternion.identity).transform;
-        newBall.collider = newBall.transform.GetComponent<SphereCollider>();
+        var newBall = Instantiate(_playerBallPrefab, GetCameraTransform().position + GetCameraTransform().forward, Quaternion.identity);
+        newBall.sphere = newBall.GetComponent<SphereCollider>();
         newBall.velocity = GetCameraTransform().forward * maxBallSpeed + _playerVelocity * 0.5f;
         
         var colliderSizeProgress = Clamp01(_playerVelocity.magnitude / 50);
-        newBall.collider.radius = Lerp(1, 3, colliderSizeProgress);
+        newBall.sphere.radius = Lerp(1, 3, colliderSizeProgress);
         
         return newBall;        
     }

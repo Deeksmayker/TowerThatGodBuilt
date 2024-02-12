@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 6402918715182017267}
   - component: {fileID: 2464938941826472102}
   - component: {fileID: 5054228027262072340}
+  - component: {fileID: -2034888481101039380}
   m_Layer: 8
   m_Name: PlayerBall
   m_TagString: PlayerBall
@@ -159,6 +160,28 @@ TrailRenderer:
   m_Autodestruct: 0
   m_Emitting: 1
   m_ApplyActiveColorSpace: 1
+--- !u!114 &-2034888481101039380
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 329500543431366814}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 61007fa1db653e541a3b925f984df081, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  index: -1
+  bounceCount: 0
+  lifeTime: 0
+  sphere: {fileID: 0}
+  hitEnemy: 0
+  velocity: {x: 0, y: 0, z: 0}
+  velocityNormalized: {x: 0, y: 0, z: 0}
+  velocityUp: {x: 0, y: 0, z: 0}
+  velocityRight: {x: 0, y: 0, z: 0}
+  angularVelocity: {x: 0, y: 0, z: 0}
 --- !u!1 &7856426857642648969
 GameObject:
   m_ObjectHideFlags: 0
