@@ -18,10 +18,7 @@ public class ConsoleController : MonoBehaviour
 
     private bool _isConsoleOpened = false;
 
-    private void Start()
-    {
-        consoleLine.onValueChanged.AddListener(delegate { CheckForHint(); });
-    }
+    private void Start() => consoleLine.onValueChanged.AddListener(delegate { CheckForHint(); });
 
     private void Update()
     {
@@ -50,10 +47,7 @@ public class ConsoleController : MonoBehaviour
         newTextObject.GetComponent<TextMeshProUGUI>().text = text;
     }
 
-    public void CreateWrongHistoryText()
-    {
-        CreateNewHistoryText("No such command found");
-    }
+    public void CreateWrongHistoryText() => CreateNewHistoryText("No such command found");
 
     public void CheckForHint()
     {
@@ -144,38 +138,17 @@ public class ConsoleController : MonoBehaviour
             CreateNewHistoryText(commands[i] + " - " + commandMeanings[i]);
     }
 
-    public void Command_KillAll()
-    {
-        CreateNewHistoryText("All enemies are killed.");
-    }
+    public void Command_KillAll() => CreateNewHistoryText("All enemies are killed.");
 
-    public void Command_ReloadLevel()
-    {
-        CreateNewHistoryText("The level has been reloaded.");
-    }
+    public void Command_ReloadLevel() => CreateNewHistoryText("The level has been reloaded.");
 
-    public void Command_Heal()
-    {
-        CreateNewHistoryText("The player's health is restored.");
-    }
+    public void Command_Heal() => CreateNewHistoryText("The player's health is restored.");
 
-    public void Command_Teleport()
-    {
-        CreateNewHistoryText("The player is moved to the starting point.");
-    }
+    public void Command_Teleport() => CreateNewHistoryText("The player is moved to the starting point.");
 
-    public void Command_Save()
-    {
-        CreateNewHistoryText("The game is saved.");
-    }
+    public void Command_Save() => CreateNewHistoryText("The game is saved.");
 
-    public void Command_Exit()
-    {
-        CreateNewHistoryText("The game is exiting.");
-    }
+    public void Command_Exit() => CreateNewHistoryText("The game is exiting.");
 
-    public void Command_Stats()
-    {
-        CreateNewHistoryText("The player's stats are shown.");
-    }
+    public void Command_Stats() => CreateNewHistoryText("The player's stats are shown.");
 }
