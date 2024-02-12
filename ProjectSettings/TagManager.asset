@@ -7,6 +7,7 @@ TagManager:
   - SpeedText
   - StaminaSlider
   - PlayerBall
+  - BallCounter
   layers:
   - Default
   - TransparentFX
@@ -18,8 +19,8 @@ TagManager:
   - Player
   - PlayerProjectile
   - EnemyHurtBox
-  - 
-  - 
+  - PlayerHurtBox
+  - EnemyProjectile
   - 
   - 
   - 

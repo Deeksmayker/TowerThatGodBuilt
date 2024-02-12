@@ -22,6 +22,8 @@ public class PlayerController : MonoBehaviour{
     [SerializeField] private float coyoteTime, jumpBufferTime;
     [SerializeField] private float maxStamina;
     [SerializeField] private float staminaRecoveryRate;
+    [SerializeField] private float ballReloadTime;
+    [SerializeField] private int   maxBallCount;
     
     private float _currentFriction;
     private float _currentStamina;
@@ -30,9 +32,13 @@ public class PlayerController : MonoBehaviour{
     private float _timeSinceGrounded;
     private float _jumpBufferTimer;
     
+    private float _ballReloadTimer;
+    private int   _currentBallCount;
+    
     private bool _needToJump;
     
-    private Slider _staminaSlider;
+    private Slider          _staminaSlider;
+    private TextMeshProUGUI _ballCounterTextMesh;
     
     private bool _grounded;
     
@@ -77,7 +83,11 @@ public class PlayerController : MonoBehaviour{
         _currentSpeed    = baseSpeed;
         _currentFriction = friction;
         
-        _staminaSlider = GameObject.FindWithTag("StaminaSlider").GetComponent<Slider>();
+        _staminaSlider       = GameObject.FindWithTag("StaminaSlider").GetComponent<Slider>();
+        _ballCounterTextMesh = GameObject.FindWithTag("BallCounter").GetComponent<TextMeshProUGUI>();
+        
+        _currentBallCount = maxBallCount;
+        _ballCounterTextMesh.text = _currentBallCount.ToString();
         
         _speedTextMesh = GameObject.FindWithTag("SpeedText").GetComponent<TextMeshProUGUI>();
         
@@ -267,6 +277,18 @@ public class PlayerController : MonoBehaviour{
     }
     
     private void UpdateBalls(){
+        if (_currentBallCount < maxBallCount){
+            _ballReloadTimer -= Time.deltaTime;
+            if (_ballReloadTimer <= 0){
+                _currentBallCount++;
+                _ballCounterTextMesh.text = _currentBallCount.ToString();
+                
+                if (_currentBallCount < maxBallCount){
+                    _ballReloadTimer = ballReloadTime;
+                }
+            }
+        }
+    
         if (_shootCooldownTimer > 0){
             _shootCooldownTimer -= Time.deltaTime;
         }
@@ -277,7 +299,7 @@ public class PlayerController : MonoBehaviour{
             _currentStartAngularVelocity = Vector3.zero;
         }
         
-        if (Input.GetMouseButton(1)){
+        if (Input.GetMouseButton(1) && _currentBallCount > 0){
             PredictAndDrawBallTrajectory();
         } else{
             //_currentStartAngularVelocity = Vector3.Lerp(_currentStartAngularVelocity, Vector3.zero, Time.deltaTime * 4);
@@ -287,11 +309,17 @@ public class PlayerController : MonoBehaviour{
             _ballPredictionLineRenderer.positionCount = 0;
         }
     
-        if (Input.GetMouseButtonDown(0) && _shootCooldownTimer <= 0){
+        if (Input.GetMouseButtonDown(0) && _shootCooldownTimer <= 0 && _currentBallCount > 0){
             PlayerBall newBall = SpawnPlayerBall();
             newBall.index = _balls.Count;
             newBall.angularVelocity = _currentStartAngularVelocity;
             _balls.Add(newBall);
+            
+            _currentBallCount--;
+            _ballCounterTextMesh.text = _currentBallCount.ToString();
+            if (_ballReloadTimer <= 0){
+                _ballReloadTimer = ballReloadTime;
+            }
             
             _shootCooldownTimer = shootCooldown;
         }
@@ -332,6 +360,11 @@ public class PlayerController : MonoBehaviour{
         if (imaginaryBall || (ball.lifeTime < 1 && !ball.hitEnemy)) return;
         var playerToBallVector = ball.transform.position - transform.position;
         if (playerToBallVector.sqrMagnitude < ballCollectRadius * ballCollectRadius){
+            if (_currentBallCount < maxBallCount){
+                _currentBallCount++;
+                _ballCounterTextMesh.text = _currentBallCount.ToString();
+            }
+            
             Destroy(ball.gameObject);
             //_balls.RemoveAt(ball.index);
             if (_playerVelocity.y < 10){
@@ -394,10 +427,20 @@ public class PlayerController : MonoBehaviour{
             }
         }
         
-        RaycastHit[] environmentHits = SphereCastAll(ball.transform.position, 0.5f, ball.velocity.normalized, deltaVelocity.magnitude, Layers.Environment);
+        RaycastHit[] otherHits = SphereCastAll(ball.transform.position, 0.5f, ball.velocity.normalized, deltaVelocity.magnitude, Layers.Environment | Layers.EnemyProjectile);
         
-        for (int i = 0; i < environmentHits.Length; i++){
-            ball.velocity = Vector3.Reflect(ball.velocity, environmentHits[i].normal) * 0.6f;
+        for (int i = 0; i < otherHits.Length; i++){
+            EnemyProjectile enemyProjectile = otherHits[i].transform.GetComponentInParent<EnemyProjectile>();
+            if (enemyProjectile){
+                ball.velocity = Vector3.Reflect(ball.velocity, otherHits[i].normal);
+                ball.velocity.y = 20;
+                
+                enemyProjectile.velocity = Vector3.Reflect(enemyProjectile.velocity, -otherHits[i].normal);
+                continue;
+            }
+
+        
+            ball.velocity = Vector3.Reflect(ball.velocity, otherHits[i].normal) * 0.6f;
         }
     }
     
@@ -446,6 +489,10 @@ public class PlayerController : MonoBehaviour{
     
     public bool IsGrounded(){
         return _grounded;
+    }
+    
+    public void ResetPosition(){
+        transform.position = Vector3.up * 20;
     }
     
     private void OnDrawGizmosSelected(){
