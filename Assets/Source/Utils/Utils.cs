@@ -27,4 +27,13 @@ public static class Utils{
     public static float EaseOutQuint(float x){
         return 1 - Pow(1 - x, 5);
     }
+    
+    public static float EaseOutElastic(float x){
+        float c4 = (2 * PI) / 3;
+        
+        return x == 0 ? 0
+          : (x == 1
+          ? 1
+          : Pow(2f, -10 * x) * Sin((x * 10 - 0.75f) * c4) + 1f);
+    }
 }
