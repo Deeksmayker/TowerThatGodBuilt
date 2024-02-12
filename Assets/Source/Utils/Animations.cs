@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using System;
 
 public class Animations : MonoBehaviour{
     public static Animations Instance;
@@ -20,6 +21,10 @@ public class Animations : MonoBehaviour{
     private void Update(){
         for (int i = 0; i < _materialTasks.Count; i++){
             var task = _materialTasks[i];
+            if (!task.targetObject){
+                _materialTasks.RemoveAt(i);
+                continue;
+            }
             if (task.completed) continue;
             
             task.elapsed += Time.deltaTime;
@@ -32,21 +37,25 @@ public class Animations : MonoBehaviour{
     }
     
     public void ChangeMaterialColor(GameObject targetObject, Color color, float duration){
-        var existedTask = MaterialTaskExist(targetObject);
-        if (existedTask == null){
-            existedTask = new MaterialTask();
-            existedTask.targetObject  = targetObject;
-            existedTask.renderers     = targetObject.GetComponentsInChildren<MeshRenderer>();
-            existedTask.originalColor = existedTask.renderers[0].material.GetColor("_EmissionColor");
+        var task = MaterialTaskExist(targetObject);
+        bool taskIsNew = false;
+        if (task == null){
+            taskIsNew = true;
+            task = new MaterialTask();
+            task.targetObject  = targetObject;
+            task.renderers     = targetObject.GetComponentsInChildren<MeshRenderer>();
+            task.originalColor = task.renderers[0].material.GetColor("_EmissionColor");
         } 
-        existedTask.targetColor = color;
-        existedTask.duration    = duration;
-        existedTask.elapsed     = 0;
-        existedTask.completed   = false;
+        task.targetColor = color;
+        task.duration    = duration;
+        task.elapsed     = 0;
+        task.completed   = false;
         
-        ChangeMeshRenderersColor(existedTask.renderers, color);
+        ChangeMeshRenderersColor(task.renderers, color);
         
-        _materialTasks.Add(existedTask);
+        if (taskIsNew){
+            _materialTasks.Add(task);
+        }
     }
     
     public void ChangeMeshRenderersColor(MeshRenderer[] renderers, Color newColor){
@@ -67,6 +76,7 @@ public class Animations : MonoBehaviour{
     }
 }
 
+[Serializable]
 public class MaterialTask{
     public GameObject targetObject;
     public MeshRenderer[] renderers;

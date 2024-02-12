@@ -12,6 +12,7 @@ public enum EnemyType{
 
 public class Dummy{
     public Enemy enemy;
+    public SphereCollider sphereHitBox;
     public Vector3 dodgeStartPosition;
     public float ballDetectRadius = 12f;
     public float dodgeDistance    = 7f;
@@ -22,17 +23,19 @@ public class Dummy{
 
 public class Shooter{
     public Enemy enemy;
-    public float shootCooldown = 3f;
-    public float shootCount = 3;
-    public float shootDelay = 0.3f;
+    public float shootCooldown   = 3f;
+    public int   burstShootCount = 10;
+    public float shootDelay      = 0.1f;
     public float cooldownTimer;
     public float delayTimer;
+    public int   shootedCount;
 }
 
 
 public class EnemiesController : MonoBehaviour{
     
     [Header("Shooter")]
+    [SerializeField] private float projectileStartSpeed;
     
     private Transform        _playerTransform;
     private PlayerController _player;
@@ -45,7 +48,7 @@ public class EnemiesController : MonoBehaviour{
     private List<Shooter>         _shooters         = new();
     
     private void Start(){
-        //_shooterProjectilePrefab = GetPrefab("ShooterProjectile").GetComponent<EnemyProjectile>();
+        _shooterProjectilePrefab = GetPrefab("ShooterProjectile").GetComponent<EnemyProjectile>();
     
         _playerTransform = FindObjectOfType<PlayerController>().transform;
         _player = _playerTransform.GetComponent<PlayerController>();
@@ -57,9 +60,11 @@ public class EnemiesController : MonoBehaviour{
                 case DummyType:
                     _dummies.Add(new Dummy() { enemy = enemies[i] });
                     _dummies[_dummies.Count-1].dodgeStartPosition = _dummies[_dummies.Count-1].enemy.transform.position;
+                    _dummies[_dummies.Count-1].sphereHitBox = _dummies[_dummies.Count-1].enemy.transform.GetComponent<SphereCollider>();
                     break;
                 case ShooterType:
                     _shooters.Add(new Shooter() {enemy = enemies[i]});
+                    _shooters[_shooters.Count-1].cooldownTimer = _shooters[_shooters.Count-1].shootCooldown;
                     break;
             }
         }
@@ -67,29 +72,119 @@ public class EnemiesController : MonoBehaviour{
     
     private void Update(){
         _playerPosition = _playerTransform.position;
+        UpdateShooters();
+        UpdateEnemyProjectiles();
         UpdateDummies();
+    }
+    
+    private void UpdateShooters(){
+        for (int i = 0; i < _shooters.Count; i++){
+            var shooter = _shooters[i];
+            
+            var vectorToPlayer = (_playerPosition - shooter.enemy.transform.position).normalized;
+            var horizontalVectorToPlayer = new Vector3(vectorToPlayer.x, 0, vectorToPlayer.z);
+            shooter.enemy.transform.rotation = Quaternion.Slerp(shooter.enemy.transform.rotation, Quaternion.LookRotation(horizontalVectorToPlayer), Time.deltaTime * 3);
+            
+            if (shooter.enemy.justTakeHit){
+                shooter.enemy.justTakeHit = false;
+                Destroy(shooter.enemy.gameObject);
+                _shooters.RemoveAt(i);
+                continue;
+            }
+            
+            shooter.cooldownTimer -= Time.deltaTime;
+            
+            if (shooter.cooldownTimer > 0){
+                continue;
+            }
+            
+            if (shooter.delayTimer <= 0){
+                EnemyProjectile projectile = SpawnEnemyProjectile(ref shooter.enemy, _shooterProjectilePrefab);
+                projectile.velocity = vectorToPlayer * projectileStartSpeed;
+                shooter.shootedCount++;
+                if (shooter.shootedCount < shooter.burstShootCount){
+                    shooter.delayTimer = shooter.shootDelay;
+                } else{
+                    shooter.delayTimer = 0;
+                    shooter.cooldownTimer = shooter.shootCooldown;
+                    shooter.shootedCount = 0;
+                }
+            } else{
+                shooter.delayTimer -= Time.deltaTime;
+            }
+        }
     }
     
     private void UpdateEnemyProjectiles(){
         for (int i = 0; i < _enemyProjectiles.Count; i++){
             EnemyProjectile projectile = _enemyProjectiles[i];
             
+            if (projectile == null){
+                _enemyProjectiles.RemoveAt(i);
+                continue;
+            }
+                
+            CalculateEnemyProjectileCollisions(ref projectile);
+            
+            if (projectile == null){
+                _enemyProjectiles.RemoveAt(i);
+                continue;
+            }
+            
+            projectile.transform.rotation = Quaternion.LookRotation(projectile.velocity);
+            projectile.transform.Translate(projectile.velocity * Time.deltaTime, Space.World);
+            
+            projectile.lifeTime += Time.deltaTime;
+            
+            if (projectile.lifeTime >= 10){
+                Destroy(projectile.gameObject);
+                projectile = null;
+                _enemyProjectiles.RemoveAt(i);
+            }
         }
+    }
+    
+    private void CalculateEnemyProjectileCollisions(ref EnemyProjectile projectile){
+        if (projectile == null){
+            return;
+        }
+    
+        var deltaVelocity = projectile.velocity * Time.deltaTime;
+        var hits = SphereCastAll(projectile.transform.position, projectile.sphere.radius, projectile.velocity.normalized, deltaVelocity.magnitude, Layers.PlayerHurtBox | Layers.Environment);
+        
+        for (int i = 0; i < hits.Length; i++){
+            var player = hits[i].transform.GetComponentInParent<PlayerController>();
+            if (player){
+                player.ResetPosition();
+            }
+            
+            Destroy(projectile.gameObject);
+            projectile = null;
+        }
+    }
+    
+    private EnemyProjectile SpawnEnemyProjectile(ref Enemy enemy, EnemyProjectile projectilePrefab){
+        var newProjectile = Instantiate(projectilePrefab, enemy.transform.position + Vector3.up, Quaternion.identity);
+        newProjectile.sphere = newProjectile.GetComponent<SphereCollider>();
+        _enemyProjectiles.Add(newProjectile);
+        
+        return newProjectile;
     }
     
     private void UpdateDummies(){
         for (int i = 0; i < _dummies.Count; i++){
             Dummy dummy = _dummies[i];
+            Transform dummyTransform = dummy.enemy.transform;
             if (dummy.enemy.justTakeHit){          
                 dummy.enemy.justTakeHit = false;  
                 
                 var wishPosition = Random.onUnitSphere * 20;
                 wishPosition.y = Abs(wishPosition.y) * 0.5f;
-                dummy.enemy.transform.position = wishPosition;
+                dummyTransform.position = wishPosition;
                 
                 dummy.dodging = false;
                 dummy.dodgeTimer = 0;
-                dummy.dodgeStartPosition = dummy.enemy.transform.position;
+                dummy.dodgeStartPosition = dummyTransform.position;
             }
             
             if (!dummy.dodging && dummy.dodgeTimer <= 0 && PlayerBallNearby(dummy.dodgeStartPosition, dummy.ballDetectRadius)){
@@ -99,7 +194,7 @@ public class EnemiesController : MonoBehaviour{
             if (dummy.dodging){
                 dummy.dodgeTimer += Time.deltaTime;
                 var t = dummy.dodgeTimer / dummy.dodgeTime;
-                dummy.enemy.transform.position = Vector3.LerpUnclamped(dummy.dodgeStartPosition, dummy.dodgeStartPosition + dummy.enemy.transform.right * dummy.dodgeDistance, EaseOutElastic(t));
+                dummyTransform.position = Vector3.LerpUnclamped(dummy.dodgeStartPosition, dummy.dodgeStartPosition + dummyTransform.right * dummy.dodgeDistance, EaseOutElastic(t));
                 if (t >= 1){
                     dummy.dodging = false;
                     dummy.dodgeTimer = dummy.dodgeTime;
@@ -107,15 +202,19 @@ public class EnemiesController : MonoBehaviour{
             } else if (dummy.dodgeTimer > 0){
                 dummy.dodgeTimer -= Time.deltaTime;
                 var t = 1f - dummy.dodgeTimer / (dummy.dodgeTime);
-                dummy.enemy.transform.position = Vector3.LerpUnclamped(dummy.dodgeStartPosition + dummy.enemy.transform.right * dummy.dodgeDistance, dummy.dodgeStartPosition, EaseInOutQuad(t));
+                dummyTransform.position = Vector3.LerpUnclamped(dummy.dodgeStartPosition + dummyTransform.right * dummy.dodgeDistance, dummy.dodgeStartPosition, EaseInOutQuad(t));
                 if (t <= 0){
                     dummy.dodgeTimer = 0;
                 }
             }
             
             if (!dummy.dodging && dummy.dodgeTimer <= 0){
-                dummy.enemy.transform.rotation = Quaternion.Slerp(dummy.enemy.transform.rotation, Quaternion.LookRotation((_playerPosition - dummy.enemy.transform.position).normalized), Time.deltaTime * 5);
+                dummyTransform.rotation = Quaternion.Slerp(dummyTransform.rotation, Quaternion.LookRotation((_playerPosition - dummyTransform.position).normalized), Time.deltaTime * 5);
 
+            }
+            
+            if ((_playerPosition - dummyTransform.position).sqrMagnitude <= dummy.sphereHitBox.radius){
+                _player.ResetPosition();
             }
         }
     }
