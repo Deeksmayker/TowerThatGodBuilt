@@ -6,6 +6,7 @@ using UnityEngine.UI;
 using static UnityEngine.Mathf;
 using static UnityEngine.Physics;
 using static Utils;
+using static EnemyType;
 
 public class PlayerController : MonoBehaviour{
     [Header("Player")]
@@ -22,8 +23,20 @@ public class PlayerController : MonoBehaviour{
     [SerializeField] private float coyoteTime, jumpBufferTime;
     [SerializeField] private float maxStamina;
     [SerializeField] private float staminaRecoveryRate;
+    [SerializeField] private float bulletTimeStaminaDrain;
     [SerializeField] private float ballReloadTime;
     [SerializeField] private int   maxBallCount;
+    
+    //Kick
+    [SerializeField] private float kickHitBoxLength;
+    [SerializeField] private float kickHitBoxWidth;
+    [SerializeField] private float kickDuration;
+    [SerializeField] private float kickCooldown;
+    
+    private List<int> _alreadyHitByKick = new();
+    private float _kickPerformingTimer;
+    private float _kickCooldownTimer;
+    private ParticleSystem _kickParticle;
     
     private float _currentFriction;
     private float _currentStamina;
@@ -47,6 +60,9 @@ public class PlayerController : MonoBehaviour{
     private Vector3 _moveInput;
     
     private CapsuleCollider _collider;
+    
+    private KeyCode _bulletTimeKey  = KeyCode.Q;
+    private KeyCode _collectBallKey = KeyCode.E;
     
     [Header("Balls")]
     [SerializeField] private float ballCollectRadius;
@@ -85,6 +101,8 @@ public class PlayerController : MonoBehaviour{
         
         _staminaSlider       = GameObject.FindWithTag("StaminaSlider").GetComponent<Slider>();
         _ballCounterTextMesh = GameObject.FindWithTag("BallCounter").GetComponent<TextMeshProUGUI>();
+        
+        _kickParticle = GameObject.FindWithTag("KickLeg").GetComponent<ParticleSystem>();
         
         _currentBallCount = maxBallCount;
         _ballCounterTextMesh.text = _currentBallCount.ToString();
@@ -161,7 +179,7 @@ public class PlayerController : MonoBehaviour{
             _currentSpeed = baseSpeed;
         }
         
-        if (!Input.GetKey(KeyCode.Space) && !Input.GetKey(KeyCode.LeftShift)){
+        if (!Input.GetKey(KeyCode.Space) && !Input.GetKey(KeyCode.LeftShift) && !Input.GetKey(_bulletTimeKey)){
             _currentStamina = Clamp(_currentStamina + staminaRecoveryRate * Time.deltaTime, 0, maxStamina);
         }
         
@@ -176,6 +194,7 @@ public class PlayerController : MonoBehaviour{
             transform.position = Vector3.up * 10;
         }
         
+        UpdateKick();
         UpdateBalls();
         BulletTime();
         
@@ -183,6 +202,52 @@ public class PlayerController : MonoBehaviour{
             var horizontalSpeed = (new Vector3(_playerVelocity.x, 0, _playerVelocity.z)).magnitude;
             _speedTextMesh.text = "Horizontal: " + horizontalSpeed;
         }
+    }
+    
+    private void UpdateKick(){
+        if (_kickCooldownTimer > 0){
+            _kickCooldownTimer -= Time.deltaTime;
+        }
+        if (_kickCooldownTimer > 0){
+            return;
+        }
+
+    
+        if (_kickPerformingTimer <= 0 && Input.GetMouseButtonDown(0)){
+            _kickPerformingTimer = kickDuration;
+            _kickParticle.Emit(1);
+        }
+    
+        if (_kickPerformingTimer > 0){
+            _kickPerformingTimer -= Time.deltaTime;
+        
+            var kickHitBoxCenter = transform.position + GetCameraTransform().forward * kickHitBoxLength * 0.5f;
+            Collider[] targets = OverlapBox(kickHitBoxCenter, new Vector3(kickHitBoxWidth, kickHitBoxWidth, kickHitBoxLength) * 0.5f, GetCameraTransform().rotation, Layers.PlayerKickHitable);
+            
+            for (int i = 0; i < targets.Length; i++){
+                int targetHash = targets[i].transform.parent ? targets[i].transform.parent.GetHashCode() : targets[i].GetHashCode();
+                if (_alreadyHitByKick.Contains(targetHash)){
+                    continue;
+                }
+                _alreadyHitByKick.Add(targetHash);
+                
+                var ball = targets[i].GetComponentInParent<PlayerBall>();
+                if (ball){
+                    SetKickVelocityToBall(ref ball);
+                }
+                
+                var enemy = targets[i].GetComponentInParent<Enemy>();
+                if (enemy){
+                    enemy.TakeHit(targets[i]);
+                }
+            }
+            
+            if (_kickPerformingTimer <= 0){
+                _kickCooldownTimer = kickCooldown;
+                _alreadyHitByKick.Clear();
+            }
+        }
+    
     }
     
     private void Jump(Vector3 wishDirection){
@@ -309,10 +374,9 @@ public class PlayerController : MonoBehaviour{
             _ballPredictionLineRenderer.positionCount = 0;
         }
     
-        if (Input.GetMouseButtonDown(0) && _shootCooldownTimer <= 0 && _currentBallCount > 0){
+        if (Input.GetMouseButton(1) && Input.GetMouseButtonDown(0) && _shootCooldownTimer <= 0 && _currentBallCount > 0){
             PlayerBall newBall = SpawnPlayerBall();
             newBall.index = _balls.Count;
-            newBall.angularVelocity = _currentStartAngularVelocity;
             _balls.Add(newBall);
             
             _currentBallCount--;
@@ -352,12 +416,26 @@ public class PlayerController : MonoBehaviour{
         //ball.transform.forward = ball.velocity;
         
         ball.lifeTime += delta;
+        
+        if (ball.groundBounceCount >= 1 
+                && Raycast(ball.transform.position, ball.velocityNormalized, out var hit, 10, Layers.Environment) 
+                && hit.normal.y == 1){
+            ball.velocity *= 1f - Time.deltaTime * 5;
+            /*
+            if (ball.velocity.sqrMagnitude < 2 * 2){
+                ball.velocity = Vector3.ClampMagnitude(ball.velocity, 1);
+            }
+            */
+        }
     
-        CalculateBallCollisions(ball, delta, imaginaryBall);
+        CalculateBallCollisions(ref ball, delta, imaginaryBall);
     
         ball.transform.Translate(ball.velocity * delta, Space.World);
         
         if (imaginaryBall || (ball.lifeTime < 1 && !ball.hitEnemy)) return;
+        
+        if (!Input.GetKey(_collectBallKey)) return;
+        //Ball collect logic
         var playerToBallVector = ball.transform.position - transform.position;
         if (playerToBallVector.sqrMagnitude < ballCollectRadius * ballCollectRadius){
             if (_currentBallCount < maxBallCount){
@@ -375,7 +453,7 @@ public class PlayerController : MonoBehaviour{
         }
     }
     
-    private void CalculateBallCollisions(PlayerBall ball, float delta, bool imaginaryBall = false){
+    private void CalculateBallCollisions(ref PlayerBall ball, float delta, bool imaginaryBall = false){
         //Layers. - gives us proper flag, but gameObject.layer gives us layer number from unity editor
         var deltaVelocity = ball.velocity * delta;
         
@@ -386,47 +464,59 @@ public class PlayerController : MonoBehaviour{
         }
         */
         RaycastHit[] enemyHits = SphereCastAll(ball.transform.position, ball.sphere.radius, ball.velocity.normalized, deltaVelocity.magnitude, Layers.EnemyHurtBox);
-        
-        for (int i = 0; i < enemyHits.Length; i++){
+
+        for (int i = 0; i < enemyHits.Length; i++)
+        {
             if (enemyHits[i].transform == ball.transform) continue;
-            
-            if (ball.velocity.sqrMagnitude > 25){
+
+            if (ball.velocity.sqrMagnitude > 25)
+            {
                 ball.bounceCount++;
             }
-            
+
             bool hitBallLayer = ((1 << enemyHits[i].transform.gameObject.layer) & (int)Layers.PlayerProjectile) > 0;
-            if (hitBallLayer){
+            if (hitBallLayer)
+            {
             }
-            
+
             var enemy = enemyHits[i].collider.GetComponentInParent<Enemy>();
-            if (enemy){
-                if (!imaginaryBall){
+            if (enemy)
+            {
+                if (!imaginaryBall)
+                {
                     enemy.TakeHit(enemyHits[i].collider);
-                    ball.hitEnemy = true;
-                } else{
+                    //ball.hitEnemy = true;
+                }
+                else
+                {
                     Animations.Instance.ChangeMaterialColor(enemy.gameObject, Colors.PredictionHitColor * 3, 0.02f);
                 }
-            }
-            
-            var reflectVectorNormalized = Vector3.Reflect(ball.velocity, enemyHits[i].normal).normalized;
-            
-            var enemiesInRange = OverlapSphere(ball.transform.position, findEnemiesRadius, Layers.EnemyHurtBox);
-            bool foundEnemy = false;
-            
-            float ballSpeed = ball.velocity.magnitude;
-            
-            for (int e = 0; i < enemiesInRange.Length; i++){
-                var ballToEnemyVectorNormalized = (enemiesInRange[e].transform.position - ball.transform.position).normalized;
-                if (Vector3.Dot(ballToEnemyVectorNormalized, reflectVectorNormalized) > 1f - (ball.bounceCount * 0.1f)){
-                    ball.velocity = ballToEnemyVectorNormalized * ballSpeed;
-                    foundEnemy = true;
+
+                switch (enemy.type)
+                {
+                    case DummyType:
+                        ball.velocity = (transform.position - enemy.transform.position).normalized * 10;
+                        ball.velocity.y = 20;
+                        ball.angularVelocity.x = Clamp(ball.angularVelocity.x, 0, 15);
+                        break;
+                    case ShooterType:
+                        var enemiesInRange = OverlapSphere(ball.transform.position, 1000, Layers.EnemyHurtBox);
+                        if (enemiesInRange.Length > 0)
+                        {
+                            var closestEnemy = GetClosestFromColliders(ball.transform.position, enemiesInRange, enemy.gameObject);
+                            var ballToEnemyVectorNormalized = (closestEnemy.transform.position - ball.transform.position).normalized;
+                            ball.velocity = ballToEnemyVectorNormalized * 200;
+                        }
+                        else
+                        {
+                            ball.velocity = (transform.position - enemy.transform.position).normalized * 10;
+                            ball.velocity.y = 20;
+                        }
+                        break;
                 }
             }
-            if (!foundEnemy){
-                ball.velocity = reflectVectorNormalized * ballSpeed * 0.6f;
-            }
         }
-        
+            
         RaycastHit[] otherHits = SphereCastAll(ball.transform.position, 0.5f, ball.velocity.normalized, deltaVelocity.magnitude, Layers.Environment | Layers.EnemyProjectile);
         
         for (int i = 0; i < otherHits.Length; i++){
@@ -438,21 +528,40 @@ public class PlayerController : MonoBehaviour{
                 enemyProjectile.velocity = Vector3.Reflect(enemyProjectile.velocity, -otherHits[i].normal);
                 continue;
             }
-
-        
+            
+            if (!imaginaryBall && otherHits[i].normal.y == 1){
+                ball.groundBounceCount++;
+                if (ball.groundBounceCount >= 2){
+                    DestroyBall(ref ball);
+                    break;
+                } else if (ball.groundBounceCount == 1){
+                    Animations.Instance.ChangeMeshRenderersColor(ball.GetComponentsInChildren<MeshRenderer>(), Colors.DangerRed * 2);
+                }
+            }
+            
             ball.velocity = Vector3.Reflect(ball.velocity, otherHits[i].normal) * 0.6f;
+            ball.velocity = Vector3.ClampMagnitude(ball.velocity, 60);
+            if (otherHits[i].normal.y == 1 && ball.velocity.y < 20){
+                ball.velocity.y = 20;
+                ball.angularVelocity.x = 10;
+            }
         }
     }
     
+    private void DestroyBall(ref PlayerBall ball){
+        Destroy(ball.gameObject);
+        _balls.RemoveAt(ball.index);
+    }
+    
     private void PredictAndDrawBallTrajectory(){
-        var imaginaryBall = SpawnPlayerBall();
-        imaginaryBall.gameObject.name += "IMAGINE";
-        
         _currentStartAngularVelocity += new Vector3(Input.GetAxis("Mouse Y"), Input.GetAxis("Mouse X"), 0) * angularVelocitySense;
         _currentStartAngularVelocity.x = Clamp(_currentStartAngularVelocity.x, -maxAngularVelocity, maxAngularVelocity);
         _currentStartAngularVelocity.y = Clamp(_currentStartAngularVelocity.y, -maxAngularVelocity, maxAngularVelocity);
         
-        imaginaryBall.angularVelocity = _currentStartAngularVelocity;
+        var imaginaryBall = SpawnPlayerBall();
+        SetKickVelocityToBall(ref imaginaryBall);
+        imaginaryBall.gameObject.name += "IMAGINE";
+        
         
         var iterationCount = 100;
         var step = 0.02f;
@@ -470,7 +579,7 @@ public class PlayerController : MonoBehaviour{
     private PlayerBall SpawnPlayerBall(){
         var newBall = Instantiate(_playerBallPrefab, GetCameraTransform().position + GetCameraTransform().forward, Quaternion.identity);
         newBall.sphere = newBall.GetComponent<SphereCollider>();
-        newBall.velocity = GetCameraTransform().forward * maxBallSpeed + _playerVelocity * 0.5f;
+        //SetKickVelocityToBall(ref newBall);
         
         var colliderSizeProgress = Clamp01(_playerVelocity.magnitude / 50);
         newBall.sphere.radius = Lerp(1, 3, colliderSizeProgress);
@@ -478,11 +587,17 @@ public class PlayerController : MonoBehaviour{
         return newBall;        
     }
     
+    private void SetKickVelocityToBall(ref PlayerBall ball){
+        ball.velocity = GetCameraTransform().forward * maxBallSpeed + _playerVelocity * 0.5f;
+        ball.angularVelocity = _currentStartAngularVelocity;
+    }
+    
     private void BulletTime(){
-        if (Input.GetKey(KeyCode.Q)){
+        if (_currentStamina > 0 && Input.GetKey(_bulletTimeKey)){
             Time.timeScale = 0.05f;
+            _currentStamina -= Time.unscaledDeltaTime * bulletTimeStaminaDrain;
         } 
-        if (Input.GetKeyUp(KeyCode.Q)){
+        else{
             Time.timeScale = 1f;
         }
     }
@@ -499,5 +614,10 @@ public class PlayerController : MonoBehaviour{
         Gizmos.color = Color.blue;
         
         Gizmos.DrawWireSphere(transform.position, ballCollectRadius);
+        
+        Gizmos.color = Color.red;
+        
+        var kickHitBoxCenter = transform.position + GetCameraTransform().forward * kickHitBoxLength * 0.5f;
+        Gizmos.DrawWireCube(kickHitBoxCenter, new Vector3(kickHitBoxWidth, kickHitBoxWidth, kickHitBoxLength));
     }
 }

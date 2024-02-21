@@ -19,6 +19,24 @@ public static class Utils{
         return Camera.main.transform;
     }
     
+    public static Collider GetClosestFromColliders(Vector3 distanceToWhom, Collider[] colliders, GameObject excludeGameObject = null){
+        var minDistance = 1000000000f;
+        int indexOfMin = 0;
+        
+        for (int i = 0; i < colliders.Length; i++){
+            if (excludeGameObject && excludeGameObject.name == colliders[i].transform.parent.gameObject.name){
+                continue;
+            }
+            var distance = Vector3.Distance(colliders[i].transform.position, distanceToWhom);
+            if (distance < minDistance){
+                minDistance = distance;
+                indexOfMin = i;
+            }
+        }
+        
+        return colliders[indexOfMin];
+    }
+    
     //Ease functions
     public static float EaseInOutQuad(float x){
         return x < 0.5 ? 2 * x * x : 1 - Pow(-2 * x + 2, 2) / 2;

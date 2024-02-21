@@ -3,6 +3,7 @@ using UnityEngine;
 public class PlayerBall : MonoBehaviour{
     public int index = -1;
     public int bounceCount;
+    public int groundBounceCount;
     public float lifeTime;
     public SphereCollider sphere;
     public bool hitEnemy;
