@@ -12,7 +12,6 @@ public enum EnemyType{
 
 public class Dummy{
     public Enemy enemy;
-    public SphereCollider sphereHitBox;
     public Vector3 dodgeStartPosition;
     public float ballDetectRadius = 12f;
     public float dodgeDistance    = 7f;
@@ -60,7 +59,6 @@ public class EnemiesController : MonoBehaviour{
                 case DummyType:
                     _dummies.Add(new Dummy() { enemy = enemies[i] });
                     _dummies[_dummies.Count-1].dodgeStartPosition = _dummies[_dummies.Count-1].enemy.transform.position;
-                    _dummies[_dummies.Count-1].sphereHitBox = _dummies[_dummies.Count-1].enemy.transform.GetComponent<SphereCollider>();
                     break;
                 case ShooterType:
                     _shooters.Add(new Shooter() {enemy = enemies[i]});
@@ -80,10 +78,11 @@ public class EnemiesController : MonoBehaviour{
     private void UpdateShooters(){
         for (int i = 0; i < _shooters.Count; i++){
             var shooter = _shooters[i];
+            Transform shooterTransform = shooter.enemy.transform;
             
-            var vectorToPlayer = (_playerPosition - shooter.enemy.transform.position).normalized;
+            var vectorToPlayer = (_playerPosition - shooterTransform.position).normalized;
             var horizontalVectorToPlayer = new Vector3(vectorToPlayer.x, 0, vectorToPlayer.z);
-            shooter.enemy.transform.rotation = Quaternion.Slerp(shooter.enemy.transform.rotation, Quaternion.LookRotation(horizontalVectorToPlayer), Time.deltaTime * 3);
+            shooter.enemy.transform.rotation = Quaternion.Slerp(shooterTransform.rotation, Quaternion.LookRotation(horizontalVectorToPlayer), Time.deltaTime * 3);
             
             if (shooter.enemy.justTakeHit){
                 shooter.enemy.justTakeHit = false;
@@ -91,6 +90,8 @@ public class EnemiesController : MonoBehaviour{
                 _shooters.RemoveAt(i);
                 continue;
             }
+            
+            KillPlayerIfNearby(shooter.enemy);
             
             shooter.cooldownTimer -= Time.deltaTime;
             
@@ -213,13 +214,26 @@ public class EnemiesController : MonoBehaviour{
 
             }
             
-            if ((_playerPosition - dummyTransform.position).sqrMagnitude <= dummy.sphereHitBox.radius){
-                _player.ResetPosition();
-            }
+            KillPlayerIfNearby(dummy.enemy);
         }
     }
     
     private bool PlayerBallNearby(Vector3 checkPosition, float checkRadius){
         return CheckSphere(checkPosition, checkRadius, Layers.PlayerProjectile);
+    }
+    
+    private void KillPlayerIfNearby(Enemy enemy){
+        var checkRadius = 1f;
+        switch (enemy.type){
+            case DummyType:
+                checkRadius = 1f;
+                break;
+            case ShooterType:
+                checkRadius = 1f;
+                break;
+        }
+        if ((_playerPosition - enemy.transform.position).sqrMagnitude <= checkRadius * checkRadius){
+            _player.ResetPosition();
+        }
     }
 }

@@ -8,6 +8,7 @@ TagManager:
   - StaminaSlider
   - PlayerBall
   - BallCounter
+  - KickLeg
   layers:
   - Default
   - TransparentFX
