@@ -22,9 +22,9 @@ public class Dummy{
 
 public class Shooter{
     public Enemy enemy;
-    public float shootCooldown   = 3f;
+    public float shootCooldown   = 5f;
     public int   burstShootCount = 10;
-    public float shootDelay      = 0.1f;
+    public float shootDelay      = 0.02f;
     public float cooldownTimer;
     public float delayTimer;
     public int   shootedCount;
