@@ -30,7 +30,7 @@ public class Animations : MonoBehaviour{
             task.elapsed += Time.deltaTime;
             
             if (task.elapsed >= task.duration){
-                ChangeMeshRenderersColor(task.renderers, task.originalColor);
+                ChangeMeshRenderersColor(task.renderers, task.originalColor, task.originalEmissionColor);
                 task.completed = true;
             }
         }
@@ -44,22 +44,24 @@ public class Animations : MonoBehaviour{
             task = new MaterialTask();
             task.targetObject  = targetObject;
             task.renderers     = targetObject.GetComponentsInChildren<MeshRenderer>();
-            task.originalColor = task.renderers[0].material.GetColor("_EmissionColor");
+            task.originalColor = task.renderers[0].material.GetColor("_BaseColor");
+            task.originalEmissionColor = task.renderers[0].material.GetColor("_EmissionColor");
         } 
         task.targetColor = color;
         task.duration    = duration;
         task.elapsed     = 0;
         task.completed   = false;
         
-        ChangeMeshRenderersColor(task.renderers, color);
+        ChangeMeshRenderersColor(task.renderers, color, color);
         
         if (taskIsNew){
             _materialTasks.Add(task);
         }
     }
     
-    public void ChangeMeshRenderersColor(MeshRenderer[] renderers, Color newColor){
-        _propertyBlock.SetColor("_EmissionColor", newColor);
+    public void ChangeMeshRenderersColor(MeshRenderer[] renderers, Color newColor, Color newEmissionColor){
+        _propertyBlock.SetColor("_EmissionColor", newEmissionColor);
+        _propertyBlock.SetColor("_BaseColor", newColor);
         for (int i = 0; i < renderers.Length; i++){
             renderers[i].SetPropertyBlock(_propertyBlock);
         }
@@ -80,7 +82,7 @@ public class Animations : MonoBehaviour{
 public class MaterialTask{
     public GameObject targetObject;
     public MeshRenderer[] renderers;
-    public Color originalColor;
+    public Color originalColor, originalEmissionColor;
     public Color targetColor;
     public float duration;
     public float elapsed;
