@@ -256,6 +256,10 @@ public class PlayerController : MonoBehaviour{
                     SetKickVelocityToBall(ref ball);
                     
                     PlayerCameraController.Instance.ShakeCameraBase(0.7f);
+                    
+                    Vector3 targetScale = Vector3.one * 0.5f;
+                    targetScale.z *= ball.velocity.magnitude * 0.2f;
+                    Animations.Instance.ChangeScale(ball.transform.gameObject, targetScale, 0.1f, true, 0.3f, EaseOutQuint);
                 }
                 
                 var enemy = targets[i].GetComponentInParent<Enemy>();
@@ -486,7 +490,7 @@ public class PlayerController : MonoBehaviour{
         
         ball.velocity += (ball.velocityUp * ball.angularVelocity.x + ball.velocityRight * ball.angularVelocity.y) * angularVelocityPower * delta;
         
-        //ball.transform.forward = ball.velocity;
+        ball.transform.forward = ball.velocity;
         
         ball.lifeTime += delta;
         
