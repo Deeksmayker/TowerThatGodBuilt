@@ -1,4 +1,5 @@
 ﻿using System;
+using Source.Features.SceneEditor.Controllers;
 using UnityEngine;
 
 namespace Source.Features.SceneEditor.Objects
@@ -14,20 +15,41 @@ namespace Source.Features.SceneEditor.Objects
         
         private Cell[,] _cells;
 
-        public void BuildGrid()
+        private void Awake()
         {
             _cells = new Cell[_width, _height];
-            
+        }
+
+        public void BuildGrid()
+        {
             for (int y = 0; y < _height; y++)
             {
                 for (int x = 0; x < _width; x++)
                 {
                     _cells[x, y] = Instantiate(_cellPrefab, 
-                        new Vector3(x * _cellPrefab.GetCellSize().x, y * _cellPrefab.GetCellSize().y),
+                        new Vector3(x * _cellPrefab.GetCellSize().x, 0 ,y * _cellPrefab.GetCellSize().y),
                         Quaternion.identity, transform);
                     _cells[x, y].Clicked += OnCellClicked;
                 }
             }
+        }
+
+        public void ClearGrid()
+        {
+            for (int y = 0; y < _height; y++)
+            {
+                for (int x = 0; x < _width; x++)
+                {
+                    Destroy(_cells[x, y].gameObject);
+                }
+            }
+            
+            _cells = new Cell[_width, _height];
+        }
+
+        public Cell[,] GetCells()
+        {
+            return _cells;
         }
 
         private void OnCellClicked(Cell cell)
