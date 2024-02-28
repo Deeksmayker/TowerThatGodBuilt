@@ -178,7 +178,7 @@ GameObject:
   - component: {fileID: 109584212}
   - component: {fileID: 109584213}
   m_Layer: 0
-  m_Name: BuildingController
+  m_Name: SpawningController
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

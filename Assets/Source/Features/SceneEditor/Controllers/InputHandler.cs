@@ -6,6 +6,8 @@ namespace Source.Features.SceneEditor.Controllers
     public class InputHandler : MonoBehaviour
     {
         public event Action<int> AlphaButtonPressed;
+        public event Action SpacePressed;
+        public event Action EnterPressed;
 
         private void Update()
         {
@@ -38,6 +40,12 @@ namespace Source.Features.SceneEditor.Controllers
             
             if (Input.GetKeyUp(KeyCode.Alpha0))
                 AlphaButtonPressed?.Invoke(9);
+            
+            if (Input.GetKeyUp(KeyCode.Space))
+                SpacePressed?.Invoke();
+            
+            if (Input.GetKeyUp(KeyCode.Return))
+                EnterPressed?.Invoke();
         }
     }
 }
