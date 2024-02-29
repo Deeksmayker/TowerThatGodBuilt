@@ -29,7 +29,7 @@ namespace Source.Features.SceneEditor.Objects
                 _renderer.material = _normalMaterial;
         }
 
-        private void OnMouseUp()
+        private void OnMouseUpAsButton()
         {
             if (!_renderer.enabled)
                 return;
