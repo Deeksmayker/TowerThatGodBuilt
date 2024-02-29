@@ -1,4 +1,5 @@
 ﻿using System;
+using Source.Features.SceneEditor.Data;
 using Source.Features.SceneEditor.Objects;
 using UnityEngine;
 using Grid = Source.Features.SceneEditor.Objects.Grid;
@@ -24,7 +25,7 @@ namespace Source.Features.SceneEditor.Controllers
         private void Start()
         {
             _grid.BuildGrid();
-            
+
             OnAlphaPressed(0);
         }
 
@@ -81,6 +82,11 @@ namespace Source.Features.SceneEditor.Controllers
             _grid.ClearGrid();
             _grid.BuildGrid();
             
+            BuildLevel(cellsData);
+        }
+
+        private void BuildLevel(CellData[,] cellsData)
+        {
             var cells = _grid.GetCells();
 
             for (int x = 0; x < cellsData.GetLength(0); x++)
@@ -92,7 +98,8 @@ namespace Source.Features.SceneEditor.Controllers
                         cells[x, y].SetIndexSpawnedObject(cellsData[x, y].IndexSpawnedObject);
                         cells[x, y].Hide();
                         
-                        Instantiate(_objectPrefabs[cellsData[x, y].IndexSpawnedObject], cells[x, y].transform);
+                        var a = Instantiate(_objectPrefabs[cellsData[x, y].IndexSpawnedObject], cells[x, y].transform);
+                        a.layer = 6;
                     }
                 }
             }

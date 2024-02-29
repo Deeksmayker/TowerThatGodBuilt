@@ -40,6 +40,9 @@ namespace Source.Features.SceneEditor.Objects
             {
                 for (int x = 0; x < _width; x++)
                 {
+                    if (!_cells[x, y])
+                        continue;
+
                     Destroy(_cells[x, y].gameObject);
                 }
             }
