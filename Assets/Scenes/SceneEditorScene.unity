@@ -213,9 +213,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _inputHandler: {fileID: 99879297}
   _grid: {fileID: 1568467704}
-  _objectPrefabs:
-  - {fileID: 7783939639289534635, guid: 6297370f386bf05429444093c46eb3e4, type: 3}
-  - {fileID: 7783939639289534635, guid: ed937bb32376f09438a0fa29939cfd96, type: 3}
+  _objectPrefabsConfig: {fileID: 11400000, guid: be369fb3036f36746a55907fa33b4fba,
+    type: 2}
 --- !u!1 &871138259
 GameObject:
   m_ObjectHideFlags: 0
@@ -412,8 +411,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3ba5d9a5559dc58498dcc60eeeae06a1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _width: 100
-  _height: 100
+  _width: 10
+  _height: 10
+  _cellSize: 3
   _cellPrefab: {fileID: 4570526699956215162, guid: 0e44378468072df4e8e4d33df2b4010b,
     type: 3}
 --- !u!1 &2106748170

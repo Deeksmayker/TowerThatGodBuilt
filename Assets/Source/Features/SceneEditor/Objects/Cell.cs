@@ -6,9 +6,6 @@ namespace Source.Features.SceneEditor.Objects
     public class Cell : MonoBehaviour
     {
         public event Action<Cell> Clicked;
-         
-        [SerializeField] private float _width;
-        [SerializeField] private float _height;
 
         [SerializeField] private MeshRenderer _renderer;
 
@@ -47,11 +44,6 @@ namespace Source.Features.SceneEditor.Objects
         public void Hide()
         {
             _renderer.enabled = false;
-        }
-
-        public Vector2 GetCellSize()
-        {
-            return new Vector2(_width, _height);
         }
 
         public void SetIndexSpawnedObject(int indexSpawnedObject)

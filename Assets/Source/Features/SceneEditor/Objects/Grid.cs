@@ -10,6 +10,7 @@ namespace Source.Features.SceneEditor.Objects
         
         [SerializeField] private int _width;
         [SerializeField] private int _height;
+        [SerializeField] private float _cellSize = 1;
 
         [SerializeField] private Cell _cellPrefab;
         
@@ -27,9 +28,22 @@ namespace Source.Features.SceneEditor.Objects
                 for (int x = 0; x < _width; x++)
                 {
                     _cells[x, y] = Instantiate(_cellPrefab, 
-                        new Vector3(x * _cellPrefab.GetCellSize().x, 0 ,y * _cellPrefab.GetCellSize().y),
+                        new Vector3(x * _cellSize, 0 ,y * _cellSize),
                         Quaternion.identity, transform);
+                    _cells[x, y].transform.localScale = Vector3.one * _cellSize;
                     _cells[x, y].Clicked += OnCellClicked;
+                    _cells[x, y].Hide();
+                }
+            }
+        }
+
+        public void ShowGrid()
+        {
+            for (int y = 0; y < _height; y++)
+            {
+                for (int x = 0; x < _width; x++)
+                {
+                    _cells[x, y].Show();
                 }
             }
         }
@@ -53,6 +67,21 @@ namespace Source.Features.SceneEditor.Objects
         public Cell[,] GetCells()
         {
             return _cells;
+        }
+
+        public int GetHeight()
+        {
+            return _height;
+        }
+
+        public int GetWidth()
+        {
+            return _width;
+        }
+
+        public float GetCellSize()
+        {
+            return _cellSize;
         }
 
         private void OnCellClicked(Cell cell)
