@@ -1,5 +1,4 @@
-﻿using System;
-using Source.Features.SceneEditor.Data;
+﻿using Source.Features.SceneEditor.Enums;
 using Source.Features.SceneEditor.Objects;
 using Source.Features.SceneEditor.ScriptableObjects;
 using Source.Features.SceneEditor.Utils;
@@ -12,18 +11,24 @@ namespace Source.Features.SceneEditor.Controllers
     {
         [SerializeField] private InputHandler _inputHandler;
         [SerializeField] private Grid _grid;
-        
+
         [SerializeField] private ObjectPrefabsConfig _objectPrefabsConfig;
-        
+
+        private BuildingStateController _buildingStateController;
+
         private GameObject _currentObjectPrefab;
         private int _objectIndex;
 
         private void Start()
         {
             SceneLoader.SetObjectPrefabsConfig(_objectPrefabsConfig);
-            
+
             _grid.BuildGrid();
             _grid.ShowGrid();
+            
+            _buildingStateController =
+                new BuildingStateController(_inputHandler, ArrayUtils.GetFlatArray(_grid.GetCells()));
+
             OnAlphaPressed(0);
         }
 
@@ -40,7 +45,7 @@ namespace Source.Features.SceneEditor.Controllers
         {
             _inputHandler.AlphaButtonPressed -= OnAlphaPressed;
             _grid.CellClicked -= OnCellClicked;
-            
+
             _inputHandler.SpacePressed -= SaveGrid;
             _inputHandler.EnterPressed -= LoadGrid;
         }
@@ -50,7 +55,7 @@ namespace Source.Features.SceneEditor.Controllers
             _objectIndex = objectIndex;
 
             var objectPrefabs = _objectPrefabsConfig.GetObjectPrefabs();
-            
+
             if (objectIndex < 0 || objectIndex >= objectPrefabs.Length)
             {
                 Debug.LogError($"Pressed invalid alpha button.\n" +
@@ -61,10 +66,28 @@ namespace Source.Features.SceneEditor.Controllers
             _currentObjectPrefab = objectPrefabs[objectIndex];
         }
 
-        private void OnCellClicked(Cell cell)
+        private void OnCellClicked(Cell cell, EBuildingState buildingState)
         {
-            cell.SetIndexSpawnedObject(_objectIndex);
-            Instantiate(_currentObjectPrefab, cell.transform);
+            if (buildingState == EBuildingState.Build)
+            {
+                if (cell.GetIndexSpawnedObject() != -1)
+                    return;
+                
+                cell.SetIndexSpawnedObject(_objectIndex);
+                Instantiate(_currentObjectPrefab, cell.transform);
+            }
+            else
+            {
+                if (cell.GetIndexSpawnedObject() == -1)
+                    return;
+                
+                cell.SetIndexSpawnedObject(-1);
+
+                foreach (Transform x in cell.transform)
+                {
+                    Destroy(x.gameObject);
+                }
+            }
         }
 
         private void SaveGrid()
@@ -79,7 +102,12 @@ namespace Source.Features.SceneEditor.Controllers
             _grid.ClearGrid();
             _grid.BuildGrid();
             _grid.ShowGrid();
-            
+
+            _buildingStateController.ChangeState((int) EBuildingState.Build);
+            _buildingStateController.Dispose();
+            _buildingStateController =
+                new BuildingStateController(_inputHandler, ArrayUtils.GetFlatArray(_grid.GetCells()));
+
             SceneLoader.BuildLevel(cellsData, _grid);
         }
     }

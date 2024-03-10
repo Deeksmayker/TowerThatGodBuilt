@@ -63,7 +63,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: aec58d996efe2ba49b5f9db7440d3c96, type: 2}
+  - {fileID: 2100000, guid: ae3cd89d6920db946aa41a72bffe2d17, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -104,7 +104,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
+  m_Size: {x: 1.01, y: 1.01, z: 1.01}
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!114 &4570526699956215162
 MonoBehaviour:
@@ -118,6 +118,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8d87cda3dbcd4bf2ab5a6b79b51a4d47, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _cellMaterialConfig: {fileID: 11400000, guid: 9dde39f823ad2354d805c68f5891c88b,
+    type: 2}
   _renderer: {fileID: 6399615917547042470}
-  _normalMaterial: {fileID: 2100000, guid: aec58d996efe2ba49b5f9db7440d3c96, type: 2}
-  _highlightMaterial: {fileID: 2100000, guid: 41ed8489e9de0de489636e98340f5f49, type: 2}
+  _collider: {fileID: 944511508022183202}
