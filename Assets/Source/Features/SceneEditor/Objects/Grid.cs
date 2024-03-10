@@ -1,19 +1,21 @@
 ﻿using System;
+using Source.Features.SceneEditor.Configs;
 using Source.Features.SceneEditor.Controllers;
+using Source.Features.SceneEditor.Enums;
 using UnityEngine;
 
 namespace Source.Features.SceneEditor.Objects
 {
     public class Grid : MonoBehaviour
     {
-        public event Action<Cell> CellClicked;
-        
+        public event Action<Cell, EBuildingState> CellClicked;
+
         [SerializeField] private int _width;
         [SerializeField] private int _height;
         [SerializeField] private float _cellSize = 1;
 
         [SerializeField] private Cell _cellPrefab;
-        
+
         private Cell[,] _cells;
 
         private void Awake()
@@ -27,10 +29,11 @@ namespace Source.Features.SceneEditor.Objects
             {
                 for (int x = 0; x < _width; x++)
                 {
-                    _cells[x, y] = Instantiate(_cellPrefab, 
-                        new Vector3(x * _cellSize, 0 ,y * _cellSize),
+                    _cells[x, y] = Instantiate(_cellPrefab,
+                        new Vector3(x * _cellSize, 0, y * _cellSize),
                         Quaternion.identity, transform);
                     _cells[x, y].transform.localScale = Vector3.one * _cellSize;
+                    
                     _cells[x, y].Clicked += OnCellClicked;
                     _cells[x, y].Hide();
                 }
@@ -60,7 +63,7 @@ namespace Source.Features.SceneEditor.Objects
                     Destroy(_cells[x, y].gameObject);
                 }
             }
-            
+
             _cells = new Cell[_width, _height];
         }
 
@@ -84,9 +87,9 @@ namespace Source.Features.SceneEditor.Objects
             return _cellSize;
         }
 
-        private void OnCellClicked(Cell cell)
+        private void OnCellClicked(Cell cell, EBuildingState buildingState)
         {
-            CellClicked?.Invoke(cell);
+            CellClicked?.Invoke(cell, buildingState);
         }
     }
 }

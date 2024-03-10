@@ -33,7 +33,7 @@ namespace Source.Features.SceneEditor.Utils
                     if (cellsData[x, y].IndexSpawnedObject != -1)
                     {
                         cells[x, y].SetIndexSpawnedObject(cellsData[x, y].IndexSpawnedObject);
-                        cells[x, y].Hide();
+                        cells[x, y].ResetMaterial();
                         
                         var spawnedObject = 
                             Object.Instantiate(_objectPrefabsConfig.GetObjectPrefabs()[cellsData[x, y].IndexSpawnedObject],
