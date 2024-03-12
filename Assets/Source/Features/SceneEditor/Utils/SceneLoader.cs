@@ -1,9 +1,9 @@
 ﻿using System;
 using Source.Features.SceneEditor.Controllers;
 using Source.Features.SceneEditor.Data;
+using Source.Features.SceneEditor.Objects;
 using Source.Features.SceneEditor.ScriptableObjects;
 using UnityEngine;
-using Grid = Source.Features.SceneEditor.Objects.Grid;
 using Object = UnityEngine.Object;
 
 namespace Source.Features.SceneEditor.Utils
@@ -12,19 +12,19 @@ namespace Source.Features.SceneEditor.Utils
     {
         private static ObjectPrefabsConfig _objectPrefabsConfig;
 
-        public static void BuildLevel(Grid grid)
+        public static void BuildLevel(GridController gridController)
         {
             var cellsData = LoadGrid();
             
-            BuildLevel(cellsData, grid);
+            BuildLevel(cellsData, gridController);
         }
         
-        public static void BuildLevel(CellData[,] cellsData, Grid grid)
+        public static void BuildLevel(CellData[,] cellsData, GridController gridController)
         {
             var width = cellsData.GetLength(0);
             var height = cellsData.GetLength(1);
             
-            var cells = grid.GetCells();
+            var cells = gridController.GetCells();
 
             for (int x = 0; x < width; x++)
             {
@@ -44,11 +44,11 @@ namespace Source.Features.SceneEditor.Utils
             }
         }
         
-        public static void SaveGrid(Grid grid)
+        public static void SaveGrid(GridController gridController)
         {
             var gridDataController = new GridDataController();
             
-            gridDataController.Save(grid.GetCells(), 0);
+            gridDataController.Save(gridController.GetCells(), 0);
         }
 
         public static CellData[,] LoadGrid()

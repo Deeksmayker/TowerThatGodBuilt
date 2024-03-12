@@ -1,4 +1,5 @@
 ﻿using System;
+using Source.Features.SceneEditor.Enums;
 using UnityEngine;
 
 namespace Source.Features.SceneEditor.Controllers
@@ -6,7 +7,8 @@ namespace Source.Features.SceneEditor.Controllers
     public class InputHandler : MonoBehaviour
     {
         public event Action<int> AlphaButtonPressed;
-        public event Action<int> StateButtonPressed;
+        public event Action<EInstrumentState> InstrumentStateButtonPressed;
+        public event Action<EBuildingState> BuildingStateButtonPressed;
         public event Action SpacePressed;
         public event Action EnterPressed;
         
@@ -50,10 +52,16 @@ namespace Source.Features.SceneEditor.Controllers
                 EnterPressed?.Invoke();
             
             if (Input.GetKeyDown(KeyCode.Z))
-                StateButtonPressed?.Invoke(0);
+                BuildingStateButtonPressed?.Invoke(EBuildingState.Build);
             
             if (Input.GetKeyDown(KeyCode.X))
-                StateButtonPressed?.Invoke(1);
+                BuildingStateButtonPressed?.Invoke(EBuildingState.Destroy);
+            
+            if (Input.GetKeyDown(KeyCode.R))
+                InstrumentStateButtonPressed?.Invoke(EInstrumentState.Default);
+            
+            if (Input.GetKeyDown(KeyCode.T))
+                InstrumentStateButtonPressed?.Invoke(EInstrumentState.Tassel);
         }
     }
 }

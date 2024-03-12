@@ -1,26 +1,27 @@
 ﻿using System;
+using Source.Features.SceneEditor.Controllers;
+using Source.Features.SceneEditor.Objects;
 using Source.Features.SceneEditor.ScriptableObjects;
 using Source.Features.SceneEditor.Utils;
 using UnityEngine;
-using Grid = Source.Features.SceneEditor.Objects.Grid;
 
 namespace Source
 {
     public class EnvironmentController : MonoBehaviour
     {
-        [SerializeField] private Grid _grid;
+        [SerializeField] private GridController _gridController;
         [SerializeField] private ObjectPrefabsConfig _objectPrefabsConfig;
         
         private void Start()
         {
-            _grid.BuildGrid();
-            _grid.transform.position = new Vector3(
-                -_grid.GetWidth() / 2f * _grid.GetCellSize(),
+            _gridController.BuildGrid();
+            _gridController.transform.position = new Vector3(
+                -_gridController.GetWidth() / 2f * _gridController.GetCellSize(),
                 0,
-                -_grid.GetHeight() / 2f * _grid.GetCellSize());
+                -_gridController.GetHeight() / 2f * _gridController.GetCellSize());
             
             SceneLoader.SetObjectPrefabsConfig(_objectPrefabsConfig);
-            SceneLoader.BuildLevel(_grid);
+            SceneLoader.BuildLevel(_gridController);
         }
     }
 }

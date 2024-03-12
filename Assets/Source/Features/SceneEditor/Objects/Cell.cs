@@ -3,11 +3,10 @@ using Source.Features.SceneEditor.Configs;
 using Source.Features.SceneEditor.Enums;
 using Source.Features.SceneEditor.Interfaces;
 using UnityEngine;
-using UnityEngine.Serialization;
 
 namespace Source.Features.SceneEditor.Objects
 {
-    public class Cell : MonoBehaviour, IBuildingStateListener
+    public class Cell : MonoBehaviour, IChangeStateListener<EBuildingState>, IChangeStateListener<EInstrumentState>, IMousePointed
     {
         public event Action<Cell, EBuildingState> Clicked;
 
@@ -18,9 +17,11 @@ namespace Source.Features.SceneEditor.Objects
         private Material _highlightMaterial;
 
         private EBuildingState _buildingState;
+        private EInstrumentState _instrumentState;
+        
         private int _indexSpawnedObject = -1;
 
-        private void OnMouseEnter()
+        public void MouseEnter()
         {
             switch (_buildingState)
             {
@@ -35,16 +36,22 @@ namespace Source.Features.SceneEditor.Objects
             }
         }
 
-        private void OnMouseExit()
+        public void MouseExit()
         {
             ResetMaterial();
         }
-
-        private void OnMouseUpAsButton()
+        
+        public void MouseLeftButtonUp()
         {
             _collider.enabled = false;
             
             Clicked?.Invoke(this, _buildingState);
+        }
+
+        public void MouseLeftButton()
+        {
+            if (_instrumentState == EInstrumentState.Tassel)
+                MouseLeftButtonUp();
         }
 
         public void Show()
@@ -67,9 +74,15 @@ namespace Source.Features.SceneEditor.Objects
             return _indexSpawnedObject;
         }
 
-        public void ChangeState(EBuildingState buildingState)
+        public void OnStateChange(EInstrumentState state)
         {
-            _buildingState = buildingState;
+            _instrumentState = state;
+        }
+        
+        public void OnStateChange(EBuildingState state)
+        {
+            _buildingState = state;
+            OnStateChange(EInstrumentState.Default);
 
             ResetMaterial();
 
@@ -90,7 +103,7 @@ namespace Source.Features.SceneEditor.Objects
                 _collider.enabled = _indexSpawnedObject != -1;
             }
         }
-
+        
         public void ResetMaterial()
         {
             _renderer.material = _buildingState == EBuildingState.Build && _indexSpawnedObject == -1

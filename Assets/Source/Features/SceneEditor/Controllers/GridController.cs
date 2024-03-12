@@ -1,12 +1,11 @@
 ﻿using System;
-using Source.Features.SceneEditor.Configs;
-using Source.Features.SceneEditor.Controllers;
 using Source.Features.SceneEditor.Enums;
+using Source.Features.SceneEditor.Objects;
 using UnityEngine;
 
-namespace Source.Features.SceneEditor.Objects
+namespace Source.Features.SceneEditor.Controllers
 {
-    public class Grid : MonoBehaviour
+    public class GridController : MonoBehaviour
     {
         public event Action<Cell, EBuildingState> CellClicked;
 
