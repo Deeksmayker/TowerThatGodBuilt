@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 2526016000462818803}
   - component: {fileID: 8634657339383644159}
   - component: {fileID: 4110680112972130550}
+  - component: {fileID: 6246570959805142757}
   m_Layer: 0
   m_Name: GoldCube
   m_TagString: Untagged
@@ -105,3 +106,15 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &6246570959805142757
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7783939639289534635}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9906ea961d8d4ddeb5f5ec15a5ddf261, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 

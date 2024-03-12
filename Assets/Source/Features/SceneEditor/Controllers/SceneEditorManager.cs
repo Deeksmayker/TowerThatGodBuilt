@@ -1,20 +1,21 @@
-﻿using Source.Features.SceneEditor.Enums;
+﻿using System.Linq;
+using Source.Features.SceneEditor.Enums;
 using Source.Features.SceneEditor.Objects;
 using Source.Features.SceneEditor.ScriptableObjects;
 using Source.Features.SceneEditor.Utils;
 using UnityEngine;
-using Grid = Source.Features.SceneEditor.Objects.Grid;
 
 namespace Source.Features.SceneEditor.Controllers
 {
-    public class SceneEditorController : MonoBehaviour
+    public class SceneEditorManager : MonoBehaviour
     {
         [SerializeField] private InputHandler _inputHandler;
-        [SerializeField] private Grid _grid;
+        [SerializeField] private GridController _gridController;
 
         [SerializeField] private ObjectPrefabsConfig _objectPrefabsConfig;
 
-        private BuildingStateController _buildingStateController;
+        private StateHandler<EBuildingState> _buildingStateController;
+        private StateHandler<EInstrumentState> _instrumentController;
 
         private GameObject _currentObjectPrefab;
         private int _objectIndex;
@@ -23,11 +24,11 @@ namespace Source.Features.SceneEditor.Controllers
         {
             SceneLoader.SetObjectPrefabsConfig(_objectPrefabsConfig);
 
-            _grid.BuildGrid();
-            _grid.ShowGrid();
-            
-            _buildingStateController =
-                new BuildingStateController(_inputHandler, ArrayUtils.GetFlatArray(_grid.GetCells()));
+            _gridController.BuildGrid();
+            _gridController.ShowGrid();
+
+            InitializeBuilderStateController();
+            InitializeInstrumentStateController();
 
             OnAlphaPressed(0);
         }
@@ -35,7 +36,7 @@ namespace Source.Features.SceneEditor.Controllers
         private void OnEnable()
         {
             _inputHandler.AlphaButtonPressed += OnAlphaPressed;
-            _grid.CellClicked += OnCellClicked;
+            _gridController.CellClicked += OnCellClicked;
 
             _inputHandler.SpacePressed += SaveGrid;
             _inputHandler.EnterPressed += LoadGrid;
@@ -44,7 +45,7 @@ namespace Source.Features.SceneEditor.Controllers
         private void OnDisable()
         {
             _inputHandler.AlphaButtonPressed -= OnAlphaPressed;
-            _grid.CellClicked -= OnCellClicked;
+            _gridController.CellClicked -= OnCellClicked;
 
             _inputHandler.SpacePressed -= SaveGrid;
             _inputHandler.EnterPressed -= LoadGrid;
@@ -72,7 +73,7 @@ namespace Source.Features.SceneEditor.Controllers
             {
                 if (cell.GetIndexSpawnedObject() != -1)
                     return;
-                
+
                 cell.SetIndexSpawnedObject(_objectIndex);
                 Instantiate(_currentObjectPrefab, cell.transform);
             }
@@ -80,7 +81,7 @@ namespace Source.Features.SceneEditor.Controllers
             {
                 if (cell.GetIndexSpawnedObject() == -1)
                     return;
-                
+
                 cell.SetIndexSpawnedObject(-1);
 
                 foreach (Transform x in cell.transform)
@@ -92,23 +93,54 @@ namespace Source.Features.SceneEditor.Controllers
 
         private void SaveGrid()
         {
-            SceneLoader.SaveGrid(_grid);
+            SceneLoader.SaveGrid(_gridController);
         }
 
         private void LoadGrid()
         {
             var cellsData = SceneLoader.LoadGrid();
+
+            _gridController.ClearGrid();
+            _gridController.BuildGrid();
+            _gridController.ShowGrid();
+
+            ResetBuilderStateController();
+            InitializeBuilderStateController();
+
+            ResetInstrumentController();
+            InitializeInstrumentStateController();
+
+            SceneLoader.BuildLevel(cellsData, _gridController);
+        }
+
+        private void ResetBuilderStateController()
+        {
+            _inputHandler.BuildingStateButtonPressed -= _buildingStateController.ChangeState;
             
-            _grid.ClearGrid();
-            _grid.BuildGrid();
-            _grid.ShowGrid();
+            _buildingStateController.ChangeState((int)EBuildingState.Build);
+        }
 
-            _buildingStateController.ChangeState((int) EBuildingState.Build);
-            _buildingStateController.Dispose();
+        private void InitializeBuilderStateController()
+        {
             _buildingStateController =
-                new BuildingStateController(_inputHandler, ArrayUtils.GetFlatArray(_grid.GetCells()));
+                new StateHandler<EBuildingState>(ArrayUtils.GetFlatArray(_gridController.GetCells()));
 
-            SceneLoader.BuildLevel(cellsData, _grid);
+            _inputHandler.BuildingStateButtonPressed += _buildingStateController.ChangeState;
+        }
+
+        private void ResetInstrumentController()
+        {
+            _inputHandler.InstrumentStateButtonPressed -= _instrumentController.ChangeState;
+
+            _instrumentController.ChangeState((int)EInstrumentState.Default);
+        }
+
+        private void InitializeInstrumentStateController()
+        {
+            _instrumentController =
+                new StateHandler<EInstrumentState>(ArrayUtils.GetFlatArray(_gridController.GetCells()));
+
+            _inputHandler.InstrumentStateButtonPressed += _instrumentController.ChangeState;
         }
     }
 }
