@@ -8,6 +8,7 @@ public class PlayerBall : MonoBehaviour{
     public SphereCollider sphere;
     public bool hitEnemy;
     public bool inHold;
+    public float speed;
     public Vector3 velocity;
     public Vector3 velocityNormalized;
     public Vector3 velocityUp;
