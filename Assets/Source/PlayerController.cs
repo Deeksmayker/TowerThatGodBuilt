@@ -50,7 +50,7 @@ public class PlayerController : MonoBehaviour{
     private float _playerTimeScale = 1;
     
     private bool _holdingBall;
-    private float _ballReloadTimer;
+    private float _ballReloadCountdown;
     private int   _currentBallCount;
     
     private bool _needToJump;
@@ -228,7 +228,6 @@ public class PlayerController : MonoBehaviour{
         if (_kickCooldownTimer > 0){
             return;
         }
-
     
         if (_kickPerformingTimer <= 0 && Input.GetMouseButtonDown(0)){
             _kickPerformingTimer = kickDuration;
@@ -412,13 +411,13 @@ public class PlayerController : MonoBehaviour{
     
     private void UpdateBalls(){
         if (_currentBallCount < maxBallCount){
-            _ballReloadTimer -= Time.deltaTime;
-            if (_ballReloadTimer <= 0){
+            _ballReloadCountdown -= Time.deltaTime;
+            if (_ballReloadCountdown <= 0){
                 _currentBallCount++;
                 _ballCounterTextMesh.text = _currentBallCount.ToString();
                 
                 if (_currentBallCount < maxBallCount){
-                    _ballReloadTimer = ballReloadTime;
+                    _ballReloadCountdown = ballReloadTime;
                 }
             }
         }
@@ -450,8 +449,8 @@ public class PlayerController : MonoBehaviour{
             
             _currentBallCount--;
             _ballCounterTextMesh.text = _currentBallCount.ToString();
-            if (_ballReloadTimer <= 0){
-                _ballReloadTimer = ballReloadTime;
+            if (_ballReloadCountdown <= 0){
+                _ballReloadCountdown = ballReloadTime;
             }
             
             _shootCooldownTimer = shootCooldown;
@@ -488,6 +487,8 @@ public class PlayerController : MonoBehaviour{
         ball.velocityRight = Quaternion.Euler(0, 90, 0) * ball.velocityNormalized;
         ball.velocityUp    = Quaternion.AngleAxis(-90, ball.velocityRight)* ball.velocityNormalized;
         
+        ball.speed = ball.velocity.magnitude;
+        
         ball.velocity += (ball.velocityUp * ball.angularVelocity.x + ball.velocityRight * ball.angularVelocity.y) * angularVelocityPower * delta;
         
         ball.transform.forward = ball.velocity;
@@ -506,6 +507,8 @@ public class PlayerController : MonoBehaviour{
         }
     
         CalculateBallCollisions(ref ball, delta, imaginaryBall);
+        
+        ball.velocity.y = Clamp(ball.velocity.y, -50, 50);
     
         ball.transform.Translate(ball.velocity * delta, Space.World);
         
@@ -542,12 +545,10 @@ public class PlayerController : MonoBehaviour{
         */
         RaycastHit[] enemyHits = SphereCastAll(ball.transform.position, ball.sphere.radius, ball.velocity.normalized, deltaVelocity.magnitude, Layers.EnemyHurtBox);
 
-        for (int i = 0; i < enemyHits.Length; i++)
-        {
+        for (int i = 0; i < enemyHits.Length; i++){
             if (enemyHits[i].transform == ball.transform) continue;
 
-            if (ball.velocity.sqrMagnitude > 25)
-            {
+            if (ball.velocity.sqrMagnitude > 25){
                 ball.bounceCount++;
                 
                 if (!imaginaryBall){
@@ -556,43 +557,36 @@ public class PlayerController : MonoBehaviour{
             }
 
             bool hitBallLayer = ((1 << enemyHits[i].transform.gameObject.layer) & (int)Layers.PlayerProjectile) > 0;
-            if (hitBallLayer)
-            {
+            if (hitBallLayer){
             }
 
             var enemy = enemyHits[i].collider.GetComponentInParent<Enemy>();
-            if (enemy)
-            {
-                if (!imaginaryBall)
-                {
+            if (enemy){
+                if (!imaginaryBall){
                     enemy.TakeHit(enemyHits[i].collider);
                     //ball.hitEnemy = true;
-                }
-                else
-                {
+                } else{
                     Animations.Instance.ChangeMaterialColor(enemy.gameObject, Colors.PredictionHitColor * 3, 0.02f);
                 }
 
-                switch (enemy.type)
-                {
+                switch (enemy.type){
                     case DummyType:
                         ball.velocity = (transform.position - enemy.transform.position).normalized * 10;
                         ball.velocity.y = 20;
-                        ball.angularVelocity.x = Clamp(ball.angularVelocity.x, 0, 15);
+                        //ball.angularVelocity.x = Clamp(ball.angularVelocity.x, 0, 15);
+                        ball.angularVelocity = Vector3.zero;
                         break;
                     case ShooterType:
                         var enemiesInRange = OverlapSphere(ball.transform.position, 1000, Layers.EnemyHurtBox);
-                        if (enemiesInRange.Length > 0)
-                        {
+                        if (enemiesInRange.Length > 0){
                             var closestEnemy = GetClosestFromColliders(ball.transform.position, enemiesInRange, enemy.gameObject);
                             var ballToEnemyVectorNormalized = (closestEnemy.transform.position - ball.transform.position).normalized;
                             ball.velocity = ballToEnemyVectorNormalized * 200;
-                        }
-                        else
-                        {
+                        } else{
                             ball.velocity = (transform.position - enemy.transform.position).normalized * 10;
                             ball.velocity.y = 20;
                         }
+                        ball.angularVelocity = Vector3.zero;
                         break;
                 }
             }
@@ -630,6 +624,8 @@ public class PlayerController : MonoBehaviour{
                 ball.velocity.y = 20;
                 ball.angularVelocity.x = 10;
             }
+            
+            ball.angularVelocity = Vector3.zero;
         }
     }
     
@@ -728,6 +724,10 @@ public class PlayerController : MonoBehaviour{
     
     public void ResetPosition(){
         transform.position = Vector3.up * 20;
+    }
+    
+    public List<PlayerBall> GetBalls(){
+        return _balls;
     }
     
     private void OnDrawGizmosSelected(){

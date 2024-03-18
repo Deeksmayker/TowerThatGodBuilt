@@ -141,7 +141,7 @@ PrefabInstance:
     - target: {fileID: 2283804677215199696, guid: b311cf307ce381c499c303b3bfe0f9b2,
         type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4389726340316758530, guid: b311cf307ce381c499c303b3bfe0f9b2,
         type: 3}
@@ -566,7 +566,7 @@ PrefabInstance:
     - target: {fileID: 2283804677215199696, guid: b311cf307ce381c499c303b3bfe0f9b2,
         type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4389726340316758530, guid: b311cf307ce381c499c303b3bfe0f9b2,
         type: 3}
@@ -644,7 +644,7 @@ PrefabInstance:
     - target: {fileID: 2283804677215199696, guid: b311cf307ce381c499c303b3bfe0f9b2,
         type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4389726340316758530, guid: b311cf307ce381c499c303b3bfe0f9b2,
         type: 3}
@@ -1404,7 +1404,7 @@ MonoBehaviour:
       traumaExponent: 2
       traumaDecreaseSpeed: 0.5
       changingSpeed: 4
-      MaxShake: {x: 5, y: 5, z: 5}
+      MaxShake: {x: 10, y: 10, z: 10}
       trauma: 0
       lastShakeRotation: {x: 0, y: 0, z: 0}
     rapidShake:
@@ -1412,7 +1412,7 @@ MonoBehaviour:
       traumaExponent: 1
       traumaDecreaseSpeed: 2
       changingSpeed: 30
-      MaxShake: {x: 0.5, y: 0.5, z: 0.5}
+      MaxShake: {x: 1, y: 1, z: 1}
       trauma: 0
       lastShakeRotation: {x: 0, y: 0, z: 0}
     longShake:
@@ -7408,7 +7408,7 @@ PrefabInstance:
     - target: {fileID: 2283804677215199696, guid: b311cf307ce381c499c303b3bfe0f9b2,
         type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4389726340316758530, guid: b311cf307ce381c499c303b3bfe0f9b2,
         type: 3}

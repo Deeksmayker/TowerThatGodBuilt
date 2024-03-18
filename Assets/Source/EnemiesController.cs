@@ -13,9 +13,9 @@ public enum EnemyType{
 public class Dummy{
     public Enemy enemy;
     public Vector3 dodgeStartPosition;
-    public float ballDetectRadius = 12f;
+    public float ballDetectRadius = 24f;
     public float dodgeDistance    = 7f;
-    public float dodgeTime        = 2f;
+    public float dodgeTime        = 8f;
     public float dodgeTimer;
     public bool  dodging;
 }
@@ -23,7 +23,7 @@ public class Dummy{
 public class Shooter{
     public Enemy enemy;
     public float shootCooldown   = 5f;
-    public int   burstShootCount = 10;
+    public int   burstShootCount = 1;
     public float shootDelay      = 0.02f;
     public float cooldownTimer;
     public float delayTimer;
@@ -41,7 +41,7 @@ public class EnemiesController : MonoBehaviour{
     private Vector3          _playerPosition;
     
     private EnemyProjectile _shooterProjectilePrefab;
-
+    
     private List<EnemyProjectile> _enemyProjectiles = new();
     private List<Dummy>           _dummies          = new();
     private List<Shooter>         _shooters         = new();
@@ -219,7 +219,20 @@ public class EnemiesController : MonoBehaviour{
     }
     
     private bool PlayerBallNearby(Vector3 checkPosition, float checkRadius){
-        return CheckSphere(checkPosition, checkRadius, Layers.PlayerProjectile);
+        List<PlayerBall> balls = _player.GetBalls();
+        
+        for (int i = 0; i < balls.Count; i++){
+            if (balls[i].speed < 10) continue;
+            
+            Vector3 ballToEnemy = checkPosition - balls[i].transform.position;
+            
+            if (ballToEnemy.sqrMagnitude <= checkRadius * checkRadius && Vector3.Dot(ballToEnemy, balls[i].velocity) > 0){
+                return true;
+            }
+        }
+        
+        return false;
+        //return CheckSphere(checkPosition, checkRadius, Layers.PlayerProjectile);
     }
     
     private void KillPlayerIfNearby(Enemy enemy){
