@@ -78,6 +78,12 @@ public class EnemiesController : MonoBehaviour{
     private void UpdateShooters(){
         for (int i = 0; i < _shooters.Count; i++){
             var shooter = _shooters[i];
+            
+            if (shooter.enemy.hitImmuneCountdown > 0){
+                shooter.enemy.hitImmuneCountdown -= Time.deltaTime;
+                shooter.enemy.hitImmuneCountdown = Clamp(shooter.enemy.hitImmuneCountdown, 0, 1);
+            }
+            
             Transform shooterTransform = shooter.enemy.transform;
             
             var vectorToPlayer = (_playerPosition - shooterTransform.position).normalized;
@@ -86,6 +92,7 @@ public class EnemiesController : MonoBehaviour{
             
             if (shooter.enemy.justTakeHit){
                 shooter.enemy.justTakeHit = false;
+                shooter.enemy.hitImmuneCountdown = 0.1f;
                 Destroy(shooter.enemy.gameObject);
                 _shooters.RemoveAt(i);
                 continue;
@@ -175,9 +182,16 @@ public class EnemiesController : MonoBehaviour{
     private void UpdateDummies(){
         for (int i = 0; i < _dummies.Count; i++){
             Dummy dummy = _dummies[i];
+            
+            if (dummy.enemy.hitImmuneCountdown > 0){
+                dummy.enemy.hitImmuneCountdown -= Time.deltaTime;
+                dummy.enemy.hitImmuneCountdown = Clamp(dummy.enemy.hitImmuneCountdown, 0, 1);
+            }
+            
             Transform dummyTransform = dummy.enemy.transform;
             if (dummy.enemy.justTakeHit){          
                 dummy.enemy.justTakeHit = false;  
+                dummy.enemy.hitImmuneCountdown = 0.1f;
                 
                 var wishPosition = Random.onUnitSphere * 20;
                 wishPosition.y = Abs(wishPosition.y) * 0.5f;

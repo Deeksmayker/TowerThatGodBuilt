@@ -62,6 +62,7 @@ public class PlayerController : MonoBehaviour{
     
     private Vector3 _lastVelocity;
     private Vector3 _playerVelocity;
+    private float   _playerSpeed;
     private Vector3 _moveInput;
     
     private CapsuleCollider _collider;
@@ -85,6 +86,8 @@ public class PlayerController : MonoBehaviour{
     private ParticleSystem _ballHitParticles;
     
     private float _shootCooldownTimer;
+    
+    private PlayerBall _ballInHold;
     
     private LineRenderer     _ballPredictionLineRenderer;
     private PlayerBall       _playerBallPrefab;
@@ -131,6 +134,8 @@ public class PlayerController : MonoBehaviour{
         var wishDirection = new Vector3(_moveInput.x, 0, _moveInput.z);
         wishDirection = directionTransform.right * wishDirection.x + directionTransform.forward * wishDirection.z;
         wishDirection.Normalize();
+        
+        _playerSpeed = _playerVelocity.magnitude;
 
         if (IsGrounded()){
             _timeSinceGrounded = 0;
@@ -150,6 +155,37 @@ public class PlayerController : MonoBehaviour{
         var gravityMultiplier         = Lerp(1, 2, gravityMultiplierProgress * gravityMultiplierProgress);
         _playerVelocity += Vector3.down * gravity * gravityMultiplier * playerDelta;
         
+        StaminaAbilities(playerDelta, wishDirection);
+                
+        _playerSpeed = _playerVelocity.magnitude;
+        
+        CalculatePlayerCollisions(ref _playerVelocity);
+        
+        _playerSpeed = _playerVelocity.magnitude;
+        
+        transform.Translate(_playerVelocity * playerDelta);
+        
+        if (transform.position.y < -30){
+            transform.position = Vector3.up * 10;
+        }
+        
+        UpdateBalls();
+        UpdateKick();
+        BulletTime();
+        
+        if (showPlayerStats){
+            var horizontalSpeed = (new Vector3(_playerVelocity.x, 0, _playerVelocity.z)).magnitude;
+            _speedTextMesh.text = "Horizontal: " + horizontalSpeed;
+        }
+        
+        if (!_holdingBall){
+            //_playerTimeScale = Lerp(_playerTimeScale, 1, Time.unscaledDeltaTime * 5);
+        }
+        
+        DebugStuff();
+    }
+    
+    private void StaminaAbilities(float playerDelta, Vector3 wishDirection){
         if (Input.GetKey(KeyCode.Space)){   
             if (_currentStamina > 0 && _jumpChargeProgress < 1){
                 _jumpChargeProgress += Time.unscaledDeltaTime / timeToChargeMaxJump;
@@ -196,29 +232,6 @@ public class PlayerController : MonoBehaviour{
         
         _staminaSlider.value = _currentStamina / maxStamina;
 
-        
-        CalculatePlayerCollisions(ref _playerVelocity);
-        
-        transform.Translate(_playerVelocity * playerDelta);
-        
-        if (transform.position.y < -30){
-            transform.position = Vector3.up * 10;
-        }
-        
-        UpdateKick();
-        UpdateBalls();
-        BulletTime();
-        
-        if (showPlayerStats){
-            var horizontalSpeed = (new Vector3(_playerVelocity.x, 0, _playerVelocity.z)).magnitude;
-            _speedTextMesh.text = "Horizontal: " + horizontalSpeed;
-        }
-        
-        if (!_holdingBall){
-            _playerTimeScale = Lerp(_playerTimeScale, 1, Time.unscaledDeltaTime * 5);
-        }
-        
-        DebugStuff();
     }
     
     private void UpdateKick(){
@@ -252,8 +265,10 @@ public class PlayerController : MonoBehaviour{
                 if (ball){
                     ball.groundBounceCount = 0;
                     ball.lifeTime = 0;
+                    StopHoldingBall();
                     SetKickVelocityToBall(ref ball);
                     
+                    TimeController.Instance.AddHitStop(0.05f);
                     PlayerCameraController.Instance.ShakeCameraBase(0.7f);
                     
                     Vector3 targetScale = Vector3.one * 0.5f;
@@ -264,7 +279,8 @@ public class PlayerController : MonoBehaviour{
                 var enemy = targets[i].GetComponentInParent<Enemy>();
                 if (enemy){
                     enemy.TakeHit(targets[i]);
-                    PlayerCameraController.Instance.ShakeCameraBase(0.5f);
+                    PlayerCameraController.Instance.ShakeCameraBase(0.8f);
+                    TimeController.Instance.AddHitStop(0.1f);
                 }
             }
             
@@ -276,9 +292,9 @@ public class PlayerController : MonoBehaviour{
     
     }
     
-    private Collider[] GetKickTargetsInRange(){
-        var kickHitBoxCenter = transform.position + GetCameraTransform().forward * kickHitBoxLength * 0.5f;
-        Collider[] targets = OverlapBox(kickHitBoxCenter, new Vector3(kickHitBoxWidth, kickHitBoxWidth, kickHitBoxLength) * 0.5f, GetCameraTransform().rotation, Layers.PlayerKickHitable);
+    private Collider[] GetKickTargetsInRange(float mult = 1){
+        var kickHitBoxCenter = transform.position + GetCameraTransform().forward * kickHitBoxLength * 0.5f * mult;
+        Collider[] targets = OverlapBox(kickHitBoxCenter, new Vector3(kickHitBoxWidth * mult, kickHitBoxWidth * mult, kickHitBoxLength * mult) * 0.5f, GetCameraTransform().rotation, Layers.PlayerKickHitable);
         
         return targets;
     }
@@ -314,7 +330,7 @@ public class PlayerController : MonoBehaviour{
         
         Accelerate(delta, wishDirection, wishSpeed, acceleration);
         
-        if (_playerVelocity.magnitude > baseSpeed && directionDotVelocity < 0.1f){
+        if (_playerSpeed > baseSpeed && directionDotVelocity < 0.1f){
             PlayerCameraController.Instance.ShakeCameraRapid(Time.deltaTime * 5);
         }
     }
@@ -349,7 +365,7 @@ public class PlayerController : MonoBehaviour{
     private void ApplyFriction(float delta){
         Vector3 frictionForce = _currentFriction * -_playerVelocity.normalized * delta;
         
-        var playerSpeed = _playerVelocity.magnitude;
+        var playerSpeed = _playerSpeed;
         frictionForce = Vector3.ClampMagnitude(frictionForce, playerSpeed);
         
         /*
@@ -360,7 +376,7 @@ public class PlayerController : MonoBehaviour{
         _playerVelocity += frictionForce;
         /*
         return;
-        float speed = _playerVelocity.magnitude;
+        float speed = _playerSpeed;
         
         float speedDrop = _currentFriction * delta;
         
@@ -440,9 +456,10 @@ public class PlayerController : MonoBehaviour{
         }
         if (Input.GetMouseButtonUp(1)){
             _ballPredictionLineRenderer.positionCount = 0;
+            StopHoldingBall(true);
         }
     
-        if (Input.GetMouseButton(1) && Input.GetMouseButtonDown(0) && _shootCooldownTimer <= 0 && _currentBallCount > 0 && !TargetInKickRange()){
+        if (Input.GetMouseButton(1) && Input.GetMouseButtonDown(0) && _shootCooldownTimer <= 0 && _currentBallCount > 0 && !TargetInKickRange() && !_ballInHold){
             PlayerBall newBall = SpawnPlayerBall();
             newBall.index = _balls.Count;
             _balls.Add(newBall);
@@ -547,9 +564,15 @@ public class PlayerController : MonoBehaviour{
 
         for (int i = 0; i < enemyHits.Length; i++){
             if (enemyHits[i].transform == ball.transform) continue;
+            
+            var enemy = enemyHits[i].collider.GetComponentInParent<Enemy>();
+            
+            if (enemy.hitImmuneCountdown > 0 || Vector3.Dot(enemyHits[i].normal, ball.velocity) > 0) continue;
 
             if (ball.velocity.sqrMagnitude > 25){
                 ball.bounceCount++;
+                
+                //if (ball.bounceCount > 20) continue;
                 
                 if (!imaginaryBall){
                     Particles.Instance.SpawnAndPlayParticles(_ballHitParticles, enemyHits[i].point);
@@ -560,10 +583,12 @@ public class PlayerController : MonoBehaviour{
             if (hitBallLayer){
             }
 
-            var enemy = enemyHits[i].collider.GetComponentInParent<Enemy>();
             if (enemy){
                 if (!imaginaryBall){
                     enemy.TakeHit(enemyHits[i].collider);
+                    
+                    TimeController.Instance.AddHitStop(0.05f);
+                    PlayerCameraController.Instance.ShakeCameraBase(0.3f);
                     //ball.hitEnemy = true;
                 } else{
                     Animations.Instance.ChangeMaterialColor(enemy.gameObject, Colors.PredictionHitColor * 3, 0.02f);
@@ -596,7 +621,7 @@ public class PlayerController : MonoBehaviour{
         
         for (int i = 0; i < otherHits.Length; i++){
             EnemyProjectile enemyProjectile = otherHits[i].transform.GetComponentInParent<EnemyProjectile>();
-            if (!imaginaryBall){
+            if (!imaginaryBall && ball.speed > 10){
                 Particles.Instance.SpawnAndPlayParticles(_ballHitParticles, otherHits[i].point);
             }
             
@@ -608,6 +633,7 @@ public class PlayerController : MonoBehaviour{
                 continue;
             }
             
+            /*
             if (!imaginaryBall && otherHits[i].normal.y == 1){
                 ball.groundBounceCount++;
                 if (ball.groundBounceCount >= 2){
@@ -617,12 +643,13 @@ public class PlayerController : MonoBehaviour{
                     Animations.Instance.ChangeMeshRenderersColor(ball.GetComponentsInChildren<MeshRenderer>(), Colors.DangerRed * 2, Colors.DangerRed * 2);
                 }
             }
+            */
             
             ball.velocity = Vector3.Reflect(ball.velocity, otherHits[i].normal) * 0.6f;
             ball.velocity = Vector3.ClampMagnitude(ball.velocity, 60);
             if (otherHits[i].normal.y == 1 && ball.velocity.y < 20){
-                ball.velocity.y = 20;
-                ball.angularVelocity.x = 10;
+                //ball.velocity.y = 20;
+                //ball.angularVelocity.x = 10;
             }
             
             ball.angularVelocity = Vector3.zero;
@@ -637,38 +664,34 @@ public class PlayerController : MonoBehaviour{
     private void PredictAndDrawBallTrajectory(){
         _holdingBall = false;
     
+     /*  
         _currentStartAngularVelocity += new Vector3(Input.GetAxis("Mouse Y"), Input.GetAxis("Mouse X"), 0) * angularVelocitySense;
         _currentStartAngularVelocity.x = Clamp(_currentStartAngularVelocity.x, -maxAngularVelocity, maxAngularVelocity);
         _currentStartAngularVelocity.y = Clamp(_currentStartAngularVelocity.y, -maxAngularVelocity, maxAngularVelocity);
-        
-        PlayerBall ballInKickRange = null;
-        
-        var kickTargets = GetKickTargetsInRange();
-        for (int i = 0; i < kickTargets.Length; i++){
-            var ball = kickTargets[i].GetComponentInParent<PlayerBall>();
-            if (ball && ball.lifeTime > 1){
-                _playerTimeScale = Lerp(_playerTimeScale, 0.02f, Time.unscaledDeltaTime * 5);
-                Animations.Instance.ChangeMaterialColor(ball.gameObject, Colors.BallHighlightColor, 0.002f);
-                
-                ball.transform.position = Vector3.Lerp(ball.transform.position, GetWishBallPositionNearPlayer(), Time.unscaledDeltaTime * 10);
-                
-                ballInKickRange = ball;
-                
-                _holdingBall = true;
-                
-                ball.inHold = true;
-                break;
-            } else{
-                //_playerTimeScale = Lerp(_playerTimeScale, 1, Time.unscaledDeltaTime * 5);
+     */     
+        if (!_ballInHold){
+            var kickTargets = GetKickTargetsInRange(2f);
+            for (int i = 0; i < kickTargets.Length; i++){
+                var ball = kickTargets[i].GetComponentInParent<PlayerBall>();
+                if (ball && ball.lifeTime > 1){
+                    _ballInHold = ball;
+                    break;
+                }
             }
+        } else{
+            Animations.Instance.ChangeMaterialColor(_ballInHold.gameObject, Colors.BallHighlightColor, 0.002f);
+            _ballInHold.transform.position = Vector3.Lerp(_ballInHold.transform.position, GetWishBallPositionNearPlayer(), Time.deltaTime * 10 * Clamp(_playerSpeed / baseSpeed, 1, 10));
+            _holdingBall = true;
+            _ballInHold.inHold = true;
+
         }
         
         var imaginaryBall = SpawnPlayerBall();
         
-        if (ballInKickRange){
-            imaginaryBall.transform.position = ballInKickRange.transform.position;
-            imaginaryBall.angularVelocity = ballInKickRange.angularVelocity;
-            imaginaryBall.velocity = ballInKickRange.velocity;
+        if (_ballInHold){
+            imaginaryBall.transform.position = _ballInHold.transform.position;
+            imaginaryBall.angularVelocity = _ballInHold.angularVelocity;
+            imaginaryBall.velocity = _ballInHold.velocity;
         }
         
         SetKickVelocityToBall(ref imaginaryBall);
@@ -680,27 +703,37 @@ public class PlayerController : MonoBehaviour{
         
         _ballPredictionLineRenderer.positionCount = iterationCount;
         for (int i = 0; i < iterationCount; i++){
-            _ballPredictionLineRenderer.SetPosition(i, imaginaryBall.transform.position);
-            UpdateBall(imaginaryBall, step, true);
+            //_ballPredictionLineRenderer.SetPosition(i, imaginaryBall.transform.position);
+            //UpdateBall(imaginaryBall, step, true);
         }
         imaginaryBall.sphere.enabled = false;
         Destroy(imaginaryBall.sphere);
         Destroy(imaginaryBall.gameObject);
     }
     
+    private void StopHoldingBall(bool inheritVelocity = false){
+        if (!_ballInHold) return;
+    
+        _ballInHold.inHold = false;
+        
+        if (inheritVelocity) _ballInHold.velocity = _playerVelocity;
+        
+        _ballInHold = null;
+        _holdingBall = false;
+    }
+    
     private PlayerBall SpawnPlayerBall(){
         var newBall = Instantiate(_playerBallPrefab, GetWishBallPositionNearPlayer(), Quaternion.identity);
         newBall.sphere = newBall.GetComponent<SphereCollider>();
-        //SetKickVelocityToBall(ref newBall);
         
-        var colliderSizeProgress = Clamp01(_playerVelocity.magnitude / 50);
+        var colliderSizeProgress = Clamp01(_playerSpeed / 50);
         newBall.sphere.radius = Lerp(1, 3, colliderSizeProgress);
         
         return newBall;        
     }
     
     private Vector3 GetWishBallPositionNearPlayer(){
-        return GetCameraTransform().position + GetCameraTransform().forward * 3;
+        return GetCameraTransform().position + GetCameraTransform().forward * 2 - GetCameraTransform().up * 1.1f;
     }
     
     private void SetKickVelocityToBall(ref PlayerBall ball){

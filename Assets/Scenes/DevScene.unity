@@ -718,6 +718,7 @@ GameObject:
   - component: {fileID: 719753535}
   - component: {fileID: 719753536}
   - component: {fileID: 719753537}
+  - component: {fileID: 719753538}
   m_Layer: 0
   m_Name: BaseStuff
   m_TagString: Untagged
@@ -782,6 +783,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   objectsHolder: {fileID: 0}
+--- !u!114 &719753538
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 719753533}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6b371d57e14b1744eac95e620644f0ed, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &732867776
 GameObject:
   m_ObjectHideFlags: 0
@@ -1393,7 +1406,7 @@ MonoBehaviour:
   rollTransform: {fileID: 2121406106}
   pitchTransform: {fileID: 876360644}
   sense: 2
-  rmbSenseMultiplier: 0.2
+  rmbSenseMultiplier: 1
   maxRoll: 5
   maxPitch: 2
   rollChangeSpeed: 3
@@ -1402,7 +1415,7 @@ MonoBehaviour:
     baseShake:
       shakeTransform: {fileID: 0}
       traumaExponent: 2
-      traumaDecreaseSpeed: 0.5
+      traumaDecreaseSpeed: 1
       changingSpeed: 4
       MaxShake: {x: 10, y: 10, z: 10}
       trauma: 0
