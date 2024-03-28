@@ -3,7 +3,7 @@ using UnityEngine;
 public class Particles : MonoBehaviour{
     public static Particles Instance;
     
-    public Transform objectsHolder;
+    private Transform _particlesHolder;
     
     public void Awake(){
         if (Instance && Instance != this){
@@ -12,7 +12,7 @@ public class Particles : MonoBehaviour{
         }
         
         Instance = this;
-        objectsHolder = new GameObject("ParticlesHolder").transform;
+        _particlesHolder = new GameObject("ParticlesHolder").transform;
     }
     
     public ParticleSystem GetParticles(string name){
@@ -23,6 +23,6 @@ public class Particles : MonoBehaviour{
     
     public void SpawnAndPlayParticles(ParticleSystem particles, Vector3 position){
         var newParticles = Instantiate(particles, position, Quaternion.identity);
-        newParticles.transform.parent = objectsHolder;
+        newParticles.transform.parent = _particlesHolder;
     }
 }

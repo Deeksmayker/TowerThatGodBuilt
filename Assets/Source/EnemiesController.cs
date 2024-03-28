@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using UnityEditor;
 using static UnityEngine.Mathf;
 using static UnityEngine.Physics;
 using static Utils;
@@ -7,7 +8,9 @@ using static EnemyType;
 
 public enum EnemyType{
     DummyType,
-    ShooterType
+    ShooterType,
+    BlockerType,
+    RicocheType
 }
 
 public class Dummy{
@@ -30,6 +33,23 @@ public class Shooter{
     public int   shootedCount;
 }
 
+public class Blocker{
+    public Enemy enemy;
+    public Vector3 pivotPosition;
+    public float moveDistance = 25;
+    public float cycleTime = 5;
+    public float cycleProgress;
+}
+
+public class Ricoche{
+    public Enemy enemy;
+    public LineRenderer targetLine;
+    public Vector3 pivotPosition;
+    public Vector3 orbitAxis;
+    public Vector3 orbitPosition;
+    public float orbitRadius = 75;
+    public float orbitingSpeed = 30;
+}
 
 public class EnemiesController : MonoBehaviour{
     
@@ -45,26 +65,51 @@ public class EnemiesController : MonoBehaviour{
     private List<EnemyProjectile> _enemyProjectiles = new();
     private List<Dummy>           _dummies          = new();
     private List<Shooter>         _shooters         = new();
+    private List<Blocker>         _blockers         = new();
+    private List<Ricoche>         _ricoches         = new();
+    
+    private List<Enemy> _enemies = new();
     
     private void Start(){
         _shooterProjectilePrefab = GetPrefab("ShooterProjectile").GetComponent<EnemyProjectile>();
-    
+        
         _playerTransform = FindObjectOfType<PlayerController>().transform;
         _player = _playerTransform.GetComponent<PlayerController>();
     
-        var enemies = FindObjectsOfType<Enemy>();
+        var enemiesOnScene = FindObjectsOfType<Enemy>();
         
-        for (int i = 0; i < enemies.Length; i++){
-            switch (enemies[i].type){
+        for (int i = 0; i < enemiesOnScene.Length; i++){
+            switch (enemiesOnScene[i].type){
                 case DummyType:
-                    _dummies.Add(new Dummy() { enemy = enemies[i] });
+                    _dummies.Add(new Dummy() { enemy = enemiesOnScene[i] });
                     _dummies[_dummies.Count-1].dodgeStartPosition = _dummies[_dummies.Count-1].enemy.transform.position;
+                    _dummies[_dummies.Count-1].enemy.index = _dummies.Count-1;
                     break;
                 case ShooterType:
-                    _shooters.Add(new Shooter() {enemy = enemies[i]});
+                    _shooters.Add(new Shooter() {enemy = enemiesOnScene[i]});
                     _shooters[_shooters.Count-1].cooldownTimer = _shooters[_shooters.Count-1].shootCooldown;
+                    _shooters[_shooters.Count-1].enemy.index = _shooters.Count-1;
+                    break;
+                case BlockerType:
+                    _blockers.Add(new Blocker() {enemy = enemiesOnScene[i]});
+                    _blockers[_blockers.Count-1].pivotPosition = _blockers[_blockers.Count-1].enemy.transform.position;
+                    _blockers[_blockers.Count-1].enemy.index = _blockers.Count-1;
+                    break;
+                case RicocheType:
+                    var ricoche = new Ricoche() {enemy = enemiesOnScene[i]};
+                    ricoche.pivotPosition = ricoche.enemy.transform.position;
+                    ricoche.enemy.index = _ricoches.Count;
+                    
+                    ricoche.orbitAxis = ricoche.enemy.transform.up;
+                    ricoche.orbitPosition = ricoche.enemy.transform.right * ricoche.orbitRadius;
+                    
+                    ricoche.targetLine = ricoche.enemy.GetComponent<LineRenderer>();
+                    
+                    _ricoches.Add(ricoche);
                     break;
             }
+            
+            _enemies.Add(enemiesOnScene[i]);
         }
     }
     
@@ -73,16 +118,111 @@ public class EnemiesController : MonoBehaviour{
         UpdateShooters();
         UpdateEnemyProjectiles();
         UpdateDummies();
+        UpdateBlockers();
+        UpdateRicoches();
+        
+        UpdateDebug();
+    }
+    
+    private void UpdateRicoches(){
+        for (int i = 0; i < _ricoches.Count; i++){
+            var ricoche = _ricoches[i];
+            
+            if (!ricoche.enemy.gameObject.activeSelf || EnemyHit(ref ricoche.enemy)){
+                continue;
+            }
+            
+            EnemyCountdowns(ref ricoche.enemy);
+            
+            var ricocheTransform = ricoche.enemy.transform;
+            
+            ricoche.pivotPosition += ricoche.enemy.velocity * Time.deltaTime;
+            ricocheTransform.position += ricoche.enemy.velocity * Time.deltaTime;
+            
+            ricoche.orbitPosition = Quaternion.AngleAxis(ricoche.orbitingSpeed * Time.deltaTime, ricoche.orbitAxis) * ricoche.orbitPosition;
+                        
+            ricocheTransform.position = ricoche.pivotPosition + ricoche.orbitPosition;
+            
+            ricocheTransform.rotation = Quaternion.Slerp(ricocheTransform.rotation,
+                                                         Quaternion.LookRotation((_playerPosition - ricocheTransform.position).normalized),
+                                                         Time.deltaTime * 5);
+                                                         
+            Enemy closestEnemy = GetClosestEnemy(ricocheTransform.position, ricoche.enemy.gameObject);
+            
+            if (closestEnemy){
+                ricoche.targetLine.positionCount = 2;
+                Vector3 lineTargetPosition = Vector3.Lerp(ricoche.targetLine.GetPosition(1), closestEnemy.transform.position, Time.deltaTime * 20);
+                ricoche.targetLine.SetPosition(0, ricocheTransform.position);
+                ricoche.targetLine.SetPosition(1, lineTargetPosition);
+            } else{
+                ricoche.targetLine.positionCount = 0;
+            }
+                        
+            KillPlayerIfNearby(ricoche.enemy);
+        }
+    }
+    
+    private void UpdateBlockers(){
+        for (int i = 0; i < _blockers.Count; i++){
+            var blocker = _blockers[i];
+            
+            if (!blocker.enemy.gameObject.activeSelf || EnemyHit(ref blocker.enemy)){
+                continue;
+            }
+            
+            var blockerTransform = blocker.enemy.transform;
+            
+            
+            EnemyCountdowns(ref blocker.enemy);
+            blockerTransform.position += blocker.enemy.velocity * Time.deltaTime;
+            blocker.pivotPosition += blocker.enemy.velocity * Time.deltaTime;
+            
+            //blockerTransform.position += blockerTransform.right * Sin(Time.time) * Time.deltaTime;
+            
+            blocker.cycleProgress += Time.deltaTime / blocker.cycleTime;
+            
+            float t = blocker.cycleProgress <= 0.5f ? blocker.cycleProgress * 2 : 1f - (blocker.cycleProgress - 0.5f) * 2;
+            
+            var targetPosition = blocker.pivotPosition + blockerTransform.right * blocker.moveDistance;
+            blockerTransform.position = Vector3.Lerp(blocker.pivotPosition, targetPosition, EaseInOutQuad(t));
+            
+            if (blocker.cycleProgress >= 1){
+                blocker.cycleProgress = 0;
+            }
+            
+            KillPlayerIfNearby(blocker.enemy);
+        }
+    }
+    
+    private void EnemyCountdowns(ref Enemy enemy){
+        if (enemy.hitImmuneCountdown > 0){
+            enemy.hitImmuneCountdown -= Time.deltaTime;
+            enemy.hitImmuneCountdown = Clamp(enemy.hitImmuneCountdown, 0, 1);
+        }
+    }
+    
+    private bool EnemyHit(ref Enemy enemy){
+        if (enemy.justTakeHit){
+            enemy.justTakeHit = false;
+            enemy.hitImmuneCountdown = 0.1f;
+            
+            enemy.gameObject.SetActive(false);
+            
+            return true;
+        }
+        
+        return false;
     }
     
     private void UpdateShooters(){
         for (int i = 0; i < _shooters.Count; i++){
             var shooter = _shooters[i];
             
-            if (shooter.enemy.hitImmuneCountdown > 0){
-                shooter.enemy.hitImmuneCountdown -= Time.deltaTime;
-                shooter.enemy.hitImmuneCountdown = Clamp(shooter.enemy.hitImmuneCountdown, 0, 1);
+            if (!shooter.enemy.gameObject.activeSelf){
+                continue;
             }
+            
+            EnemyCountdowns(ref shooter.enemy);
             
             Transform shooterTransform = shooter.enemy.transform;
             
@@ -90,11 +230,7 @@ public class EnemiesController : MonoBehaviour{
             var horizontalVectorToPlayer = new Vector3(vectorToPlayer.x, 0, vectorToPlayer.z);
             shooter.enemy.transform.rotation = Quaternion.Slerp(shooterTransform.rotation, Quaternion.LookRotation(horizontalVectorToPlayer), Time.deltaTime * 3);
             
-            if (shooter.enemy.justTakeHit){
-                shooter.enemy.justTakeHit = false;
-                shooter.enemy.hitImmuneCountdown = 0.1f;
-                Destroy(shooter.enemy.gameObject);
-                _shooters.RemoveAt(i);
+            if (EnemyHit(ref shooter.enemy)){            
                 continue;
             }
             
@@ -183,9 +319,14 @@ public class EnemiesController : MonoBehaviour{
         for (int i = 0; i < _dummies.Count; i++){
             Dummy dummy = _dummies[i];
             
-            if (dummy.enemy.hitImmuneCountdown > 0){
-                dummy.enemy.hitImmuneCountdown -= Time.deltaTime;
-                dummy.enemy.hitImmuneCountdown = Clamp(dummy.enemy.hitImmuneCountdown, 0, 1);
+            if (!dummy.enemy.gameObject.activeSelf){
+                continue;
+            }
+            
+            EnemyCountdowns(ref dummy.enemy);
+            
+            if (EnemyHit(ref dummy.enemy)){
+                continue;   
             }
             
             Transform dummyTransform = dummy.enemy.transform;
@@ -261,6 +402,21 @@ public class EnemiesController : MonoBehaviour{
         }
         if ((_playerPosition - enemy.transform.position).sqrMagnitude <= checkRadius * checkRadius){
             _player.ResetPosition();
+        }
+    }
+    
+    private void ReviveEnemy(ref Enemy enemy){
+        enemy.gameObject.SetActive(true);
+        enemy.hitImmuneCountdown = 0;
+        enemy.velocity = Vector3.zero;
+    }
+    
+    private void UpdateDebug(){
+        if (Input.GetKeyDown(KeyCode.U)){
+            for (int i = 0; i < _enemies.Count; i++){
+                var enemy = _enemies[i];
+                ReviveEnemy(ref enemy);
+            }
         }
     }
 }
