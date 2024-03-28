@@ -2,6 +2,7 @@ using UnityEngine;
 
 public class Enemy : MonoBehaviour{
     public EnemyType type;
+    public int index;
     public Vector3 velocity;
     public float hitImmuneCountdown;
     public bool justTakeHit;

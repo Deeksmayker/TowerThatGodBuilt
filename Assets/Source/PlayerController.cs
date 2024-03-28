@@ -185,6 +185,10 @@ public class PlayerController : MonoBehaviour{
         DebugStuff();
     }
     
+    private void UpdateAll(float delta){
+        
+    }
+    
     private void StaminaAbilities(float playerDelta, Vector3 wishDirection){
         if (Input.GetKey(KeyCode.Space)){   
             if (_currentStamina > 0 && _jumpChargeProgress < 1){
@@ -274,6 +278,8 @@ public class PlayerController : MonoBehaviour{
                     Vector3 targetScale = Vector3.one * 0.5f;
                     targetScale.z *= ball.velocity.magnitude * 0.2f;
                     Animations.Instance.ChangeScale(ball.transform.gameObject, targetScale, 0.1f, true, 0.3f, EaseOutQuint);
+                    
+                    break;
                 }
                 
                 var enemy = targets[i].GetComponentInParent<Enemy>();
@@ -525,7 +531,7 @@ public class PlayerController : MonoBehaviour{
     
         CalculateBallCollisions(ref ball, delta, imaginaryBall);
         
-        ball.velocity.y = Clamp(ball.velocity.y, -50, 50);
+        ball.velocity.y = Clamp(ball.velocity.y, -150, 150);
     
         ball.transform.Translate(ball.velocity * delta, Space.World);
         
@@ -548,6 +554,25 @@ public class PlayerController : MonoBehaviour{
                 _playerVelocity.y += 20;
             }
         }
+    }
+    
+    private void ReflectToPlayer(ref PlayerBall ball, Enemy enemy){
+        ball.velocity = (transform.position - enemy.transform.position).normalized * 10;
+        ball.velocity.y = 20;
+        //ball.angularVelocity.x = Clamp(ball.angularVelocity.x, 0, 15);
+        ball.angularVelocity = Vector3.zero;
+    }
+    
+    private void ReflectToNearbyEnemy(ref PlayerBall ball, Enemy enemy){
+        Enemy closestEnemy = GetClosestEnemy(ball.transform.position, enemy.gameObject);
+        if (closestEnemy){
+            var ballToEnemyVectorNormalized = (closestEnemy.transform.position - ball.transform.position).normalized;
+            ball.velocity = ballToEnemyVectorNormalized * 200;
+        } else{
+            ball.velocity = (transform.position - enemy.transform.position).normalized * 10;
+            ball.velocity.y = 20;
+        }
+        ball.angularVelocity = Vector3.zero;
     }
     
     private void CalculateBallCollisions(ref PlayerBall ball, float delta, bool imaginaryBall = false){
@@ -596,22 +621,16 @@ public class PlayerController : MonoBehaviour{
 
                 switch (enemy.type){
                     case DummyType:
-                        ball.velocity = (transform.position - enemy.transform.position).normalized * 10;
-                        ball.velocity.y = 20;
-                        //ball.angularVelocity.x = Clamp(ball.angularVelocity.x, 0, 15);
-                        ball.angularVelocity = Vector3.zero;
+                        ReflectToPlayer(ref ball, enemy);
                         break;
                     case ShooterType:
-                        var enemiesInRange = OverlapSphere(ball.transform.position, 1000, Layers.EnemyHurtBox);
-                        if (enemiesInRange.Length > 0){
-                            var closestEnemy = GetClosestFromColliders(ball.transform.position, enemiesInRange, enemy.gameObject);
-                            var ballToEnemyVectorNormalized = (closestEnemy.transform.position - ball.transform.position).normalized;
-                            ball.velocity = ballToEnemyVectorNormalized * 200;
-                        } else{
-                            ball.velocity = (transform.position - enemy.transform.position).normalized * 10;
-                            ball.velocity.y = 20;
-                        }
-                        ball.angularVelocity = Vector3.zero;
+                        ReflectToNearbyEnemy(ref ball, enemy);
+                        break;
+                    case RicocheType:
+                        ReflectToNearbyEnemy(ref ball, enemy);
+                        break;
+                    default:
+                        ball.velocity = Vector3.Reflect(ball.velocity, enemyHits[i].normal) * 0.5f;
                         break;
                 }
             }
@@ -680,7 +699,7 @@ public class PlayerController : MonoBehaviour{
             }
         } else{
             Animations.Instance.ChangeMaterialColor(_ballInHold.gameObject, Colors.BallHighlightColor, 0.002f);
-            _ballInHold.transform.position = Vector3.Lerp(_ballInHold.transform.position, GetWishBallPositionNearPlayer(), Time.deltaTime * 10 * Clamp(_playerSpeed / baseSpeed, 1, 10));
+            _ballInHold.transform.position = Vector3.Lerp(_ballInHold.transform.position, BallStartPosition(), Time.deltaTime * 10 * Clamp(_playerSpeed / baseSpeed, 1, 10));
             _holdingBall = true;
             _ballInHold.inHold = true;
 
@@ -723,7 +742,7 @@ public class PlayerController : MonoBehaviour{
     }
     
     private PlayerBall SpawnPlayerBall(){
-        var newBall = Instantiate(_playerBallPrefab, GetWishBallPositionNearPlayer(), Quaternion.identity);
+        var newBall = Instantiate(_playerBallPrefab, BallStartPosition(), Quaternion.identity);
         newBall.sphere = newBall.GetComponent<SphereCollider>();
         
         var colliderSizeProgress = Clamp01(_playerSpeed / 50);
@@ -732,7 +751,7 @@ public class PlayerController : MonoBehaviour{
         return newBall;        
     }
     
-    private Vector3 GetWishBallPositionNearPlayer(){
+    private Vector3 BallStartPosition(){
         return GetCameraTransform().position + GetCameraTransform().forward * 2 - GetCameraTransform().up * 1.1f;
     }
     
