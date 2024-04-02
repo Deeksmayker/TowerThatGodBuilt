@@ -124,6 +124,15 @@ public class PlayerController : MonoBehaviour{
         if (!showPlayerStats){
             _speedTextMesh.gameObject.SetActive(false);
         }
+        
+        PlayerBall[] ballsOnScene = FindObjectsOfType<PlayerBall>();
+        
+        for (int i = 0; i < ballsOnScene.Length; i++){
+            PlayerBall ball = ballsOnScene[i];
+            ball.sleeping = true;
+            InitBall(ref ball);
+            _balls.Add(ball);
+        }
     }
     
     private void Update(){
@@ -265,6 +274,7 @@ public class PlayerController : MonoBehaviour{
                 
                 Particles.Instance.SpawnAndPlayParticles(_kickHitParticles, targets[i].ClosestPoint(transform.position));
                 
+                //Ball kick
                 var ball = targets[i].GetComponentInParent<PlayerBall>();
                 if (ball){
                     ball.groundBounceCount = 0;
@@ -278,6 +288,9 @@ public class PlayerController : MonoBehaviour{
                     Vector3 targetScale = Vector3.one * 0.5f;
                     targetScale.z *= ball.velocity.magnitude * 0.2f;
                     Animations.Instance.ChangeScale(ball.transform.gameObject, targetScale, 0.1f, true, 0.3f, EaseOutQuint);
+                    
+                    float colliderSizeProgress = Clamp01(_playerSpeed / 50);
+                    ball.sphere.radius = Lerp(1, 3, colliderSizeProgress);
                     
                     break;
                 }
@@ -467,8 +480,8 @@ public class PlayerController : MonoBehaviour{
     
         if (Input.GetMouseButton(1) && Input.GetMouseButtonDown(0) && _shootCooldownTimer <= 0 && _currentBallCount > 0 && !TargetInKickRange() && !_ballInHold){
             PlayerBall newBall = SpawnPlayerBall();
-            newBall.index = _balls.Count;
-            _balls.Add(newBall);
+            //newBall.index = _balls.Count;
+            //_balls.Add(newBall);
             
             _currentBallCount--;
             _ballCounterTextMesh.text = _currentBallCount.ToString();
@@ -483,7 +496,7 @@ public class PlayerController : MonoBehaviour{
         
         
         for (int i = 0; i < _balls.Count; i++){
-            if (_balls[i] == null){
+            if (_balls[i] == null || !_balls[i].gameObject.activeSelf){
                 //_balls.RemoveAt(i);
                 continue;
             }
@@ -537,6 +550,7 @@ public class PlayerController : MonoBehaviour{
         
         if (imaginaryBall || (ball.lifeTime < 1 && !ball.hitEnemy)) return;
         
+        /*
         if (!Input.GetKey(_collectBallKey)) return;
         //Ball collect logic
         var playerToBallVector = ball.transform.position - transform.position;
@@ -554,6 +568,7 @@ public class PlayerController : MonoBehaviour{
                 _playerVelocity.y += 20;
             }
         }
+        */
     }
     
     private void ReflectToPlayer(ref PlayerBall ball, Enemy enemy){
@@ -676,18 +691,25 @@ public class PlayerController : MonoBehaviour{
     }
     
     private void DestroyBall(ref PlayerBall ball){
-        Destroy(ball.gameObject);
-        _balls.RemoveAt(ball.index);
+        ball.lifeTime = 0;
+        ball.sphere.radius = 1;
+        ball.bounceCount = 0;
+        ball.groundBounceCount = 0;
+        ball.hitEnemy = false;
+        ball.inHold = false;
+        ball.velocity = Vector3.zero;
+        
+        ball.gameObject.SetActive(false);
     }
     
     private void PredictAndDrawBallTrajectory(){
         _holdingBall = false;
     
-     /*  
+       
         _currentStartAngularVelocity += new Vector3(Input.GetAxis("Mouse Y"), Input.GetAxis("Mouse X"), 0) * angularVelocitySense;
         _currentStartAngularVelocity.x = Clamp(_currentStartAngularVelocity.x, -maxAngularVelocity, maxAngularVelocity);
         _currentStartAngularVelocity.y = Clamp(_currentStartAngularVelocity.y, -maxAngularVelocity, maxAngularVelocity);
-     */     
+        
         if (!_ballInHold){
             var kickTargets = GetKickTargetsInRange(2f);
             for (int i = 0; i < kickTargets.Length; i++){
@@ -716,18 +738,20 @@ public class PlayerController : MonoBehaviour{
         SetKickVelocityToBall(ref imaginaryBall);
         imaginaryBall.gameObject.name += "IMAGINE";
         
-        
         var iterationCount = 100;
         var step = 0.02f;
         
         _ballPredictionLineRenderer.positionCount = iterationCount;
         for (int i = 0; i < iterationCount; i++){
-            //_ballPredictionLineRenderer.SetPosition(i, imaginaryBall.transform.position);
-            //UpdateBall(imaginaryBall, step, true);
+            _ballPredictionLineRenderer.SetPosition(i, imaginaryBall.transform.position);
+            UpdateBall(imaginaryBall, step, true);
         }
-        imaginaryBall.sphere.enabled = false;
-        Destroy(imaginaryBall.sphere);
-        Destroy(imaginaryBall.gameObject);
+        
+        DestroyBall(ref imaginaryBall);
+        
+        //imaginaryBall.sphere.enabled = false;
+        //Destroy(imaginaryBall.sphere);
+        //Destroy(imaginaryBall.gameObject);
     }
     
     private void StopHoldingBall(bool inheritVelocity = false){
@@ -742,13 +766,29 @@ public class PlayerController : MonoBehaviour{
     }
     
     private PlayerBall SpawnPlayerBall(){
-        var newBall = Instantiate(_playerBallPrefab, BallStartPosition(), Quaternion.identity);
-        newBall.sphere = newBall.GetComponent<SphereCollider>();
+        PlayerBall newBall = null;
+        for (int i = 0; i < _balls.Count; i++){
+            if (!_balls[i].gameObject.activeSelf){
+                newBall = _balls[i];
+                newBall.gameObject.SetActive(true);
+                newBall.transform.position = BallStartPosition();
+                break;
+            }
+        }
         
-        var colliderSizeProgress = Clamp01(_playerSpeed / 50);
-        newBall.sphere.radius = Lerp(1, 3, colliderSizeProgress);
+        if (!newBall){
+            newBall = Instantiate(_playerBallPrefab, BallStartPosition(), Quaternion.identity);
+            InitBall(ref newBall);
+            
+            _balls.Add(newBall);
+        }
         
         return newBall;        
+    }
+    
+    private void InitBall(ref PlayerBall ball){
+        ball.index = _balls.Count;
+        ball.sphere = ball.GetComponent<SphereCollider>();
     }
     
     private Vector3 BallStartPosition(){

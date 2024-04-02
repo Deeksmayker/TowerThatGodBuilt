@@ -48,7 +48,7 @@ public class Ricoche{
     public Vector3 orbitAxis;
     public Vector3 orbitPosition;
     public float orbitRadius = 75;
-    public float orbitingSpeed = 30;
+    public float orbitingSpeed = 20;
 }
 
 public class EnemiesController : MonoBehaviour{
