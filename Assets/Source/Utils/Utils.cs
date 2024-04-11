@@ -1,8 +1,11 @@
 using UnityEngine;
+using Array = System.Array;
 using static UnityEngine.Mathf;
 using static UnityEngine.Physics;
 
 public static class Utils{
+    public const float EPSILON = 0.000001f;
+
     public static void ToggleCursor(bool canISeeYou){
         var lockState = canISeeYou ? CursorLockMode.None : CursorLockMode.Locked;
         
@@ -52,6 +55,10 @@ public static class Utils{
         }
         
         return null;
+    }
+    
+    public static void ClearArray(Array arr){
+        Array.Clear(arr, 0, arr.Length);
     }
     
     //Ease functions
