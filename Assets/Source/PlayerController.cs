@@ -616,6 +616,21 @@ public class PlayerController : MonoBehaviour{
         ball.angularVelocity = Vector3.zero;
     }
     
+    private bool BallRicocheCharged(ref PlayerBall ball){
+        if (ball.ricocheCharged && ball.chargedBounceCount < 3){
+            ball.chargedBounceCount++;    
+            if (ball.chargedBounceCount >= 3){
+                ball.ricocheCharged = false;
+                ball.chargedBounceCount = 0;
+                ball.chargedParticles.Stop();
+            }
+            
+            return true;
+        }
+        
+        return false;
+    }
+    
     private void CalculateBallCollisions(ref PlayerBall ball, float delta, bool imaginaryBall = false){
         //Layers. - gives us proper flag, but gameObject.layer gives us layer number from unity editor
         var deltaVelocity = ball.velocity * delta;
@@ -653,7 +668,12 @@ public class PlayerController : MonoBehaviour{
                 if (!imaginaryBall){
                     enemy.TakeHit(enemyHits[i].collider);
                     
-                    TimeController.Instance.AddHitStop(0.05f);
+                    var hitStopMultiplier = 1.0f;
+                    if (ball.ricocheCharged){
+                        hitStopMultiplier = 3.0f;
+                    }
+                    
+                    TimeController.Instance.AddHitStop(0.05f * hitStopMultiplier);
                     PlayerCameraController.Instance.ShakeCameraBase(0.3f);
                     //ball.hitEnemy = true;
                 } else{
@@ -662,16 +682,31 @@ public class PlayerController : MonoBehaviour{
 
                 switch (enemy.type){
                     case DummyType:
-                        ReflectToPlayer(ref ball, enemy);
+                        if (BallRicocheCharged(ref ball)){
+                            ReflectToNearbyEnemy(ref ball, enemy);
+                        } else{
+                            ReflectToPlayer(ref ball, enemy);
+                        }
                         break;
                     case ShooterType:
-                        ReflectToNearbyEnemy(ref ball, enemy);
+                        if (BallRicocheCharged(ref ball)){
+                            ReflectToNearbyEnemy(ref ball, enemy);
+                        } else{
+                            ReflectToPlayer(ref ball, enemy);
+                        }
                         break;
                     case RicocheType:
+                        ball.ricocheCharged = true;
+                        ball.chargedParticles.Play();
                         ReflectToNearbyEnemy(ref ball, enemy);
                         break;
                     default:
-                        ball.velocity = Vector3.Reflect(ball.velocity, enemyHits[i].normal) * 0.5f;
+                        if (BallRicocheCharged(ref ball)){
+                            ReflectToNearbyEnemy(ref ball, enemy);
+                        } else{
+                            ReflectToPlayer(ref ball, enemy);
+                        }
+                        //ball.velocity = Vector3.Reflect(ball.velocity, enemyHits[i].normal) * 0.5f;
                         break;
                 }
             }
@@ -800,6 +835,7 @@ public class PlayerController : MonoBehaviour{
                 newBall.gameObject.SetActive(true);
                 newBall.transform.position = BallStartPosition();
                 newBall.imaginary = false;
+                newBall.chargedParticles.Stop();
                 break;
             }
         }

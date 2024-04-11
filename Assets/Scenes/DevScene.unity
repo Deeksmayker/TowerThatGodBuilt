@@ -353,11 +353,6 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 6363304786779843041, guid: 4aeacc321b779d04f972906b7946d35b,
-        type: 3}
-      propertyPath: weight
-      value: 3
-      objectReference: {fileID: 0}
     - target: {fileID: 7582078771761990044, guid: 4aeacc321b779d04f972906b7946d35b,
         type: 3}
       propertyPath: m_Name
@@ -1299,7 +1294,7 @@ PrefabInstance:
     - target: {fileID: 6363304786779843041, guid: 4aeacc321b779d04f972906b7946d35b,
         type: 3}
       propertyPath: takedKick
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7582078771761990044, guid: 4aeacc321b779d04f972906b7946d35b,
         type: 3}
@@ -8220,6 +8215,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: WindGuy
+      objectReference: {fileID: 0}
+    - target: {fileID: 5050027027131211290, guid: 98a48f1b50b1ac44381bde7945451121,
+        type: 3}
+      propertyPath: weight
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 6855584284591353929, guid: 98a48f1b50b1ac44381bde7945451121,
         type: 3}
