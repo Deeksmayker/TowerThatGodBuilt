@@ -138,7 +138,7 @@ Transform:
   - {fileID: 5066646104327368560}
   - {fileID: 4491826023361161070}
   m_Father: {fileID: 0}
-  m_RootOrder: 2
+  m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &6363304786779843041
 MonoBehaviour:
@@ -152,7 +152,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b60a7242e1d328341b72617ee03cfda7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  type: 0
+  type: 1
   sphere: {fileID: 0}
   index: 0
   velocity: {x: 0, y: 0, z: 0}

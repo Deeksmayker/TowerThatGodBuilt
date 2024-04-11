@@ -27,6 +27,8 @@ public class Dummy{
 
 public class Shooter{
     public Enemy enemy;
+    //@HACK for testing
+    public Dummy dummyDodgeComponent;
     public float shootCooldown   = 5f;
     public int   burstShootCount = 1;
     public float shootDelay      = 0.02f;
@@ -75,6 +77,8 @@ public class EnemiesController : MonoBehaviour{
     
     private EnemyProjectile _shooterProjectilePrefab;
     
+    private ParticleSystem _baseDeadManParticles;
+    
     private List<EnemyProjectile> _enemyProjectiles = new();
     private List<Dummy>           _dummies          = new();
     private List<Shooter>         _shooters         = new();
@@ -87,10 +91,13 @@ public class EnemiesController : MonoBehaviour{
     private void Start(){
         _shooterProjectilePrefab = GetPrefab("ShooterProjectile").GetComponent<EnemyProjectile>();
         
+        _baseDeadManParticles = Particles.Instance.GetParticles("BaseDeadManParticles");
+        
         _playerTransform = FindObjectOfType<PlayerController>().transform;
         _player = _playerTransform.GetComponent<PlayerController>();
         
         _targetColliders = new Collider[20];
+        
     
         var enemiesOnScene = FindObjectsOfType<Enemy>();
         
@@ -103,9 +110,12 @@ public class EnemiesController : MonoBehaviour{
                     _dummies[_dummies.Count-1].enemy.index = _dummies.Count-1;
                     break;
                 case ShooterType:
-                    _shooters.Add(new Shooter() {enemy = enemiesOnScene[i]});
-                    _shooters[_shooters.Count-1].cooldownTimer = _shooters[_shooters.Count-1].shootCooldown;
-                    _shooters[_shooters.Count-1].enemy.index = _shooters.Count-1;
+                    var shooter = new Shooter() {enemy = enemiesOnScene[i]};
+                    shooter.enemy.index = _shooters.Count;
+                    shooter.cooldownTimer = shooter.shootCooldown;
+                    shooter.dummyDodgeComponent = new Dummy() {enemy = shooter.enemy};
+                    shooter.dummyDodgeComponent.dodgeStartPosition = shooter.enemy.transform.position;
+                    _shooters.Add(shooter);
                     break;
                 case BlockerType:
                     _blockers.Add(new Blocker() {enemy = enemiesOnScene[i]});
@@ -299,8 +309,13 @@ public class EnemiesController : MonoBehaviour{
             enemy.justTakeHit = false;
             enemy.hitImmuneCountdown = 0.1f;
             
-            enemy.gameObject.SetActive(false);
+            switch (enemy.type){
+                default:
+                    Instantiate(_baseDeadManParticles, enemy.transform.position, Quaternion.identity);
+                    break;
+            }
             
+            enemy.gameObject.SetActive(false);
             return true;
         }
         
@@ -315,6 +330,8 @@ public class EnemiesController : MonoBehaviour{
                 continue;
             }
             
+            UpdateDummy(ref shooter.dummyDodgeComponent);
+            
             EnemyCountdowns(ref shooter.enemy);
             
             MoveByVelocity(ref shooter.enemy);
@@ -326,9 +343,10 @@ public class EnemiesController : MonoBehaviour{
             Transform shooterTransform = shooter.enemy.transform;
             
             var vectorToPlayer = (_playerPosition - shooterTransform.position).normalized;
+            /*
             var horizontalVectorToPlayer = new Vector3(vectorToPlayer.x, 0, vectorToPlayer.z);
             shooter.enemy.transform.rotation = Quaternion.Slerp(shooterTransform.rotation, Quaternion.LookRotation(horizontalVectorToPlayer), Time.deltaTime * 3);
-            
+            */
             
             KillPlayerIfNearby(shooter.enemy);
             
@@ -439,67 +457,71 @@ public class EnemiesController : MonoBehaviour{
         return true;
     }
     
+    private void UpdateDummy(ref Dummy dummy){
+        if (!dummy.enemy.gameObject.activeSelf){
+            return;
+        }
+        
+        EnemyCountdowns(ref dummy.enemy);
+        
+        dummy.dodgeStartPosition += MoveByVelocity(ref dummy.enemy);
+        
+        if (FlyByKick(ref dummy.enemy) || EnemyHit(ref dummy.enemy)){
+            dummy.dodging = false;
+            dummy.dodgeTimer = 0;
+            dummy.dodgeStartPosition = dummy.enemy.transform.position;
+            return;   
+        }
+        
+        Transform dummyTransform = dummy.enemy.transform;
+        /*
+        if (dummy.enemy.justTakeHit){          
+            dummy.enemy.justTakeHit = false;  
+            dummy.enemy.hitImmuneCountdown = 0.1f;
+            
+            var wishPosition = Random.onUnitSphere * 20;
+            wishPosition.y = Abs(wishPosition.y) * 0.5f;
+            dummyTransform.position = wishPosition;
+            
+            dummy.dodging = false;
+            dummy.dodgeTimer = 0;
+            dummy.dodgeStartPosition = dummyTransform.position;
+        }
+        */
+        if (!dummy.dodging && dummy.dodgeTimer <= 0 && PlayerBallNearby(dummy.dodgeStartPosition, dummy.ballDetectRadius)){
+            dummy.dodging = true;
+        }
+        
+        if (dummy.dodging){
+            dummy.dodgeTimer += Time.deltaTime;
+            var t = dummy.dodgeTimer / dummy.dodgeTime;
+            dummyTransform.position = Vector3.LerpUnclamped(dummy.dodgeStartPosition, dummy.dodgeStartPosition + dummyTransform.right * dummy.dodgeDistance, EaseOutElastic(t));
+            if (t >= 1){
+                dummy.dodging = false;
+                dummy.dodgeTimer = dummy.dodgeTime;
+            }
+        } else if (dummy.dodgeTimer > 0){
+            dummy.dodgeTimer -= Time.deltaTime;
+            var t = 1f - dummy.dodgeTimer / (dummy.dodgeTime);
+            dummyTransform.position = Vector3.LerpUnclamped(dummy.dodgeStartPosition + dummyTransform.right * dummy.dodgeDistance, dummy.dodgeStartPosition, EaseInOutQuad(t));
+            if (t <= 0){
+                dummy.dodgeTimer = 0;
+            }
+        }
+        
+        if (!dummy.dodging && dummy.dodgeTimer <= 0){
+            dummyTransform.rotation = Quaternion.Slerp(dummyTransform.rotation, Quaternion.LookRotation((_playerPosition - dummyTransform.position).normalized), Time.deltaTime * 5);
+
+        }
+        
+        KillPlayerIfNearby(dummy.enemy);
+    }
+    
     private void UpdateDummies(){
         for (int i = 0; i < _dummies.Count; i++){
             Dummy dummy = _dummies[i];
-            
-            if (!dummy.enemy.gameObject.activeSelf){
-                continue;
-            }
-            
-            EnemyCountdowns(ref dummy.enemy);
-            
-            dummy.dodgeStartPosition += MoveByVelocity(ref dummy.enemy);
-            
-            if (FlyByKick(ref dummy.enemy) || EnemyHit(ref dummy.enemy)){
-                dummy.dodging = false;
-                dummy.dodgeTimer = 0;
-                dummy.dodgeStartPosition = dummy.enemy.transform.position;
-                continue;   
-            }
-            
-            Transform dummyTransform = dummy.enemy.transform;
-            /*
-            if (dummy.enemy.justTakeHit){          
-                dummy.enemy.justTakeHit = false;  
-                dummy.enemy.hitImmuneCountdown = 0.1f;
-                
-                var wishPosition = Random.onUnitSphere * 20;
-                wishPosition.y = Abs(wishPosition.y) * 0.5f;
-                dummyTransform.position = wishPosition;
-                
-                dummy.dodging = false;
-                dummy.dodgeTimer = 0;
-                dummy.dodgeStartPosition = dummyTransform.position;
-            }
-            */
-            if (!dummy.dodging && dummy.dodgeTimer <= 0 && PlayerBallNearby(dummy.dodgeStartPosition, dummy.ballDetectRadius)){
-                dummy.dodging = true;
-            }
-            
-            if (dummy.dodging){
-                dummy.dodgeTimer += Time.deltaTime;
-                var t = dummy.dodgeTimer / dummy.dodgeTime;
-                dummyTransform.position = Vector3.LerpUnclamped(dummy.dodgeStartPosition, dummy.dodgeStartPosition + dummyTransform.right * dummy.dodgeDistance, EaseOutElastic(t));
-                if (t >= 1){
-                    dummy.dodging = false;
-                    dummy.dodgeTimer = dummy.dodgeTime;
-                }
-            } else if (dummy.dodgeTimer > 0){
-                dummy.dodgeTimer -= Time.deltaTime;
-                var t = 1f - dummy.dodgeTimer / (dummy.dodgeTime);
-                dummyTransform.position = Vector3.LerpUnclamped(dummy.dodgeStartPosition + dummyTransform.right * dummy.dodgeDistance, dummy.dodgeStartPosition, EaseInOutQuad(t));
-                if (t <= 0){
-                    dummy.dodgeTimer = 0;
-                }
-            }
-            
-            if (!dummy.dodging && dummy.dodgeTimer <= 0){
-                dummyTransform.rotation = Quaternion.Slerp(dummyTransform.rotation, Quaternion.LookRotation((_playerPosition - dummyTransform.position).normalized), Time.deltaTime * 5);
-
-            }
-            
-            KillPlayerIfNearby(dummy.enemy);
+                        
+            UpdateDummy(ref dummy);
         }
     }
     
