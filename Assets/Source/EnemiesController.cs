@@ -199,7 +199,13 @@ public class EnemiesController : MonoBehaviour{
         for (int i = 0; i < _ricoches.Count; i++){
             var ricoche = _ricoches[i];
             
-            if (!ricoche.enemy.gameObject.activeSelf || EnemyHit(ref ricoche.enemy)){
+            if (!ricoche.enemy.gameObject.activeSelf){
+                continue;
+            }
+            
+            MoveByVelocity(ref ricoche.enemy);
+            
+            if (FlyByKick(ref ricoche.enemy) || EnemyHit(ref ricoche.enemy)){
                 continue;
             }
             
@@ -247,6 +253,7 @@ public class EnemiesController : MonoBehaviour{
             
             if (FlyByKick(ref blocker.enemy) || EnemyHit(ref blocker.enemy)){
                 blocker.cycleProgress = 0.25f;
+                blocker.pivotPosition = blockerTransform.position;
                 continue;
             }
             
@@ -445,10 +452,14 @@ public class EnemiesController : MonoBehaviour{
             dummy.dodgeStartPosition += MoveByVelocity(ref dummy.enemy);
             
             if (FlyByKick(ref dummy.enemy) || EnemyHit(ref dummy.enemy)){
+                dummy.dodging = false;
+                dummy.dodgeTimer = 0;
+                dummy.dodgeStartPosition = dummy.enemy.transform.position;
                 continue;   
             }
             
             Transform dummyTransform = dummy.enemy.transform;
+            /*
             if (dummy.enemy.justTakeHit){          
                 dummy.enemy.justTakeHit = false;  
                 dummy.enemy.hitImmuneCountdown = 0.1f;
@@ -461,7 +472,7 @@ public class EnemiesController : MonoBehaviour{
                 dummy.dodgeTimer = 0;
                 dummy.dodgeStartPosition = dummyTransform.position;
             }
-            
+            */
             if (!dummy.dodging && dummy.dodgeTimer <= 0 && PlayerBallNearby(dummy.dodgeStartPosition, dummy.ballDetectRadius)){
                 dummy.dodging = true;
             }
