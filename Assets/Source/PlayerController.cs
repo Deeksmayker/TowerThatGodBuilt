@@ -32,6 +32,7 @@ public class PlayerController : MonoBehaviour{
     [SerializeField] private float kickHitBoxWidth;
     [SerializeField] private float kickDuration;
     [SerializeField] private float kickCooldown;
+    [SerializeField] private float kickPower;
     
     private List<int> _alreadyHitByKick = new();
     private float _kickPerformingTimer;
@@ -61,7 +62,7 @@ public class PlayerController : MonoBehaviour{
     private bool _grounded;
     
     private Vector3 _lastVelocity;
-    private Vector3 _playerVelocity;
+    public Vector3 playerVelocity;
     private float   _playerSpeed;
     private Vector3 _moveInput;
     
@@ -89,6 +90,9 @@ public class PlayerController : MonoBehaviour{
     
     private PlayerBall _ballInHold;
     
+    private Collider[] _imaginaryBallAreas;
+
+    
     private LineRenderer     _ballPredictionLineRenderer;
     private PlayerBall       _playerBallPrefab;
     private List<PlayerBall> _balls = new();
@@ -115,6 +119,8 @@ public class PlayerController : MonoBehaviour{
         _kickModelParticle = GameObject.FindWithTag("KickLeg").GetComponent<ParticleSystem>();
         _kickHitParticles  = Particles.Instance.GetParticles("KickHitParticles");
         _ballHitParticles  = Particles.Instance.GetParticles("BallHitParticles");
+        
+        _imaginaryBallAreas = new Collider[10];
         
         _currentBallCount = maxBallCount;
         _ballCounterTextMesh.text = _currentBallCount.ToString();
@@ -144,7 +150,7 @@ public class PlayerController : MonoBehaviour{
         wishDirection = directionTransform.right * wishDirection.x + directionTransform.forward * wishDirection.z;
         wishDirection.Normalize();
         
-        _playerSpeed = _playerVelocity.magnitude;
+        _playerSpeed = playerVelocity.magnitude;
 
         if (IsGrounded()){
             _timeSinceGrounded = 0;
@@ -160,19 +166,19 @@ public class PlayerController : MonoBehaviour{
             AirMove(playerDelta, wishDirection);
         }
         
-        var gravityMultiplierProgress = InverseLerp(0, minJumpForce, _playerVelocity.y);
+        var gravityMultiplierProgress = InverseLerp(0, minJumpForce, playerVelocity.y);
         var gravityMultiplier         = Lerp(1, 2, gravityMultiplierProgress * gravityMultiplierProgress);
-        _playerVelocity += Vector3.down * gravity * gravityMultiplier * playerDelta;
+        playerVelocity += Vector3.down * gravity * gravityMultiplier * playerDelta;
         
         StaminaAbilities(playerDelta, wishDirection);
                 
-        _playerSpeed = _playerVelocity.magnitude;
+        _playerSpeed = playerVelocity.magnitude;
         
-        CalculatePlayerCollisions(ref _playerVelocity);
+        CalculatePlayerCollisions(ref playerVelocity);
         
-        _playerSpeed = _playerVelocity.magnitude;
+        _playerSpeed = playerVelocity.magnitude;
         
-        transform.Translate(_playerVelocity * playerDelta);
+        transform.Translate(playerVelocity * playerDelta);
         
         if (transform.position.y < -30){
             transform.position = Vector3.up * 10;
@@ -183,7 +189,7 @@ public class PlayerController : MonoBehaviour{
         BulletTime();
         
         if (showPlayerStats){
-            var horizontalSpeed = (new Vector3(_playerVelocity.x, 0, _playerVelocity.z)).magnitude;
+            var horizontalSpeed = (new Vector3(playerVelocity.x, 0, playerVelocity.z)).magnitude;
             _speedTextMesh.text = "Horizontal: " + horizontalSpeed;
         }
         
@@ -297,7 +303,7 @@ public class PlayerController : MonoBehaviour{
                 
                 var enemy = targets[i].GetComponentInParent<Enemy>();
                 if (enemy){
-                    enemy.TakeHit(targets[i]);
+                    enemy.TakeKick(GetCameraTransform().forward * kickPower);
                     PlayerCameraController.Instance.ShakeCameraBase(0.8f);
                     TimeController.Instance.AddHitStop(0.1f);
                 }
@@ -330,8 +336,8 @@ public class PlayerController : MonoBehaviour{
     }
     
     private void Jump(Vector3 wishDirection){
-        _playerVelocity.y += Lerp(minJumpForce, maxJumpForce, _jumpChargeProgress);
-        _playerVelocity += wishDirection * jumpForwardBoost;
+        playerVelocity.y += Lerp(minJumpForce, maxJumpForce, _jumpChargeProgress);
+        playerVelocity += wishDirection * jumpForwardBoost;
         
         PlayerCameraController.Instance.ShakeCameraLong(_jumpChargeProgress * 1f);
         
@@ -344,7 +350,7 @@ public class PlayerController : MonoBehaviour{
         
         ApplyFriction(delta);
         
-        var directionDotVelocity = Vector3.Dot(wishDirection, _playerVelocity.normalized);
+        var directionDotVelocity = Vector3.Dot(wishDirection, playerVelocity.normalized);
         var acceleration = directionDotVelocity < 0.5f ? groundDeceleration : groundAcceleration;
         
         Accelerate(delta, wishDirection, wishSpeed, acceleration);
@@ -357,14 +363,14 @@ public class PlayerController : MonoBehaviour{
     private void AirMove(float delta, Vector3 wishDirection){
         var wishSpeed = wishDirection.sqrMagnitude * _currentSpeed;
         
-        var directionDotVelocity = Vector3.Dot(wishDirection, _playerVelocity.normalized);
+        var directionDotVelocity = Vector3.Dot(wishDirection, playerVelocity.normalized);
         var acceleration = directionDotVelocity < 0f ? airDeceleration : airAcceleration;
 
         Accelerate(delta, wishDirection, wishSpeed, acceleration);
     }
     
     private void Accelerate(float delta, Vector3 targetDirection, float wishSpeed, float acceleration){
-        var speedInWishDirection = Vector3.Dot(_playerVelocity, targetDirection);
+        var speedInWishDirection = Vector3.Dot(playerVelocity, targetDirection);
         
         var speedDifference = wishSpeed - speedInWishDirection;        
         
@@ -377,12 +383,12 @@ public class PlayerController : MonoBehaviour{
             accelerationSpeed = speedDifference;
         }
         
-        _playerVelocity.x += targetDirection.x * accelerationSpeed;
-        _playerVelocity.z += targetDirection.z * accelerationSpeed;
+        playerVelocity.x += targetDirection.x * accelerationSpeed;
+        playerVelocity.z += targetDirection.z * accelerationSpeed;
     }
     
     private void ApplyFriction(float delta){
-        Vector3 frictionForce = _currentFriction * -_playerVelocity.normalized * delta;
+        Vector3 frictionForce = _currentFriction * -playerVelocity.normalized * delta;
         
         var playerSpeed = _playerSpeed;
         frictionForce = Vector3.ClampMagnitude(frictionForce, playerSpeed);
@@ -392,7 +398,7 @@ public class PlayerController : MonoBehaviour{
         multiplier = Mathf.Max(multiplier, 0.1f);
         */
         
-        _playerVelocity += frictionForce;
+        playerVelocity += frictionForce;
         /*
         return;
         float speed = _playerSpeed;
@@ -409,8 +415,8 @@ public class PlayerController : MonoBehaviour{
             newSpeedMultiplier = 0;
         }
         
-        _playerVelocity.x *= newSpeedMultiplier;
-        _playerVelocity.z *= newSpeedMultiplier;
+        playerVelocity.x *= newSpeedMultiplier;
+        playerVelocity.z *= newSpeedMultiplier;
         */
     }
     
@@ -545,6 +551,26 @@ public class PlayerController : MonoBehaviour{
         CalculateBallCollisions(ref ball, delta, imaginaryBall);
         
         ball.velocity.y = Clamp(ball.velocity.y, -150, 150);
+        
+        if (imaginaryBall){
+            //We made it only for imaginary because otherwise WindGuy do it by himself
+            //_enemiesController.CheckWindForImaginaryBall(ref ball, delta);
+            
+            Array.Clear(_imaginaryBallAreas, 0, _imaginaryBallAreas.Length);
+            OverlapSphereNonAlloc(ball.transform.position, ball.sphere.radius, _imaginaryBallAreas, Layers.Area);
+            
+            for (int i = 0; i < _imaginaryBallAreas.Length; i++){
+                if (_imaginaryBallAreas[i] == null){
+                    continue;
+                }
+                
+                if (_imaginaryBallAreas[i].TryGetComponent<WindArea>(out var wind)){
+                    ball.velocity += wind.PowerVector(ball.transform.position) * delta;
+                }
+            }
+            
+            //Debug.Log(ball.transform.position);
+        }
     
         ball.transform.Translate(ball.velocity * delta, Space.World);
         
@@ -560,12 +586,12 @@ public class PlayerController : MonoBehaviour{
                 _ballCounterTextMesh.text = _currentBallCount.ToString();
             }
             
-            Destroy(ball.gameObject);
+            DestroyBall(ref ball);
             //_balls.RemoveAt(ball.index);
-            if (_playerVelocity.y < 10){
-                _playerVelocity.y = 30;
+            if (playerVelocity.y < 10){
+                playerVelocity.y = 30;
             } else{
-                _playerVelocity.y += 20;
+                playerVelocity.y += 20;
             }
         }
         */
@@ -704,12 +730,12 @@ public class PlayerController : MonoBehaviour{
     
     private void PredictAndDrawBallTrajectory(){
         _holdingBall = false;
-    
-       
+
+/*
         _currentStartAngularVelocity += new Vector3(Input.GetAxis("Mouse Y"), Input.GetAxis("Mouse X"), 0) * angularVelocitySense;
         _currentStartAngularVelocity.x = Clamp(_currentStartAngularVelocity.x, -maxAngularVelocity, maxAngularVelocity);
         _currentStartAngularVelocity.y = Clamp(_currentStartAngularVelocity.y, -maxAngularVelocity, maxAngularVelocity);
-        
+*/    
         if (!_ballInHold){
             var kickTargets = GetKickTargetsInRange(2f);
             for (int i = 0; i < kickTargets.Length; i++){
@@ -728,6 +754,7 @@ public class PlayerController : MonoBehaviour{
         }
         
         var imaginaryBall = SpawnPlayerBall();
+        imaginaryBall.imaginary = true;
         
         if (_ballInHold){
             imaginaryBall.transform.position = _ballInHold.transform.position;
@@ -738,13 +765,13 @@ public class PlayerController : MonoBehaviour{
         SetKickVelocityToBall(ref imaginaryBall);
         imaginaryBall.gameObject.name += "IMAGINE";
         
-        var iterationCount = 100;
-        var step = 0.02f;
+        var iterationCount = 200;
+        //var step = 0.02f;
         
         _ballPredictionLineRenderer.positionCount = iterationCount;
         for (int i = 0; i < iterationCount; i++){
-            _ballPredictionLineRenderer.SetPosition(i, imaginaryBall.transform.position);
-            UpdateBall(imaginaryBall, step, true);
+            //_ballPredictionLineRenderer.SetPosition(i, imaginaryBall.transform.position);
+            //UpdateBall(imaginaryBall, step, true);
         }
         
         DestroyBall(ref imaginaryBall);
@@ -759,7 +786,7 @@ public class PlayerController : MonoBehaviour{
     
         _ballInHold.inHold = false;
         
-        if (inheritVelocity) _ballInHold.velocity = _playerVelocity;
+        if (inheritVelocity) _ballInHold.velocity = playerVelocity;
         
         _ballInHold = null;
         _holdingBall = false;
@@ -772,6 +799,7 @@ public class PlayerController : MonoBehaviour{
                 newBall = _balls[i];
                 newBall.gameObject.SetActive(true);
                 newBall.transform.position = BallStartPosition();
+                newBall.imaginary = false;
                 break;
             }
         }
@@ -796,7 +824,7 @@ public class PlayerController : MonoBehaviour{
     }
     
     private void SetKickVelocityToBall(ref PlayerBall ball){
-        ball.velocity = GetCameraTransform().forward * maxBallSpeed + _playerVelocity * 0.5f;
+        ball.velocity = GetCameraTransform().forward * maxBallSpeed + playerVelocity * 0.5f;
         ball.angularVelocity = _currentStartAngularVelocity;
     }
     

@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using Array = System.Array;
 using UnityEditor;
 using static UnityEngine.Mathf;
 using static UnityEngine.Physics;
@@ -10,7 +11,8 @@ public enum EnemyType{
     DummyType,
     ShooterType,
     BlockerType,
-    RicocheType
+    RicocheType,
+    WindGuyType
 }
 
 public class Dummy{
@@ -18,7 +20,7 @@ public class Dummy{
     public Vector3 dodgeStartPosition;
     public float ballDetectRadius = 24f;
     public float dodgeDistance    = 7f;
-    public float dodgeTime        = 8f;
+    public float dodgeTime        = 2f;
     public float dodgeTimer;
     public bool  dodging;
 }
@@ -38,7 +40,7 @@ public class Blocker{
     public Vector3 pivotPosition;
     public float moveDistance = 25;
     public float cycleTime = 5;
-    public float cycleProgress;
+    public float cycleProgress = 0.25f;
 }
 
 public class Ricoche{
@@ -51,10 +53,21 @@ public class Ricoche{
     public float orbitingSpeed = 20;
 }
 
+public class WindGuy{
+    public Enemy enemy;
+    public WindArea windArea;
+}
+
 public class EnemiesController : MonoBehaviour{
-    
     [Header("Shooter")]
     [SerializeField] private float projectileStartSpeed;
+    
+    [Header("Wind guy")]
+    [SerializeField] private float windGuyPower  = 20;
+    [SerializeField] private float windGuyLength = 20;
+    [SerializeField] private float windGuyWidth  = 5;
+    
+    private Collider[] _targetColliders;
     
     private Transform        _playerTransform;
     private PlayerController _player;
@@ -67,6 +80,7 @@ public class EnemiesController : MonoBehaviour{
     private List<Shooter>         _shooters         = new();
     private List<Blocker>         _blockers         = new();
     private List<Ricoche>         _ricoches         = new();
+    private List<WindGuy>         _windGuys         = new();
     
     private List<Enemy> _enemies = new();
     
@@ -75,10 +89,13 @@ public class EnemiesController : MonoBehaviour{
         
         _playerTransform = FindObjectOfType<PlayerController>().transform;
         _player = _playerTransform.GetComponent<PlayerController>();
+        
+        _targetColliders = new Collider[20];
     
         var enemiesOnScene = FindObjectsOfType<Enemy>();
         
         for (int i = 0; i < enemiesOnScene.Length; i++){
+            enemiesOnScene[i].sphere = enemiesOnScene[i].GetComponent<SphereCollider>();
             switch (enemiesOnScene[i].type){
                 case DummyType:
                     _dummies.Add(new Dummy() { enemy = enemiesOnScene[i] });
@@ -107,6 +124,15 @@ public class EnemiesController : MonoBehaviour{
                     
                     _ricoches.Add(ricoche);
                     break;
+                case WindGuyType:
+                    var windGuy = new WindGuy() {enemy = enemiesOnScene[i]};
+                    windGuy.enemy.index = _windGuys.Count;
+                    windGuy.windArea = windGuy.enemy.GetComponentInChildren<WindArea>();
+                    windGuy.windArea.windPower = windGuyPower;
+                    windGuy.windArea.boxCollider.center = windGuy.enemy.transform.forward * windGuyLength * 0.5f;
+                    windGuy.windArea.SetColliderSize(new Vector3(windGuyWidth, windGuyWidth, windGuyLength));
+                    _windGuys.Add(windGuy);
+                    break;
             }
             
             _enemies.Add(enemiesOnScene[i]);
@@ -115,13 +141,58 @@ public class EnemiesController : MonoBehaviour{
     
     private void Update(){
         _playerPosition = _playerTransform.position;
+        UpdateRicoches();
         UpdateShooters();
         UpdateEnemyProjectiles();
         UpdateDummies();
         UpdateBlockers();
-        UpdateRicoches();
+        UpdateWindGuys();
         
         UpdateDebug();
+    }
+    
+    private void UpdateWindGuys(){
+        for (int i = 0; i < _windGuys.Count; i++){
+            var windGuy = _windGuys[i];
+            
+            if (!windGuy.enemy.gameObject.activeSelf){
+                continue;
+            }
+            
+            MoveByVelocity(ref windGuy.enemy);            
+            
+            if (FlyByKick(ref windGuy.enemy) || EnemyHit(ref windGuy.enemy)){
+                continue;
+            }
+
+            EnemyCountdowns(ref windGuy.enemy);
+            
+            var windGuyTransform = windGuy.enemy.transform;
+            
+            Vector3 windCenter = windGuyTransform.position + windGuyTransform.forward * windGuyLength;
+            ClearArray(_targetColliders);
+            int overlapCount = OverlapBoxNonAlloc(windCenter, new Vector3(windGuyWidth, windGuyWidth, windGuyLength), _targetColliders, windGuyTransform.rotation, Layers.Player | Layers.PlayerProjectile | Layers.EnemyProjectile | Layers.EnemyHurtBox);
+            
+            for (int j = 0; j < overlapCount; j++){
+                if (_targetColliders[j] == null){
+                    continue;
+                }
+                
+                var target = _targetColliders[j];
+                
+                Enemy otherEnemy = target.GetComponentInParent<Enemy>();
+                
+                if (otherEnemy && otherEnemy != windGuy.enemy){
+                    otherEnemy.velocity += (windGuy.windArea.PowerVector(otherEnemy.transform.position) / otherEnemy.weight) * Time.deltaTime;
+                } else if (target.TryGetComponent<PlayerBall>(out var playerBall)){
+                    playerBall.velocity += windGuy.windArea.PowerVector(playerBall.transform.position) * Time.deltaTime;
+                } else if (target.TryGetComponent<PlayerController>(out var player)){
+                    player.playerVelocity += windGuy.windArea.PowerVector(player.transform.position) * Time.deltaTime;
+                } 
+            }
+            
+            windGuyTransform.Rotate(Vector3.forward * windGuyPower * 5 * Time.deltaTime); 
+        }
     }
     
     private void UpdateRicoches(){
@@ -166,25 +237,28 @@ public class EnemiesController : MonoBehaviour{
         for (int i = 0; i < _blockers.Count; i++){
             var blocker = _blockers[i];
             
-            if (!blocker.enemy.gameObject.activeSelf || EnemyHit(ref blocker.enemy)){
+            if (!blocker.enemy.gameObject.activeSelf){
                 continue;
             }
             
             var blockerTransform = blocker.enemy.transform;
             
+            blocker.pivotPosition += MoveByVelocity(ref blocker.enemy);
+            
+            if (FlyByKick(ref blocker.enemy) || EnemyHit(ref blocker.enemy)){
+                blocker.cycleProgress = 0.25f;
+                continue;
+            }
             
             EnemyCountdowns(ref blocker.enemy);
-            blockerTransform.position += blocker.enemy.velocity * Time.deltaTime;
-            blocker.pivotPosition += blocker.enemy.velocity * Time.deltaTime;
-            
-            //blockerTransform.position += blockerTransform.right * Sin(Time.time) * Time.deltaTime;
             
             blocker.cycleProgress += Time.deltaTime / blocker.cycleTime;
             
             float t = blocker.cycleProgress <= 0.5f ? blocker.cycleProgress * 2 : 1f - (blocker.cycleProgress - 0.5f) * 2;
             
-            var targetPosition = blocker.pivotPosition + blockerTransform.right * blocker.moveDistance;
-            blockerTransform.position = Vector3.Lerp(blocker.pivotPosition, targetPosition, EaseInOutQuad(t));
+            var startPosition  = blocker.pivotPosition - blockerTransform.right * blocker.moveDistance * 0.5f;
+            var targetPosition = blocker.pivotPosition + blockerTransform.right * blocker.moveDistance * 0.5f;
+            blockerTransform.position = Vector3.Lerp(startPosition, targetPosition, EaseInOutQuad(t));
             
             if (blocker.cycleProgress >= 1){
                 blocker.cycleProgress = 0;
@@ -199,6 +273,18 @@ public class EnemiesController : MonoBehaviour{
             enemy.hitImmuneCountdown -= Time.deltaTime;
             enemy.hitImmuneCountdown = Clamp(enemy.hitImmuneCountdown, 0, 1);
         }
+    }
+    
+    private Vector3 MoveByVelocity(ref Enemy enemy){
+        enemy.transform.position += enemy.velocity * Time.deltaTime;
+        enemy.velocity *= 1f - enemy.weight * enemy.weight * Time.deltaTime;
+        
+        if (enemy.velocity.sqrMagnitude <= EPSILON){
+            enemy.velocity = Vector3.zero;
+            enemy.takedKick = false;
+        }
+        
+        return enemy.velocity * Time.deltaTime;
     }
     
     private bool EnemyHit(ref Enemy enemy){
@@ -224,15 +310,18 @@ public class EnemiesController : MonoBehaviour{
             
             EnemyCountdowns(ref shooter.enemy);
             
+            MoveByVelocity(ref shooter.enemy);
+            
+            if (FlyByKick(ref shooter.enemy) || EnemyHit(ref shooter.enemy)){            
+                continue;
+            }
+            
             Transform shooterTransform = shooter.enemy.transform;
             
             var vectorToPlayer = (_playerPosition - shooterTransform.position).normalized;
             var horizontalVectorToPlayer = new Vector3(vectorToPlayer.x, 0, vectorToPlayer.z);
             shooter.enemy.transform.rotation = Quaternion.Slerp(shooterTransform.rotation, Quaternion.LookRotation(horizontalVectorToPlayer), Time.deltaTime * 3);
             
-            if (EnemyHit(ref shooter.enemy)){            
-                continue;
-            }
             
             KillPlayerIfNearby(shooter.enemy);
             
@@ -315,6 +404,34 @@ public class EnemiesController : MonoBehaviour{
         return newProjectile;
     }
     
+    private bool FlyByKick(ref Enemy enemy){
+        if (!enemy.takedKick){
+            return false;
+        }
+    
+        //enemy.transform.position += enemy.velocity * Time.deltaTime;
+        //enemy.velocity *= 1f - enemy.weight * enemy.weight * Time.deltaTime;
+        
+        ClearArray(_targetColliders);
+        int collidedCount = OverlapSphereNonAlloc(enemy.transform.position, enemy.sphere.radius, _targetColliders, Layers.Environment | Layers.EnemyHurtBox);
+        
+        for (int i = 0; i < collidedCount; i++){
+            Enemy otherEnemy = _targetColliders[i].GetComponentInParent<Enemy>();
+            
+            if (otherEnemy == enemy) continue;
+            
+            if (otherEnemy){
+                enemy.TakeHit();
+                otherEnemy.TakeHit();
+                otherEnemy.TakeKick(enemy.velocity * 2);
+            } else{
+                enemy.TakeHit();
+            }
+        }
+        
+        return true;
+    }
+    
     private void UpdateDummies(){
         for (int i = 0; i < _dummies.Count; i++){
             Dummy dummy = _dummies[i];
@@ -325,7 +442,9 @@ public class EnemiesController : MonoBehaviour{
             
             EnemyCountdowns(ref dummy.enemy);
             
-            if (EnemyHit(ref dummy.enemy)){
+            dummy.dodgeStartPosition += MoveByVelocity(ref dummy.enemy);
+            
+            if (FlyByKick(ref dummy.enemy) || EnemyHit(ref dummy.enemy)){
                 continue;   
             }
             
@@ -416,6 +535,29 @@ public class EnemiesController : MonoBehaviour{
             for (int i = 0; i < _enemies.Count; i++){
                 var enemy = _enemies[i];
                 ReviveEnemy(ref enemy);
+            }
+        }
+    }
+    
+    [Header("EXPENSIVE BUT WILL USE TILL NO OTHER CHOICE")]
+    [SerializeField, Tooltip("Expensive")] private bool drawGizmos;
+    private void OnDrawGizmos(){
+        if (!drawGizmos){
+            return;
+        }
+    
+        Enemy[] enemiesOnScene = FindObjectsOfType<Enemy>();
+        
+        for (int i = 0; i < enemiesOnScene.Length; i++){
+            var enemy = enemiesOnScene[i];
+    		Gizmos.matrix = enemy.transform.localToWorldMatrix;
+
+            switch(enemy.type){
+                case WindGuyType:
+                    Gizmos.color = Color.blue;
+                    Vector3 windCenter = Vector3.forward * windGuyLength * 0.5f;
+                    Gizmos.DrawWireCube(windCenter, new Vector3(windGuyWidth, windGuyWidth, windGuyLength));
+                    break;
             }
         }
     }

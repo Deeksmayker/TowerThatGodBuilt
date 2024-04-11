@@ -138,7 +138,7 @@ Transform:
   - {fileID: 5066646104327368560}
   - {fileID: 4491826023361161070}
   m_Father: {fileID: 0}
-  m_RootOrder: 0
+  m_RootOrder: 2
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &6363304786779843041
 MonoBehaviour:
@@ -153,6 +153,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   type: 0
+  sphere: {fileID: 0}
+  index: 0
+  velocity: {x: 0, y: 0, z: 0}
+  hitImmuneCountdown: 0
+  weight: 1
+  takedKick: 0
   justTakeHit: 0
 --- !u!135 &-1185920991355153884
 SphereCollider:
@@ -173,7 +179,7 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 1
+  m_Radius: 3
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &8374703606882578401
 GameObject:

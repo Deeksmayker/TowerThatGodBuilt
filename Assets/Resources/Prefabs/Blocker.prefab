@@ -48,9 +48,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   type: 2
+  sphere: {fileID: 0}
   index: 0
   velocity: {x: 0, y: 0, z: 0}
   hitImmuneCountdown: 0
+  weight: 3
+  takedKick: 0
   justTakeHit: 0
 --- !u!135 &6894855226988858360
 SphereCollider:
@@ -71,7 +74,7 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 1
+  m_Radius: 3
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &4555649534480679161
 GameObject:

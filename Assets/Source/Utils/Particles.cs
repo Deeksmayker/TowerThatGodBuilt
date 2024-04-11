@@ -25,4 +25,9 @@ public class Particles : MonoBehaviour{
         var newParticles = Instantiate(particles, position, Quaternion.identity);
         newParticles.transform.parent = _particlesHolder;
     }
+    
+    public void SetScale(ref ParticleSystem particles, Vector3 size){
+        var shape = particles.shape;
+        shape.scale = size;
+    }
 }
