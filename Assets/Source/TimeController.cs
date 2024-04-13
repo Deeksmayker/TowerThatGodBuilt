@@ -1,4 +1,5 @@
 using UnityEngine;
+using static UnityEngine.Mathf;
 
 public class TimeController : MonoBehaviour{
     public static TimeController Instance;

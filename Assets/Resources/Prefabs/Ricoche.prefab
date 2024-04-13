@@ -244,7 +244,7 @@ Transform:
   - {fileID: 507424520073732351}
   - {fileID: 6613573517919073747}
   m_Father: {fileID: 0}
-  m_RootOrder: 14
+  m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 25.392}
 --- !u!114 &3906710303463374036
 MonoBehaviour:
@@ -259,10 +259,17 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   type: 3
+  kickTrailParticles: {fileID: 0}
+  sphere: {fileID: 0}
   index: 0
   velocity: {x: 0, y: 0, z: 0}
   hitImmuneCountdown: 0
+  kickImmuneCountdown: 0
+  effectsCooldown: 0
+  weight: 1
+  takedKick: 0
   justTakeHit: 0
+  dodgeDirection: 0
 --- !u!135 &5057846323547099237
 SphereCollider:
   m_ObjectHideFlags: 0

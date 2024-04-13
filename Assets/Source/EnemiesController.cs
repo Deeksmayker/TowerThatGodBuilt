@@ -6,6 +6,7 @@ using static UnityEngine.Mathf;
 using static UnityEngine.Physics;
 using static Utils;
 using static EnemyType;
+using static DodgeDirection;
 
 public enum EnemyType{
     DummyType,
@@ -27,7 +28,6 @@ public class Dummy{
 
 public class Shooter{
     public Enemy enemy;
-    //@HACK for testing
     public Dummy dummyDodgeComponent;
     public float shootCooldown   = 5f;
     public int   burstShootCount = 1;
@@ -103,6 +103,7 @@ public class EnemiesController : MonoBehaviour{
         
         for (int i = 0; i < enemiesOnScene.Length; i++){
             enemiesOnScene[i].sphere = enemiesOnScene[i].GetComponent<SphereCollider>();
+            enemiesOnScene[i].kickTrailParticles = Instantiate(Particles.Instance.GetParticles("KickTrailParticles"), enemiesOnScene[i].transform);
             switch (enemiesOnScene[i].type){
                 case DummyType:
                     _dummies.Add(new Dummy() { enemy = enemiesOnScene[i] });
@@ -170,8 +171,9 @@ public class EnemiesController : MonoBehaviour{
             }
             
             MoveByVelocity(ref windGuy.enemy);            
+            FlyByKick(ref windGuy.enemy);
             
-            if (FlyByKick(ref windGuy.enemy) || EnemyHit(ref windGuy.enemy)){
+            if (EnemyHit(ref windGuy.enemy)){
                 continue;
             }
 
@@ -290,15 +292,24 @@ public class EnemiesController : MonoBehaviour{
             enemy.hitImmuneCountdown -= Time.deltaTime;
             enemy.hitImmuneCountdown = Clamp(enemy.hitImmuneCountdown, 0, 1);
         }
+        if (enemy.kickImmuneCountdown > 0){
+            enemy.kickImmuneCountdown -= Time.deltaTime;
+            enemy.kickImmuneCountdown = Clamp(enemy.kickImmuneCountdown, 0, 1);
+        }
+        if (enemy.effectsCooldown > 0){
+            enemy.effectsCooldown -= Time.deltaTime;
+            enemy.effectsCooldown = Clamp(enemy.effectsCooldown, 0, 1);
+        }
     }
     
     private Vector3 MoveByVelocity(ref Enemy enemy){
         enemy.transform.position += enemy.velocity * Time.deltaTime;
-        enemy.velocity *= 1f - enemy.weight * enemy.weight * Time.deltaTime;
+        enemy.velocity *= 1f - enemy.weight * Time.deltaTime;
         
         if (enemy.velocity.sqrMagnitude <= EPSILON){
             enemy.velocity = Vector3.zero;
             enemy.takedKick = false;
+            enemy.kickTrailParticles.Stop();
         }
         
         return enemy.velocity * Time.deltaTime;
@@ -307,11 +318,30 @@ public class EnemiesController : MonoBehaviour{
     private bool EnemyHit(ref Enemy enemy){
         if (enemy.justTakeHit){
             enemy.justTakeHit = false;
-            enemy.hitImmuneCountdown = 0.1f;
             
             switch (enemy.type){
+                case ShooterType:
+                    float radius = 20;
+                    float pushPower = 60;
+                    (Collider[], int) collidersInExplosionRadius = CollidersInRadius(enemy.transform.position, radius, Layers.EnemyHurtBox | Layers.PlayerHurtBox | Layers.PlayerProjectile | Layers.EnemyProjectile);
+                    for (int i = 0; i < collidersInExplosionRadius.Item2; i++){
+                        Collider otherCollider = collidersInExplosionRadius.Item1[i];
+                        
+                        Enemy otherEnemy = otherCollider.GetComponentInParent<Enemy>();
+                        if (otherEnemy == enemy){
+                            continue;
+                        }
+                        
+                        Vector3 vecToOther = otherCollider.transform.position - enemy.transform.position;
+                        
+                        if (otherEnemy){
+                            otherEnemy.TakeKick(vecToOther.normalized * Sqrt(Clamp01(1f - vecToOther.sqrMagnitude / (radius * radius))) * pushPower);
+                        }
+                    }
+                    Particles.Instance.SpawnAndPlay(_baseDeadManParticles, enemy.transform.position);
+                    break;
                 default:
-                    Instantiate(_baseDeadManParticles, enemy.transform.position, Quaternion.identity);
+                    Particles.Instance.SpawnAndPlay(_baseDeadManParticles, enemy.transform.position);
                     break;
             }
             
@@ -492,10 +522,13 @@ public class EnemiesController : MonoBehaviour{
             dummy.dodging = true;
         }
         
+        Vector3 dodgeDirection = dummy.enemy.dodgeDirection == Horizontal ? dummyTransform.right : dummyTransform.up;
+        
         if (dummy.dodging){
+        
             dummy.dodgeTimer += Time.deltaTime;
             var t = dummy.dodgeTimer / dummy.dodgeTime;
-            dummyTransform.position = Vector3.LerpUnclamped(dummy.dodgeStartPosition, dummy.dodgeStartPosition + dummyTransform.right * dummy.dodgeDistance, EaseOutElastic(t));
+            dummyTransform.position = Vector3.LerpUnclamped(dummy.dodgeStartPosition, dummy.dodgeStartPosition + dodgeDirection * dummy.dodgeDistance, EaseOutElastic(t));
             if (t >= 1){
                 dummy.dodging = false;
                 dummy.dodgeTimer = dummy.dodgeTime;
@@ -503,7 +536,7 @@ public class EnemiesController : MonoBehaviour{
         } else if (dummy.dodgeTimer > 0){
             dummy.dodgeTimer -= Time.deltaTime;
             var t = 1f - dummy.dodgeTimer / (dummy.dodgeTime);
-            dummyTransform.position = Vector3.LerpUnclamped(dummy.dodgeStartPosition + dummyTransform.right * dummy.dodgeDistance, dummy.dodgeStartPosition, EaseInOutQuad(t));
+            dummyTransform.position = Vector3.LerpUnclamped(dummy.dodgeStartPosition + dodgeDirection * dummy.dodgeDistance, dummy.dodgeStartPosition, EaseInOutQuad(t));
             if (t <= 0){
                 dummy.dodgeTimer = 0;
             }

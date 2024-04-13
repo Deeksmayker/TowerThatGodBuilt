@@ -41,6 +41,15 @@ public static class Utils{
         return colliders[indexOfMin];
     }
     
+    private static Collider[] _targetColliders = new Collider[20];
+    
+    public static (Collider[], int) CollidersInRadius(Vector3 position, float radius, LayerMask layers){
+        ClearArray(_targetColliders);
+        int count = OverlapSphereNonAlloc(position, radius, _targetColliders, layers);
+    
+        return (_targetColliders, count);
+    }
+    
     public static Enemy GetClosestEnemy(Vector3 position, GameObject excludedObject = null){
         var enemiesInRange = OverlapSphere(position, 1000, Layers.EnemyHurtBox);
         if (enemiesInRange.Length > 0){
