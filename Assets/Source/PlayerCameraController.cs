@@ -23,6 +23,8 @@ public class PlayerCameraController : MonoBehaviour{
     
     private float _targetRoll, _targetPitch;
     
+    private PlayerController _player;
+    
     private void Awake(){
         if (Instance && Instance != this){
             Instance = null;
@@ -40,10 +42,21 @@ public class PlayerCameraController : MonoBehaviour{
         shakers.longShake.shakeTransform = (new GameObject("LongShakeTransform")).transform;
         shakers.longShake.shakeTransform.parent = shakers.rapidShake.shakeTransform;
         Utils.GetCameraTransform().parent = shakers.longShake.shakeTransform;
+        
+        _player = FindObjectOfType<PlayerController>();
     }
     
     private void Start(){
         Utils.ToggleCursor(false);
+        
+        switch (_player.playerClass){
+            case PlayerClass.Attacker:
+                rmbSenseMultiplier = 1;
+                break;
+            case PlayerClass.Balanced:
+                rmbSenseMultiplier = 0.2f;
+                break;
+        }
     }
     
     private void Update(){
