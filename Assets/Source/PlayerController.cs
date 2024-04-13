@@ -278,7 +278,7 @@ public class PlayerController : MonoBehaviour{
                 }
                 _alreadyHitByKick.Add(targetHash);
                 
-                Particles.Instance.SpawnAndPlayParticles(_kickHitParticles, targets[i].ClosestPoint(transform.position));
+                Particles.Instance.SpawnAndPlay(_kickHitParticles, targets[i].ClosestPoint(transform.position));
                 
                 //Ball kick
                 var ball = targets[i].GetComponentInParent<PlayerBall>();
@@ -434,7 +434,7 @@ public class PlayerController : MonoBehaviour{
             if (Vector3.Angle(enemyHits[i].normal, Vector3.up) <= 30){
                 foundGround = true;
                 if (!_grounded){
-                    var landingSpeedProgress = -velocity.y / 100; 
+                    var landingSpeedProgress = -velocity.y / 75; 
                     PlayerCameraController.Instance.ShakeCameraLong(landingSpeedProgress);
                 }
             }
@@ -610,8 +610,7 @@ public class PlayerController : MonoBehaviour{
             var ballToEnemyVectorNormalized = (closestEnemy.transform.position - ball.transform.position).normalized;
             ball.velocity = ballToEnemyVectorNormalized * 200;
         } else{
-            ball.velocity = (transform.position - enemy.transform.position).normalized * 10;
-            ball.velocity.y = 20;
+            ReflectToPlayer(ref ball, enemy);
         }
         ball.angularVelocity = Vector3.zero;
     }
@@ -656,7 +655,7 @@ public class PlayerController : MonoBehaviour{
                 //if (ball.bounceCount > 20) continue;
                 
                 if (!imaginaryBall){
-                    Particles.Instance.SpawnAndPlayParticles(_ballHitParticles, enemyHits[i].point);
+                    Particles.Instance.SpawnAndPlay(_ballHitParticles, enemyHits[i].point);
                 }
             }
 
@@ -666,15 +665,28 @@ public class PlayerController : MonoBehaviour{
 
             if (enemy){
                 if (!imaginaryBall){
-                    enemy.TakeHit(enemyHits[i].collider);
-                    
-                    var hitStopMultiplier = 1.0f;
-                    if (ball.ricocheCharged){
-                        hitStopMultiplier = 3.0f;
+                    if (enemy.effectsCooldown <= 0){
+                        var hitStopMultiplier = 1.0f;
+                        if (ball.ricocheCharged){
+                            hitStopMultiplier = 3.0f;
+                        }
+                        
+                        TimeController.Instance.AddHitStop(0.05f * hitStopMultiplier);
+                        PlayerCameraController.Instance.ShakeCameraBase(0.3f);
                     }
-                    
-                    TimeController.Instance.AddHitStop(0.05f * hitStopMultiplier);
-                    PlayerCameraController.Instance.ShakeCameraBase(0.3f);
+
+                    switch (enemy.type){
+                        case BlockerType:
+                            enemy.TakeKick(ball.velocity);
+                            break;
+                        case WindGuyType:
+                            enemy.TakeKick(ball.velocity);
+                            break;
+                        default:
+                            enemy.TakeHit(enemyHits[i].collider);
+                            break;
+                    }
+                
                     //ball.hitEnemy = true;
                 } else{
                     Animations.Instance.ChangeMaterialColor(enemy.gameObject, Colors.PredictionHitColor * 3, 0.02f);
@@ -717,7 +729,7 @@ public class PlayerController : MonoBehaviour{
         for (int i = 0; i < otherHits.Length; i++){
             EnemyProjectile enemyProjectile = otherHits[i].transform.GetComponentInParent<EnemyProjectile>();
             if (!imaginaryBall && ball.speed > 10){
-                Particles.Instance.SpawnAndPlayParticles(_ballHitParticles, otherHits[i].point);
+                Particles.Instance.SpawnAndPlay(_ballHitParticles, otherHits[i].point);
             }
             
             if (enemyProjectile){
@@ -798,7 +810,7 @@ public class PlayerController : MonoBehaviour{
         }
         
         SetKickVelocityToBall(ref imaginaryBall);
-        imaginaryBall.gameObject.name += "IMAGINE";
+        //imaginaryBall.gameObject.name += "IMAGINE";
         
         var iterationCount = 200;
         //var step = 0.02f;
