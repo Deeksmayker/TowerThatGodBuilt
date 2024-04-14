@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using System;
 using Array = System.Array;
 using UnityEditor;
 using static UnityEngine.Mathf;
@@ -43,6 +44,16 @@ public class Blocker{
     public float moveDistance = 25;
     public float cycleTime = 5;
     public float cycleProgress = 0.25f;
+    
+    public Vector3 startBlockPosition;
+    public Vector3 endBlockPosition;
+    public float ballDetectRadius = 15f;
+    public float maxBlockDistance = 30f;
+    public float blockTime = 1.5f;
+    public float blockTimer;
+    public float blockCooldown = 3f;
+    public float blockCooldownCountdown;
+    public bool blocking;
 }
 
 public class Ricoche{
@@ -200,7 +211,9 @@ public class EnemiesController : MonoBehaviour{
                     playerBall.velocity += windGuy.windArea.PowerVector(playerBall.transform.position) * Time.deltaTime;
                 } else if (target.TryGetComponent<PlayerController>(out var player)){
                     player.playerVelocity += windGuy.windArea.PowerVector(player.transform.position) * Time.deltaTime;
-                } 
+                } else if(target.TryGetComponent<EnemyProjectile>(out var enemyProjectile)){ 
+                    enemyProjectile.velocity += windGuy.windArea.PowerVector(enemyProjectile.transform.position) * Time.deltaTime;
+                }
             }
             
             windGuyTransform.Rotate(Vector3.forward * windGuyPower * 5 * Time.deltaTime); 
@@ -251,6 +264,29 @@ public class EnemiesController : MonoBehaviour{
         }
     }
     
+    private bool MoveToPosition(ref Transform targetTransform, ref float timer, float timeToMove, Vector3 startPosition, Vector3 endPosition, bool backwards, Func<float, float> easeFunction){
+        float t = 0;
+        
+        if (backwards){
+            timer -= Time.deltaTime;
+            t = 1f - timer / timeToMove;
+            
+            Vector3 tmpPos = startPosition;
+            startPosition = endPosition;
+            endPosition = tmpPos;
+        } else{
+            timer += Time.deltaTime;
+            t = timer / timeToMove;
+        }
+        targetTransform.position = Vector3.LerpUnclamped(startPosition, endPosition, easeFunction(t));
+
+        if ((backwards && t <= 0) || (!backwards && t >= 1)){
+            return true;
+        }
+    
+        return false;
+    }
+    
     private void UpdateBlockers(){
         for (int i = 0; i < _blockers.Count; i++){
             var blocker = _blockers[i];
@@ -271,17 +307,47 @@ public class EnemiesController : MonoBehaviour{
             
             EnemyCountdowns(ref blocker.enemy);
             
-            blocker.cycleProgress += Time.deltaTime / blocker.cycleTime;
-            
-            float t = blocker.cycleProgress <= 0.5f ? blocker.cycleProgress * 2 : 1f - (blocker.cycleProgress - 0.5f) * 2;
-            
-            var startPosition  = blocker.pivotPosition - blockerTransform.right * blocker.moveDistance * 0.5f;
-            var targetPosition = blocker.pivotPosition + blockerTransform.right * blocker.moveDistance * 0.5f;
-            blockerTransform.position = Vector3.Lerp(startPosition, targetPosition, EaseInOutQuad(t));
-            
-            if (blocker.cycleProgress >= 1){
-                blocker.cycleProgress = 0;
+            if (blocker.blockCooldownCountdown > 0){
+                blocker.blockCooldownCountdown -= Time.deltaTime;
             }
+            
+            if (!blocker.blocking && blocker.blockTimer <= 0 && blocker.blockCooldownCountdown <= 0){
+                PlayerBall ballNearby = PlayerBallNearby(blockerTransform.position, blocker.ballDetectRadius);
+
+                if (ballNearby){
+                    blocker.blocking = true;
+                    blocker.startBlockPosition = blockerTransform.position;
+                    var vecToBall = ballNearby.transform.position - blockerTransform.position;
+                    blocker.endBlockPosition = blockerTransform.position
+                                               + (vecToBall.normalized * blocker.maxBlockDistance * 0.5f)
+                                               + (ballNearby.velocityNormalized * blocker.maxBlockDistance * 0.5f);
+                }
+            }
+            
+            if (blocker.blocking){
+                if (MoveToPosition(ref blockerTransform, ref blocker.blockTimer, blocker.blockTime, 
+                                   blocker.startBlockPosition, blocker.endBlockPosition, false, EaseOutElastic)){
+                    blocker.blocking = false;                    
+                    blocker.blockTimer = 0;
+                    blocker.blockCooldownCountdown = blocker.blockCooldown;
+                    blocker.pivotPosition = blockerTransform.position;
+               }
+            }
+            
+            if (!blocker.blocking){
+                blocker.cycleProgress += Time.deltaTime / blocker.cycleTime;
+                
+                float t = blocker.cycleProgress <= 0.5f ? blocker.cycleProgress * 2 : 1f - (blocker.cycleProgress - 0.5f) * 2;
+                
+                var startPosition  = blocker.pivotPosition - blockerTransform.right * blocker.moveDistance * 0.5f;
+                var targetPosition = blocker.pivotPosition + blockerTransform.right * blocker.moveDistance * 0.5f;
+                blockerTransform.position = Vector3.Lerp(startPosition, targetPosition, EaseInOutQuad(t));
+                
+                if (blocker.cycleProgress >= 1){
+                    blocker.cycleProgress = 0;
+                }
+            }
+            
             
             KillPlayerIfNearby(blocker.enemy);
         }
@@ -387,8 +453,7 @@ public class EnemiesController : MonoBehaviour{
             }
             
             if (shooter.delayTimer <= 0){
-                EnemyProjectile projectile = SpawnEnemyProjectile(ref shooter.enemy, _shooterProjectilePrefab);
-                projectile.velocity = vectorToPlayer * projectileStartSpeed;
+                EnemyProjectile projectile = SpawnEnemyProjectile(shooterTransform.position + shooterTransform.up, vectorToPlayer * projectileStartSpeed);
                 shooter.shootedCount++;
                 if (shooter.shootedCount < shooter.burstShootCount){
                     shooter.delayTimer = shooter.shootDelay;
@@ -405,6 +470,10 @@ public class EnemiesController : MonoBehaviour{
     
     private void UpdateEnemyProjectiles(){
         for (int i = 0; i < _enemyProjectiles.Count; i++){
+            if (!_enemyProjectiles[i].gameObject.activeSelf){
+                continue;
+            }
+        
             EnemyProjectile projectile = _enemyProjectiles[i];
             
             if (projectile == null){
@@ -414,22 +483,48 @@ public class EnemiesController : MonoBehaviour{
                 
             CalculateEnemyProjectileCollisions(ref projectile);
             
-            if (projectile == null){
-                _enemyProjectiles.RemoveAt(i);
-                continue;
-            }
-            
             projectile.transform.rotation = Quaternion.LookRotation(projectile.velocity);
             projectile.transform.Translate(projectile.velocity * Time.deltaTime, Space.World);
             
             projectile.lifeTime += Time.deltaTime;
             
-            if (projectile.lifeTime >= 10){
-                Destroy(projectile.gameObject);
-                projectile = null;
-                _enemyProjectiles.RemoveAt(i);
+            if (projectile.lifeTime >= projectile.slowingLifetime){
+                float lifetimeOvershoot = projectile.lifeTime - projectile.slowingLifetime;
+                projectile.velocity *= 1f - Time.deltaTime * (lifetimeOvershoot * lifetimeOvershoot);
+                
+                if (projectile.velocity.sqrMagnitude <= EPSILON){
+                    DisableEnemyProjectile(ref projectile);
+                }
             }
         }
+    }
+    
+    private EnemyProjectile SpawnEnemyProjectile(Vector3 position, Vector3 velocity){
+        EnemyProjectile newProjectile = null;
+        for (int i = 0; i < _enemyProjectiles.Count; i++){
+            if (!_enemyProjectiles[i].gameObject.activeSelf){
+                newProjectile = _enemyProjectiles[i];
+                newProjectile.gameObject.SetActive(true);
+                newProjectile.transform.position = position;
+                newProjectile.velocity = velocity;
+                newProjectile.lifeTime = 0;
+            }
+        }
+        
+        if (!newProjectile){
+            newProjectile = Instantiate(_shooterProjectilePrefab, position, Quaternion.LookRotation(velocity));
+            newProjectile.velocity = velocity;
+            newProjectile.index = _enemyProjectiles.Count;
+            newProjectile.sphere = newProjectile.GetComponent<SphereCollider>();
+            _enemyProjectiles.Add(newProjectile);
+        }
+        
+        return newProjectile;
+    }
+    
+    private void DisableEnemyProjectile(ref EnemyProjectile projectile){
+        projectile.lifeTime = 0;
+        projectile.gameObject.SetActive(false);
     }
     
     private void CalculateEnemyProjectileCollisions(ref EnemyProjectile projectile){
@@ -446,19 +541,10 @@ public class EnemiesController : MonoBehaviour{
                 player.ResetPosition();
             }
             
-            Destroy(projectile.gameObject);
-            projectile = null;
+            DisableEnemyProjectile(ref projectile);
         }
     }
-    
-    private EnemyProjectile SpawnEnemyProjectile(ref Enemy enemy, EnemyProjectile projectilePrefab){
-        var newProjectile = Instantiate(projectilePrefab, enemy.transform.position + Vector3.up, Quaternion.identity);
-        newProjectile.sphere = newProjectile.GetComponent<SphereCollider>();
-        _enemyProjectiles.Add(newProjectile);
-        
-        return newProjectile;
-    }
-    
+
     private bool FlyByKick(ref Enemy enemy){
         if (!enemy.takedKick){
             return false;
@@ -525,19 +611,16 @@ public class EnemiesController : MonoBehaviour{
         Vector3 dodgeDirection = dummy.enemy.dodgeDirection == Horizontal ? dummyTransform.right : dummyTransform.up;
         
         if (dummy.dodging){
-        
-            dummy.dodgeTimer += Time.deltaTime;
-            var t = dummy.dodgeTimer / dummy.dodgeTime;
-            dummyTransform.position = Vector3.LerpUnclamped(dummy.dodgeStartPosition, dummy.dodgeStartPosition + dodgeDirection * dummy.dodgeDistance, EaseOutElastic(t));
-            if (t >= 1){
+            if (MoveToPosition(ref dummyTransform, ref dummy.dodgeTimer, dummy.dodgeTime,
+                               dummy.dodgeStartPosition,
+                               dummy.dodgeStartPosition + dodgeDirection * dummy.dodgeDistance, false, EaseOutElastic)){
                 dummy.dodging = false;
                 dummy.dodgeTimer = dummy.dodgeTime;
             }
         } else if (dummy.dodgeTimer > 0){
-            dummy.dodgeTimer -= Time.deltaTime;
-            var t = 1f - dummy.dodgeTimer / (dummy.dodgeTime);
-            dummyTransform.position = Vector3.LerpUnclamped(dummy.dodgeStartPosition + dodgeDirection * dummy.dodgeDistance, dummy.dodgeStartPosition, EaseInOutQuad(t));
-            if (t <= 0){
+            if (MoveToPosition(ref dummyTransform, ref dummy.dodgeTimer, dummy.dodgeTime,
+                               dummy.dodgeStartPosition,
+                               dummy.dodgeStartPosition + dodgeDirection * dummy.dodgeDistance, true, EaseOutElastic)){
                 dummy.dodgeTimer = 0;
             }
         }
@@ -558,7 +641,7 @@ public class EnemiesController : MonoBehaviour{
         }
     }
     
-    private bool PlayerBallNearby(Vector3 checkPosition, float checkRadius){
+    private PlayerBall PlayerBallNearby(Vector3 checkPosition, float checkRadius){
         List<PlayerBall> balls = _player.GetBalls();
         
         for (int i = 0; i < balls.Count; i++){
@@ -567,11 +650,11 @@ public class EnemiesController : MonoBehaviour{
             Vector3 ballToEnemy = checkPosition - balls[i].transform.position;
             
             if (ballToEnemy.sqrMagnitude <= checkRadius * checkRadius && Vector3.Dot(ballToEnemy, balls[i].velocity) > 0){
-                return true;
+                return balls[i];
             }
         }
         
-        return false;
+        return null;
         //return CheckSphere(checkPosition, checkRadius, Layers.PlayerProjectile);
     }
     

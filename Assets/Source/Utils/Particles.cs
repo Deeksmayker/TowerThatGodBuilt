@@ -23,7 +23,7 @@ public class Particles : MonoBehaviour{
     
     public void SpawnAndPlay(ParticleSystem particles, Vector3 position){
         var newParticles = Instantiate(particles, position, Quaternion.identity);
-        newParticles.transform.parent = _particlesHolder;
+        newParticles.transform.SetParent(_particlesHolder, true);
     }
     
     public void SetScale(ref ParticleSystem particles, Vector3 size){
