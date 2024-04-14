@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System;
 using TMPro;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 using static UnityEngine.Mathf;
 using static UnityEngine.Physics;
 using static Utils;
@@ -312,6 +313,12 @@ public class PlayerController : MonoBehaviour{
                 
                 Particles.Instance.SpawnAndPlay(_kickHitParticles, targets[i].ClosestPoint(transform.position));
                 
+                if (targets[i].transform.GetComponent<WinGate>()){
+                    Win(targets[i].ClosestPoint(transform.position));
+                    return;
+                }
+
+                
                 //Ball kick
                 var ball = targets[i].GetComponentInParent<PlayerBall>();
                 if (ball){
@@ -458,12 +465,12 @@ public class PlayerController : MonoBehaviour{
         
         var deltaVelocity = velocity * Time.deltaTime;
         
-        RaycastHit[] enemyHits = CapsuleCastAll(sphereCenter1, sphereCenter2, _collider.radius, velocity.normalized, deltaVelocity.magnitude, Layers.Environment);
+        RaycastHit[] groundHits = CapsuleCastAll(sphereCenter1, sphereCenter2, _collider.radius, velocity.normalized, deltaVelocity.magnitude, Layers.Environment);
         
         bool foundGround = false;
         
-        for (int i = 0; i < enemyHits.Length; i++){
-            if (Vector3.Angle(enemyHits[i].normal, Vector3.up) <= 30){
+        for (int i = 0; i < groundHits.Length; i++){
+            if (Vector3.Angle(groundHits[i].normal, Vector3.up) <= 30){
                 foundGround = true;
                 if (!_grounded){
                     var landingSpeedProgress = -velocity.y / 75; 
@@ -471,15 +478,22 @@ public class PlayerController : MonoBehaviour{
                 }
             }
             
-            velocity -= enemyHits[i].normal * Vector3.Dot(velocity, enemyHits[i].normal);
+            velocity -= groundHits[i].normal * Vector3.Dot(velocity, groundHits[i].normal);
         }
         
         _grounded = foundGround;
         
+        if (Raycast(transform.position, -transform.up, out var hit, _collider.height * 0.5f, Layers.Environment)){
+            transform.position = hit.point + transform.up * _collider.height * 0.5f;
+            _grounded = true;
+        }
+        
+        /*
         if (CheckCapsule(sphereCenter1, sphereCenter2, _collider.radius, Layers.Environment)){
             velocity.y = 50;
             _grounded = true;
         }
+        */
     }
     
     private void UpdateBalls(){
@@ -618,7 +632,7 @@ public class PlayerController : MonoBehaviour{
                 _ballCounterTextMesh.text = _currentBallCount.ToString();
             }
             
-            DestroyBall(ref ball);
+            DisableBall(ref ball);
             //_balls.RemoveAt(ball.index);
             if (playerVelocity.y < 10){
                 playerVelocity.y = 30;
@@ -676,6 +690,12 @@ public class PlayerController : MonoBehaviour{
 
         for (int i = 0; i < enemyHits.Length; i++){
             if (enemyHits[i].transform == ball.transform) continue;
+            
+            if (enemyHits[i].transform.GetComponent<WinGate>()){
+                Win(enemyHits[i].point);
+                return;
+            }
+
             
             var enemy = enemyHits[i].collider.GetComponentInParent<Enemy>();
             
@@ -776,7 +796,7 @@ public class PlayerController : MonoBehaviour{
             if (!imaginaryBall && otherHits[i].normal.y == 1){
                 ball.groundBounceCount++;
                 if (ball.groundBounceCount >= 2){
-                    DestroyBall(ref ball);
+                    DisableBall(ref ball);
                     break;
                 } else if (ball.groundBounceCount == 1){
                     Animations.Instance.ChangeMeshRenderersColor(ball.GetComponentsInChildren<MeshRenderer>(), Colors.DangerRed * 2, Colors.DangerRed * 2);
@@ -795,7 +815,7 @@ public class PlayerController : MonoBehaviour{
         }
     }
     
-    private void DestroyBall(ref PlayerBall ball){
+    private void DisableBall(ref PlayerBall ball){
         ball.lifeTime = 0;
         ball.sphere.radius = 1;
         ball.bounceCount = 0;
@@ -855,7 +875,7 @@ public class PlayerController : MonoBehaviour{
                 UpdateBall(imaginaryBall, step, true);
             }
             
-            DestroyBall(ref imaginaryBall);
+            DisableBall(ref imaginaryBall);
         }
     }
     
@@ -917,6 +937,13 @@ public class PlayerController : MonoBehaviour{
         }
     }
     
+    private void Win(Vector3 pos){
+        TimeController.Instance.SlowToZero();
+        for (int i = 0; i < 100; i++){
+            Particles.Instance.SpawnAndPlay(_ballHitParticles, pos);
+        }
+    }
+    
     public bool IsGrounded(){
         return _grounded;
     }
@@ -956,6 +983,10 @@ public class PlayerController : MonoBehaviour{
         
         if (Input.GetKeyDown(KeyCode.J)){
             PlayerCameraController.Instance.ShakeCameraBase(1);
+        }
+        
+        if (Input.GetKeyDown(KeyCode.T)){
+            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
         }
     }
 }

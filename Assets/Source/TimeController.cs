@@ -6,6 +6,8 @@ public class TimeController : MonoBehaviour{
 
     private float _hitStopCountdown;
     
+    private bool _slowingDown;
+    
     private void Awake(){
         if (Instance && Instance != this){
             Instance = null;
@@ -16,6 +18,12 @@ public class TimeController : MonoBehaviour{
     }
     
     private void Update(){
+        if (_slowingDown){
+            Time.timeScale -= Time.deltaTime;
+            Clamp01(Time.timeScale);
+            return;
+        }
+    
         if (_hitStopCountdown > 0){
             _hitStopCountdown -= Time.unscaledDeltaTime;
             
@@ -26,6 +34,10 @@ public class TimeController : MonoBehaviour{
             }
             
         }
+    }
+    
+    public void SlowToZero(){
+        _slowingDown = true;
     }
     
     public void AddHitStop(float time){

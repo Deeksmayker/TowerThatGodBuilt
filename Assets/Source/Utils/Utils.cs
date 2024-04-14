@@ -28,7 +28,12 @@ public static class Utils{
         int indexOfMin = 0;
         
         for (int i = 0; i < colliders.Length; i++){
-            if (excludedObject && excludedObject.name == colliders[i].transform.parent.gameObject.name){
+            Transform colliderToCheck = colliders[i].transform;
+            if (colliderToCheck.parent){
+                colliderToCheck = colliderToCheck.parent;
+            }
+        
+            if (excludedObject && excludedObject.name == colliderToCheck.gameObject.name){
                 continue;
             }
             var distance = Vector3.Distance(colliders[i].transform.position, distanceToWhom);
