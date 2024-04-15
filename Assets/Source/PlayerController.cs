@@ -115,6 +115,7 @@ public class PlayerController : MonoBehaviour{
     
     private Collider[] _imaginaryBallAreas;
 
+    private Vector3 _spawnPosition;
     
     private LineRenderer     _ballPredictionLineRenderer;
     private PlayerBall       _playerBallPrefab;
@@ -150,8 +151,6 @@ public class PlayerController : MonoBehaviour{
         _ballCounterTextMesh = GameObject.FindWithTag("BallCounter").GetComponent<TextMeshProUGUI>();
         
         _kickModelParticle = GameObject.FindWithTag("KickLeg").GetComponent<ParticleSystem>();
-        _kickHitParticles  = Particles.Instance.GetParticles("KickHitParticles");
-        _ballHitParticles  = Particles.Instance.GetParticles("BallHitParticles");
         
         _imaginaryBallAreas = new Collider[10];
         
@@ -172,6 +171,13 @@ public class PlayerController : MonoBehaviour{
             InitBall(ref ball);
             _balls.Add(ball);
         }
+    }
+    
+    private void Start(){
+        _kickHitParticles  = Particles.Instance.GetParticles("KickHitParticles");
+        _ballHitParticles  = Particles.Instance.GetParticles("BallHitParticles");
+        
+        _spawnPosition = transform.position;
     }
     
     private void Update(){
@@ -214,7 +220,7 @@ public class PlayerController : MonoBehaviour{
         transform.Translate(playerVelocity * playerDelta);
         
         if (transform.position.y < -30){
-            transform.position = Vector3.up * 10;
+            transform.position = _spawnPosition;
         }
         
         UpdateBalls();
@@ -691,7 +697,7 @@ public class PlayerController : MonoBehaviour{
         for (int i = 0; i < enemyHits.Length; i++){
             if (enemyHits[i].transform == ball.transform) continue;
             
-            if (enemyHits[i].transform.GetComponent<WinGate>()){
+            if (!imaginaryBall && enemyHits[i].transform.GetComponent<WinGate>()){
                 Win(enemyHits[i].point);
                 return;
             }
@@ -699,7 +705,7 @@ public class PlayerController : MonoBehaviour{
             
             var enemy = enemyHits[i].collider.GetComponentInParent<Enemy>();
             
-            if (enemy.hitImmuneCountdown > 0 || Vector3.Dot(enemyHits[i].normal, ball.velocity) > 0) continue;
+            if (!enemy || enemy.hitImmuneCountdown > 0 || Vector3.Dot(enemyHits[i].normal, ball.velocity) > 0) continue;
 
             if (ball.velocity.sqrMagnitude > 25){
                 ball.bounceCount++;
@@ -741,7 +747,8 @@ public class PlayerController : MonoBehaviour{
                 
                     //ball.hitEnemy = true;
                 } else{
-                    Animations.Instance.ChangeMaterialColor(enemy.gameObject, Colors.PredictionHitColor * 3, 0.02f);
+                    GameObject enemyObject = enemy.gameObject;
+                    Animations.Instance.ChangeMaterialColor(ref enemyObject, Colors.PredictionHitColor * 3, 0.02f);
                 }
 
                 switch (enemy.type){
@@ -846,7 +853,8 @@ public class PlayerController : MonoBehaviour{
                 }
             }
         } else{
-            Animations.Instance.ChangeMaterialColor(_ballInHold.gameObject, Colors.BallHighlightColor, 0.002f);
+            GameObject ballObject = _ballInHold.gameObject;
+            Animations.Instance.ChangeMaterialColor(ref ballObject, Colors.BallHighlightColor, 0.002f);
             _ballInHold.transform.position = Vector3.Lerp(_ballInHold.transform.position, BallStartPosition(), Time.deltaTime * 10 * Clamp(_playerSpeed / _player.baseSpeed, 1, 10));
             _holdingBall = true;
             _ballInHold.inHold = true;
@@ -937,7 +945,7 @@ public class PlayerController : MonoBehaviour{
         }
     }
     
-    private void Win(Vector3 pos){
+    public void Win(Vector3 pos){
         TimeController.Instance.SlowToZero();
         for (int i = 0; i < 100; i++){
             Particles.Instance.SpawnAndPlay(_ballHitParticles, pos);
@@ -949,7 +957,7 @@ public class PlayerController : MonoBehaviour{
     }
     
     public void ResetPosition(){
-        transform.position = Vector3.up * 20;
+        transform.position = _spawnPosition;
     }
     
     public List<PlayerBall> GetBalls(){

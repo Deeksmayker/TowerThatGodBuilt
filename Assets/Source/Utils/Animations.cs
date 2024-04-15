@@ -22,18 +22,23 @@ public class Animations : MonoBehaviour{
     private void Update(){
         for (int i = 0; i < _materialTasks.Count; i++){
             MaterialTask task = _materialTasks[i];
+            
+            if (!task.targetObject.activeSelf){
+                continue;
+            }
+            
             if (!task.targetObject){
                 _materialTasks.RemoveAt(i);
                 continue;
             }
             if (task.completed) continue;
             
-            task.elapsed += Time.deltaTime;
-            
             if (task.elapsed >= task.duration){
                 ChangeMeshRenderersColor(task.renderers, task.originalColor, task.originalEmissionColor);
                 task.completed = true;
             }
+            
+            task.elapsed += Time.deltaTime;
         }
         
         for (int i = 0; i < _scaleTasks.Count; i++){
@@ -100,7 +105,7 @@ public class Animations : MonoBehaviour{
         return null;
     }
     
-    public void ChangeMaterialColor(GameObject targetObject, Color color, float duration){
+    public void ChangeMaterialColor(ref GameObject targetObject, Color color, float duration){
         var task = MaterialTaskExist(targetObject);
         bool taskIsNew = false;
         if (task == null){

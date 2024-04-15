@@ -66,7 +66,7 @@ public class PlayerCameraController : MonoBehaviour{
     }
     
     private void LateUpdate(){
-        transform.position = Vector3.Lerp(transform.position, cameraTarget.position, 30 * Time.deltaTime);
+        transform.position = Vector3.Lerp(transform.position, cameraTarget.position, 60 * Time.deltaTime);
     }
     
     private void Shake(){
