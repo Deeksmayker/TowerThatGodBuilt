@@ -15,6 +15,7 @@ public class TimeController : MonoBehaviour{
         }
         
         Instance = this;
+        Time.timeScale = 1;
     }
     
     private void Update(){

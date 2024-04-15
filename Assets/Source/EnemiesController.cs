@@ -47,7 +47,7 @@ public class Blocker{
     
     public Vector3 startBlockPosition;
     public Vector3 endBlockPosition;
-    public float ballDetectRadius = 15f;
+    public float ballDetectRadius = 25f;
     public float maxBlockDistance = 30f;
     public float blockTime = 1.5f;
     public float blockTimer;
@@ -204,6 +204,9 @@ public class EnemiesController : MonoBehaviour{
                 var target = _targetColliders[j];
                 
                 Enemy otherEnemy = target.GetComponentInParent<Enemy>();
+                if (otherEnemy && otherEnemy.type == WindGuyType){
+                    continue;
+                }
                 
                 if (otherEnemy && otherEnemy != windGuy.enemy){
                     otherEnemy.velocity += (windGuy.windArea.PowerVector(otherEnemy.transform.position) / otherEnemy.weight) * Time.deltaTime;
@@ -404,10 +407,12 @@ public class EnemiesController : MonoBehaviour{
                             otherEnemy.TakeKick(vecToOther.normalized * Sqrt(Clamp01(1f - vecToOther.sqrMagnitude / (radius * radius))) * pushPower);
                         }
                     }
+                    PlayerCameraController.Instance.ShakeCameraBase(0.3f);
                     Particles.Instance.SpawnAndPlay(_baseDeadManParticles, enemy.transform.position);
                     break;
                 default:
                     Particles.Instance.SpawnAndPlay(_baseDeadManParticles, enemy.transform.position);
+                    PlayerCameraController.Instance.ShakeCameraBase(0.3f);
                     break;
             }
             
@@ -565,6 +570,9 @@ public class EnemiesController : MonoBehaviour{
                 enemy.TakeHit();
                 otherEnemy.TakeHit();
                 otherEnemy.TakeKick(enemy.velocity * 2);
+            } else if (_targetColliders[i].TryGetComponent<WinGate>(out var winGate)){
+                _player.Win(enemy.transform.position); 
+                enemy.TakeHit();
             } else{
                 enemy.TakeHit();
             }
