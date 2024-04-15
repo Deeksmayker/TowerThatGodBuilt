@@ -194,7 +194,7 @@ public class EnemiesController : MonoBehaviour{
             
             Vector3 windCenter = windGuyTransform.position + windGuyTransform.forward * windGuyLength;
             ClearArray(_targetColliders);
-            int overlapCount = OverlapBoxNonAlloc(windCenter, new Vector3(windGuyWidth, windGuyWidth, windGuyLength), _targetColliders, windGuyTransform.rotation, Layers.Player | Layers.PlayerProjectile | Layers.EnemyProjectile | Layers.EnemyHurtBox);
+            int overlapCount = OverlapBoxNonAlloc(windCenter, new Vector3(windGuyWidth, windGuyWidth, windGuyLength), _targetColliders, windGuyTransform.rotation, Layers.Player | Layers.PlayerProjectile | Layers.EnemyProjectile | Layers.EnemyHurtBox | Layers.Rope);
             
             for (int j = 0; j < overlapCount; j++){
                 if (_targetColliders[j] == null){
@@ -216,6 +216,8 @@ public class EnemiesController : MonoBehaviour{
                     player.playerVelocity += windGuy.windArea.PowerVector(player.transform.position) * Time.deltaTime;
                 } else if(target.TryGetComponent<EnemyProjectile>(out var enemyProjectile)){ 
                     enemyProjectile.velocity += windGuy.windArea.PowerVector(enemyProjectile.transform.position) * Time.deltaTime;
+                } else if (target.TryGetComponent<RopeNode>(out var ropeNode)){
+                    ropeNode.velocity += windGuy.windArea.PowerVector(ropeNode.transform.position) * Time.deltaTime;
                 }
             }
             
