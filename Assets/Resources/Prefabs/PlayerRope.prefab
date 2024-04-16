@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 571635416026901791}
   - component: {fileID: 4449453477830190216}
   m_Layer: 0
-  m_Name: Rope
+  m_Name: PlayerRope
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -31,7 +31,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_RootOrder: 23
+  m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &571635416026901791
 MonoBehaviour:
@@ -46,9 +46,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   firstPos: {fileID: 7046607964763393496}
-  nodesCount: 50
-  targetDistance: 1
-  maxForce: 50
+  nodesCount: 60
+  targetDistance: 0.5
+  maxForce: 40
   damping: 3
   gravity: 100
   iterationCount: 3

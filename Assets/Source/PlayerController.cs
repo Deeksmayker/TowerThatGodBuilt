@@ -90,6 +90,8 @@ public class PlayerController : MonoBehaviour{
     
     private bool _needToJump;
     
+    private Rope _ropePrefab;
+    
     private Slider          _staminaSlider;
     private TextMeshProUGUI _ballCounterTextMesh;
     
@@ -141,6 +143,7 @@ public class PlayerController : MonoBehaviour{
         _collider = GetComponent<CapsuleCollider>();
         
         _playerBallPrefab           = GetPrefab("PlayerBall").GetComponent<PlayerBall>();
+        _ropePrefab                 = GetPrefab("PlayerRope").GetComponent<Rope>();
         _ballPredictionLineRenderer = Instantiate(GetPrefab("PredictionTrail")).GetComponent<LineRenderer>();
         
         _currentStamina  = _player.maxStamina;
@@ -210,6 +213,7 @@ public class PlayerController : MonoBehaviour{
         playerVelocity += Vector3.down * _player.gravity * gravityMultiplier * playerDelta;
         
         StaminaAbilities(playerDelta, wishDirection);
+        UpdateRopeMovement();
                 
         _playerSpeed = playerVelocity.magnitude;
         
@@ -237,6 +241,34 @@ public class PlayerController : MonoBehaviour{
         }
         
         DebugStuff();
+    }
+    
+    private void UpdateRopeMovement(){
+        if (!Input.GetKey(KeyCode.Space)){
+            return;
+        }
+        
+        float ropeCheckRadius = 5f;
+        float ropeDamping = 2f;
+        float ropeTargetSpeed = 40;
+        float ropeAcceleration = 120;
+        bool foundOne = false;
+        (Collider[], int) ropeColliders = CollidersInRadius(transform.position, ropeCheckRadius, Layers.Rope);
+        for (int i = 0; i < ropeColliders.Item2; i++){
+            if (ropeColliders.Item1[i].TryGetComponent<RopeNode>(out var ropeNode)){
+                ropeNode.velocity.x += playerVelocity.x * Time.deltaTime * 10;
+                ropeNode.velocity.z += playerVelocity.z * Time.deltaTime * 10;
+                ropeNode.velocity.y -= playerVelocity.y * Time.deltaTime * 10;
+                foundOne = true;
+            }
+        }
+        if (foundOne){
+            playerVelocity.x *= 1f - ropeDamping * Time.deltaTime;
+            playerVelocity.z *= 1f - ropeDamping * Time.deltaTime;
+            playerVelocity.y = MoveTowards(playerVelocity.y, ropeTargetSpeed, ropeAcceleration * Time.deltaTime);
+        }
+        if (CheckSphere(transform.position, ropeCheckRadius, Layers.Rope)){
+        }
     }
     
     private void UpdateAll(float delta){
@@ -288,6 +320,11 @@ public class PlayerController : MonoBehaviour{
             _currentStamina = Clamp(_currentStamina + _player.staminaRecoveryRate * Time.deltaTime, 0, _player.maxStamina);
         }
         
+        if (Input.GetKeyDown(KeyCode.C)){
+            Rope rope = Instantiate(_ropePrefab, BallStartPosition(), Quaternion.identity);
+            rope.SetVelocityToFirstNode(GetCameraTransform().forward * _player.maxBallSpeed + playerVelocity * 0.5f);
+        }
+        
         _staminaSlider.value = _currentStamina / _player.maxStamina;
 
     }
@@ -323,7 +360,6 @@ public class PlayerController : MonoBehaviour{
                     Win(targets[i].ClosestPoint(transform.position));
                     return;
                 }
-
                 
                 //Ball kick
                 var ball = targets[i].GetComponentInParent<PlayerBall>();
@@ -351,6 +387,10 @@ public class PlayerController : MonoBehaviour{
                     enemy.TakeKick(GetCameraTransform().forward * _player.kickPower);
                     PlayerCameraController.Instance.ShakeCameraBase(0.8f);
                     TimeController.Instance.AddHitStop(0.1f);
+                }
+                
+                if (targets[i].TryGetComponent<RopeNode>(out var ropeNode)){
+                    ropeNode.velocity += GetCameraTransform().forward * _player.kickPower;
                 }
             }
             

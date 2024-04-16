@@ -13,5 +13,5 @@ public static class Layers{
     
     //Specified usecase
     public static LayerMask PlayerBallHitable {get;} = Environment | EnemyHurtBox | EnemyProjectile;
-    public static LayerMask PlayerKickHitable {get;} = EnemyHurtBox | EnemyProjectile | PlayerProjectile;
+    public static LayerMask PlayerKickHitable {get;} = EnemyHurtBox | EnemyProjectile | PlayerProjectile | Rope;
 }
