@@ -286,7 +286,7 @@ public class EnemiesController : MonoBehaviour{
                 continue;
             }
             
-            RotateOnWall(ref blocker.enemy);
+            HandleEnvCollisions(ref blocker.enemy);
             
             if (blocker.blockCooldownCountdown > 0){
                 blocker.blockCooldownCountdown -= Time.deltaTime;
@@ -529,14 +529,16 @@ public class EnemiesController : MonoBehaviour{
         }
     }
     
-    private void RotateOnWall(ref Enemy enemy){
+    private void HandleEnvCollisions(ref Enemy enemy){
         (Collider[], int) collidersNearby = CollidersInRadius(enemy.transform.position, enemy.sphere.radius, Layers.Environment);
         
         for (int i = 0; i < collidersNearby.Item2; i++){
             Collider col = collidersNearby.Item1[i];
             
-            Vector3 normal = col.ClosestPoint(enemy.transform.position);
-            enemy.transform.rotation = Quaternion.LookRotation(normal);
+            Vector3 colPoint = col.ClosestPoint(enemy.transform.position);
+            Vector3 dirToEnemy = enemy.transform.position - colPoint;
+            enemy.transform.rotation = Quaternion.LookRotation(dirToEnemy);
+            enemy.transform.position += dirToEnemy;
         }
     }
 
@@ -591,7 +593,7 @@ public class EnemiesController : MonoBehaviour{
             return;   
         }
         
-        RotateOnWall(ref dummy.enemy);
+        HandleEnvCollisions(ref dummy.enemy);
         
         Transform dummyTransform = dummy.enemy.transform;
         /*
