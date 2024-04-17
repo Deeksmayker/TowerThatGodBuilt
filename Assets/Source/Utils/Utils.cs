@@ -47,12 +47,27 @@ public static class Utils{
     }
     
     private static Collider[] _targetColliders = new Collider[20];
+    private static Collider[] _targetCollidersBig = new Collider[100];
     
     public static (Collider[], int) CollidersInRadius(Vector3 position, float radius, LayerMask layers){
         ClearArray(_targetColliders);
         int count = OverlapSphereNonAlloc(position, radius, _targetColliders, layers);
     
         return (_targetColliders, count);
+    }
+    
+    public static (Collider[], int) CollidersInCapsule(Vector3 position1, Vector3 position2, float radius, LayerMask layers){
+        ClearArray(_targetColliders);
+        int count = OverlapCapsuleNonAlloc(position1, position2, radius, _targetColliders, layers);
+    
+        return (_targetColliders, count);
+    }
+    
+    public static (Collider[], int) CollidersInBoxBig(Vector3 center, Vector3 size, Quaternion rotation, LayerMask layers){
+        ClearArray(_targetCollidersBig);
+        int count = OverlapBoxNonAlloc(center, size, _targetCollidersBig, rotation, layers);
+    
+        return (_targetCollidersBig, count);
     }
     
     public static Enemy GetClosestEnemy(Vector3 position, GameObject excludedObject = null){

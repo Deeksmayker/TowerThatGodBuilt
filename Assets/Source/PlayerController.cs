@@ -440,8 +440,14 @@ public class PlayerController : MonoBehaviour{
         
         Accelerate(delta, wishDirection, wishSpeed, acceleration);
         
+        _playerSpeed = playerVelocity.magnitude;
+        
         if (_playerSpeed > _player.baseSpeed && directionDotVelocity < 0.1f){
             PlayerCameraController.Instance.ShakeCameraRapid(Time.deltaTime * 5);
+        }
+        
+        if (_playerSpeed <= EPSILON){
+            playerVelocity = Vector3.zero;
         }
     }
     
@@ -478,68 +484,41 @@ public class PlayerController : MonoBehaviour{
         var playerSpeed = _playerSpeed;
         frictionForce = Vector3.ClampMagnitude(frictionForce, playerSpeed);
         
-        /*
-        float multiplier = playerSpeed / _currentSpeed;
-        multiplier = Mathf.Max(multiplier, 0.1f);
-        */
-        
         playerVelocity += frictionForce;
-        /*
-        return;
-        float speed = _playerSpeed;
-        
-        float speedDrop = _currentFriction * delta;
-        
-        if (speedDrop < 0) speedDrop = 0;
-        
-        float newSpeedMultiplier = speed - speedDrop;
-        
-        if (newSpeedMultiplier > 0){
-            newSpeedMultiplier /= speed;  
-        } else{
-            newSpeedMultiplier = 0;
-        }
-        
-        playerVelocity.x *= newSpeedMultiplier;
-        playerVelocity.z *= newSpeedMultiplier;
-        */
-    }
+    }  
     
     private void CalculatePlayerCollisions(ref Vector3 velocity){
         var sphereCenter1 = transform.position - Vector3.up * _collider.height * 0.5f;
         var sphereCenter2 = transform.position + Vector3.up * _collider.height * 0.5f;
         
         var deltaVelocity = velocity * Time.deltaTime;
-        
-        RaycastHit[] groundHits = CapsuleCastAll(sphereCenter1, sphereCenter2, _collider.radius, velocity.normalized, deltaVelocity.magnitude, Layers.Environment);
-        
         bool foundGround = false;
         
-        for (int i = 0; i < groundHits.Length; i++){
-            if (Vector3.Angle(groundHits[i].normal, Vector3.up) <= 30){
+        (Collider[], int) groundColliders = CollidersInCapsule(sphereCenter1, sphereCenter2, _collider.radius, Layers.Environment);
+        
+        for (int i = 0; i < groundColliders.Item2; i++){
+            Vector3 colPoint = groundColliders.Item1[i].ClosestPoint(transform.position);
+            Vector3 vecToPlayer = (transform.position - colPoint);
+            Vector3 dirToPlayer = vecToPlayer.normalized;
+            
+            if (Vector3.Dot(velocity, dirToPlayer) >= 0){
+                continue;
+            }
+            
+            if (Vector3.Angle(dirToPlayer, transform.up) <= 30){
                 foundGround = true;
                 if (!_grounded){
                     var landingSpeedProgress = -velocity.y / 75; 
                     PlayerCameraController.Instance.ShakeCameraLong(landingSpeedProgress);
                 }
             }
-            
-            velocity -= groundHits[i].normal * Vector3.Dot(velocity, groundHits[i].normal);
+            velocity -= dirToPlayer * Vector3.Dot(velocity, dirToPlayer);
+            // Vector3 playerBottomPoint = transform.position - transform.up * _collider.height * 0.5f;
+            // playerBottomPoint.y -= _collider.radius;
+            // transform.position += (colPoint - playerBottomPoint);
         }
         
         _grounded = foundGround;
-        
-        if (Raycast(transform.position, -transform.up, out var hit, _collider.height * 0.5f, Layers.Environment)){
-            transform.position = hit.point + transform.up * _collider.height * 0.5f;
-            _grounded = true;
-        }
-        
-        /*
-        if (CheckCapsule(sphereCenter1, sphereCenter2, _collider.radius, Layers.Environment)){
-            velocity.y = 50;
-            _grounded = true;
-        }
-        */
     }
     
     private void UpdateBalls(){
@@ -662,6 +641,16 @@ public class PlayerController : MonoBehaviour{
             }
             
             //Debug.Log(ball.transform.position);
+        }
+        
+        if (!imaginaryBall){
+            float ropeCheckRadius = 5f;
+            (Collider[], int) ropesInRadius = CollidersInRadius(ball.transform.position, ropeCheckRadius, Layers.Rope);
+            for (int i = 0; i < ropesInRadius.Item2; i++){
+                if (ropesInRadius.Item1[i].TryGetComponent<RopeNode>(out var ropeNode)){
+                    ropeNode.velocity += ball.velocity * delta * 20;
+                }
+            }
         }
     
         ball.transform.Translate(ball.velocity * delta, Space.World);
