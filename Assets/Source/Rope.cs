@@ -11,6 +11,7 @@ public class Rope : MonoBehaviour{
     [SerializeField] private float damping = 1f;
     [SerializeField] private float gravity = 1f;
     [SerializeField] private float iterationCount = 3;
+    [SerializeField] private int connectionPointsCount = 5;
 
     private float _lifetime;
 
@@ -34,12 +35,11 @@ public class Rope : MonoBehaviour{
         _nodePrefab = GetPrefab("BaseRopeNode").GetComponent<RopeNode>();
     
         _nodes = new RopeNode[nodesCount];
-        _lr.positionCount = nodesCount;
+        _lr.positionCount = nodesCount * connectionPointsCount - connectionPointsCount;
         
         _nodes[0] = Instantiate(_nodePrefab, transform);
         _nodes[0].transform.position = firstPos.position;
         _nodes[0].neighbourIndexes = new int[]{1};
-        _lr.SetPosition(0, _nodes[0].transform.position);        
     
         for (int i = 1; i < nodesCount; i++){
             _nodes[i] = Instantiate(_nodePrefab, _myRopeHandler.transform);
@@ -52,9 +52,9 @@ public class Rope : MonoBehaviour{
             } else{
                 _nodes[i].neighbourIndexes = new int[]{i - 1, i + 1};
             }
-            
-            _lr.SetPosition(i, _nodes[i].transform.position);        
         }
+        
+        SetLineRendererPositions();
     }
     
     private void FixedUpdate(){
@@ -95,15 +95,36 @@ public class Rope : MonoBehaviour{
                 }
                 CalculateNodeCollisions(ref node);
                 node.transform.position += node.velocity * Time.fixedDeltaTime / iterationCount;
-                
-                _lr.SetPosition(i, node.transform.position);
             }
         }
+        
+        //Render lines
+        SetLineRendererPositions();
         
         _lifetime += Time.fixedDeltaTime;
         if (_lifetime >= 2 && _nodes[0].stopOnCollision){
             DestroyRope();
             return;
+        }
+    }
+    
+    private void SetLineRendererPositions(){
+        Vector3 previousLineVec = Vector3.zero;
+        for (int i = 0; i < nodesCount - 1; i++){
+            _lr.SetPosition(i * connectionPointsCount, _nodes[i].transform.position);
+            
+            if (i == 0){
+                previousLineVec = _nodes[1].transform.position - _nodes[0].transform.position;
+            }
+            
+            Vector3 middlePos = _nodes[i].transform.position + previousLineVec * 0.5f;
+            for (int j = 1; j < connectionPointsCount - 1; j++){ 
+                _lr.SetPosition(i * connectionPointsCount + j, Bezie(_nodes[i].transform.position, middlePos, _nodes[i+1].transform.position, ((float)j) / connectionPointsCount));
+            }
+            if (i > 0){
+                previousLineVec = _nodes[i].transform.position - _nodes[i-1].transform.position;
+            }
+            _lr.SetPosition((i + 1) * connectionPointsCount - 1, _nodes[i+1].transform.position);
         }
     }
     

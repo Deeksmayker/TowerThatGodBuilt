@@ -115,6 +115,13 @@ public static class Utils{
         Array.Clear(arr, 0, arr.Length);
     }
     
+    public static Vector3 Bezie(Vector3 startPos, Vector3 middlePos, Vector3 endPos, float t){
+		var ab = Vector3.Lerp(startPos, middlePos, t);
+		var bc = Vector3.Lerp(middlePos, endPos, t);
+
+		return Vector3.Lerp(ab, bc, t);
+    }
+    
     //Ease functions
     public static float EaseInOutQuad(float x){
         return x < 0.5 ? 2 * x * x : 1 - Pow(-2 * x + 2, 2) / 2;
