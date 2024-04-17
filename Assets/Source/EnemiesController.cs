@@ -535,11 +535,10 @@ public class EnemiesController : MonoBehaviour{
         //enemy.transform.position += enemy.velocity * Time.deltaTime;
         //enemy.velocity *= 1f - enemy.weight * enemy.weight * Time.deltaTime;
         
-        ClearArray(_targetColliders);
-        int collidedCount = OverlapSphereNonAlloc(enemy.transform.position, enemy.sphere.radius, _targetColliders, Layers.Environment | Layers.EnemyHurtBox);
+        (Collider[], int) collidersNearby = CollidersInRadius(enemy.transform.position, enemy.sphere.radius, Layers.Environment | Layers.EnemyHurtBox);
         
-        for (int i = 0; i < collidedCount; i++){
-            Enemy otherEnemy = _targetColliders[i].GetComponentInParent<Enemy>();
+        for (int i = 0; i < collidersNearby.Item2; i++){
+            Enemy otherEnemy = collidersNearby.Item1[i].GetComponentInParent<Enemy>();
             
             if (otherEnemy == enemy) continue;
             
@@ -547,7 +546,7 @@ public class EnemiesController : MonoBehaviour{
                 enemy.TakeHit();
                 otherEnemy.TakeHit();
                 otherEnemy.TakeKick(enemy.velocity * 2);
-            } else if (_targetColliders[i].TryGetComponent<WinGate>(out var winGate)){
+            } else if (collidersNearby.Item1[i].TryGetComponent<WinGate>(out var winGate)){
                 _player.Win(enemy.transform.position); 
                 enemy.TakeHit();
             } else{
