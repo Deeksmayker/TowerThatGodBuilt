@@ -183,17 +183,15 @@ public class EnemiesController : MonoBehaviour{
             
             MoveByVelocity(ref windGuy.enemy);            
             FlyByKick(ref windGuy.enemy);
+            EnemyCountdowns(ref windGuy.enemy);
             
             if (EnemyHit(ref windGuy.enemy)){
                 continue;
             }
-
-            EnemyCountdowns(ref windGuy.enemy);
             
             var windGuyTransform = windGuy.enemy.transform;
             
             Vector3 windCenter = windGuyTransform.position + windGuyTransform.forward * windGuyLength;
-            ClearArray(_targetColliders);
             (Collider[], int) overlapColliders = CollidersInBoxBig(windCenter, new Vector3(windGuyWidth, windGuyWidth, windGuyLength), windGuyTransform.rotation, Layers.Player | Layers.PlayerProjectile | Layers.EnemyProjectile | Layers.EnemyHurtBox | Layers.Rope);
             
             for (int j = 0; j < overlapColliders.Item2; j++){
@@ -234,12 +232,11 @@ public class EnemiesController : MonoBehaviour{
             }
             
             MoveByVelocity(ref ricoche.enemy);
+            EnemyCountdowns(ref ricoche.enemy);
             
             if (FlyByKick(ref ricoche.enemy) || EnemyHit(ref ricoche.enemy)){
                 continue;
             }
-            
-            EnemyCountdowns(ref ricoche.enemy);
             
             var ricocheTransform = ricoche.enemy.transform;
             
@@ -269,29 +266,6 @@ public class EnemiesController : MonoBehaviour{
         }
     }
     
-    private bool MoveToPosition(ref Transform targetTransform, ref float timer, float timeToMove, Vector3 startPosition, Vector3 endPosition, bool backwards, Func<float, float> easeFunction){
-        float t = 0;
-        
-        if (backwards){
-            timer -= Time.deltaTime;
-            t = 1f - timer / timeToMove;
-            
-            Vector3 tmpPos = startPosition;
-            startPosition = endPosition;
-            endPosition = tmpPos;
-        } else{
-            timer += Time.deltaTime;
-            t = timer / timeToMove;
-        }
-        targetTransform.position = Vector3.LerpUnclamped(startPosition, endPosition, easeFunction(t));
-
-        if ((backwards && t <= 0) || (!backwards && t >= 1)){
-            return true;
-        }
-    
-        return false;
-    }
-    
     private void UpdateBlockers(){
         for (int i = 0; i < _blockers.Count; i++){
             var blocker = _blockers[i];
@@ -304,13 +278,14 @@ public class EnemiesController : MonoBehaviour{
             
             blocker.pivotPosition += MoveByVelocity(ref blocker.enemy);
             
+            EnemyCountdowns(ref blocker.enemy);
+
+            
             if (FlyByKick(ref blocker.enemy) || EnemyHit(ref blocker.enemy)){
                 blocker.cycleProgress = 0.25f;
                 blocker.pivotPosition = blockerTransform.position;
                 continue;
             }
-            
-            EnemyCountdowns(ref blocker.enemy);
             
             if (blocker.blockCooldownCountdown > 0){
                 blocker.blockCooldownCountdown -= Time.deltaTime;
