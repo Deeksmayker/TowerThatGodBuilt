@@ -279,13 +279,14 @@ public class EnemiesController : MonoBehaviour{
             blocker.pivotPosition += MoveByVelocity(ref blocker.enemy);
             
             EnemyCountdowns(ref blocker.enemy);
-
             
             if (FlyByKick(ref blocker.enemy) || EnemyHit(ref blocker.enemy)){
                 blocker.cycleProgress = 0.25f;
                 blocker.pivotPosition = blockerTransform.position;
                 continue;
             }
+            
+            RotateOnWall(ref blocker.enemy);
             
             if (blocker.blockCooldownCountdown > 0){
                 blocker.blockCooldownCountdown -= Time.deltaTime;
@@ -356,6 +357,7 @@ public class EnemiesController : MonoBehaviour{
             enemy.velocity = Vector3.zero;
             enemy.takedKick = false;
             enemy.kickTrailParticles.Stop();
+            enemy.timeInKickFlight = 0;
         }
         
         return enemy.velocity * Time.deltaTime;
@@ -526,15 +528,31 @@ public class EnemiesController : MonoBehaviour{
             DisableEnemyProjectile(ref projectile);
         }
     }
+    
+    private void RotateOnWall(ref Enemy enemy){
+        (Collider[], int) collidersNearby = CollidersInRadius(enemy.transform.position, enemy.sphere.radius, Layers.Environment);
+        
+        for (int i = 0; i < collidersNearby.Item2; i++){
+            Collider col = collidersNearby.Item1[i];
+            
+            Vector3 normal = col.ClosestPoint(enemy.transform.position);
+            enemy.transform.rotation = Quaternion.LookRotation(normal);
+        }
+    }
 
     private bool FlyByKick(ref Enemy enemy){
         if (!enemy.takedKick){
             return false;
         }
-    
-        //enemy.transform.position += enemy.velocity * Time.deltaTime;
-        //enemy.velocity *= 1f - enemy.weight * enemy.weight * Time.deltaTime;
         
+        enemy.timeInKickFlight += Time.deltaTime;
+        if (enemy.timeInKickFlight >= 6){
+            enemy.takedKick = false;
+            enemy.kickTrailParticles.Stop();
+            enemy.timeInKickFlight = 0;
+            return false;
+        }
+    
         (Collider[], int) collidersNearby = CollidersInRadius(enemy.transform.position, enemy.sphere.radius, Layers.Environment | Layers.EnemyHurtBox);
         
         for (int i = 0; i < collidersNearby.Item2; i++){
@@ -572,6 +590,8 @@ public class EnemiesController : MonoBehaviour{
             dummy.dodgeStartPosition = dummy.enemy.transform.position;
             return;   
         }
+        
+        RotateOnWall(ref dummy.enemy);
         
         Transform dummyTransform = dummy.enemy.transform;
         /*

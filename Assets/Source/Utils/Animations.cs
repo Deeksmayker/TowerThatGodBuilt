@@ -34,7 +34,7 @@ public class Animations : MonoBehaviour{
             if (task.completed) continue;
             
             if (task.elapsed >= task.duration){
-                ChangeMeshRenderersColor(task.renderers, task.originalColor, task.originalEmissionColor);
+                ChangeMeshRenderersColors(task.renderers, task.originalColors, task.originalEmissionColors);
                 task.completed = true;
             }
             
@@ -106,15 +106,21 @@ public class Animations : MonoBehaviour{
     }
     
     public void ChangeMaterialColor(ref GameObject targetObject, Color color, float duration){
-        var task = MaterialTaskExist(targetObject);
+        var task = MaterialTaskExist(ref targetObject);
         bool taskIsNew = false;
         if (task == null){
             taskIsNew = true;
             task = new MaterialTask();
             task.targetObject  = targetObject;
             task.renderers     = targetObject.GetComponentsInChildren<MeshRenderer>();
-            task.originalColor = task.renderers[0].material.GetColor("_BaseColor");
-            task.originalEmissionColor = task.renderers[0].material.GetColor("_EmissionColor");
+            task.originalColors         = new Color[task.renderers.Length];
+            task.originalEmissionColors = new Color[task.renderers.Length];
+            for (int i = 0; i < task.originalColors.Length; i++){
+                task.originalColors[i] = task.renderers[i].material.GetColor("_BaseColor");
+            }
+            for (int i = 0; i < task.originalEmissionColors.Length; i++){
+                task.originalEmissionColors[i] = task.renderers[i].material.GetColor("_EmissionColor");
+            }
         } 
         task.targetColor = color;
         task.duration    = duration;
@@ -136,7 +142,17 @@ public class Animations : MonoBehaviour{
         }
     }
     
-    private MaterialTask MaterialTaskExist(GameObject targetObject){
+    public void ChangeMeshRenderersColors(MeshRenderer[] renderers, Color[] newColors, Color[] newEmissionColors){
+        Debug.Assert(renderers.Length == newColors.Length);
+        Debug.Assert(renderers.Length == newEmissionColors.Length);
+        for (int i = 0; i < renderers.Length; i++){
+            _propertyBlock.SetColor("_EmissionColor", newEmissionColors[i]);
+            _propertyBlock.SetColor("_BaseColor", newColors[i]);
+            renderers[i].SetPropertyBlock(_propertyBlock);
+        }
+    }
+    
+    private MaterialTask MaterialTaskExist(ref GameObject targetObject){
         for (int i = 0; i < _materialTasks.Count; i++){
             if (_materialTasks[i].targetObject == targetObject){
                 return _materialTasks[i];
@@ -151,7 +167,7 @@ public class Animations : MonoBehaviour{
 public class MaterialTask{
     public GameObject targetObject;
     public MeshRenderer[] renderers;
-    public Color originalColor, originalEmissionColor;
+    public Color[] originalColors, originalEmissionColors;
     public Color targetColor;
     public float duration;
     public float elapsed;
