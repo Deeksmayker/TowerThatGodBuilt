@@ -11,6 +11,7 @@ public class Enemy : MonoBehaviour{
     public SphereCollider sphere;
     public int index;
     public Vector3 velocity;
+    public float timeInKickFlight;
     public float hitImmuneCountdown;
     public float kickImmuneCountdown;
     public float effectsCooldown;
@@ -41,6 +42,7 @@ public class Enemy : MonoBehaviour{
         kickImmuneCountdown = 0.1f;
         
         takedKick = true;
+        timeInKickFlight = 0;
         transform.rotation = Quaternion.LookRotation(powerVector);
         velocity += powerVector / weight;
         kickTrailParticles.Play();
