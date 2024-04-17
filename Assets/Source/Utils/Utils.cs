@@ -1,4 +1,5 @@
 using UnityEngine;
+using System;
 using Array = System.Array;
 using static UnityEngine.Mathf;
 using static UnityEngine.Physics;
@@ -85,6 +86,30 @@ public static class Utils{
         
         return null;
     }
+    
+    public static bool MoveToPosition(ref Transform targetTransform, ref float timer, float timeToMove, Vector3 startPosition, Vector3 endPosition, bool backwards, Func<float, float> easeFunction){
+        float t = 0;
+        
+        if (backwards){
+            timer -= Time.deltaTime;
+            t = 1f - timer / timeToMove;
+            
+            Vector3 tmpPos = startPosition;
+            startPosition = endPosition;
+            endPosition = tmpPos;
+        } else{
+            timer += Time.deltaTime;
+            t = timer / timeToMove;
+        }
+        targetTransform.position = Vector3.LerpUnclamped(startPosition, endPosition, easeFunction(t));
+
+        if ((backwards && t <= 0) || (!backwards && t >= 1)){
+            return true;
+        }
+    
+        return false;
+    }
+
     
     public static void ClearArray(Array arr){
         Array.Clear(arr, 0, arr.Length);
