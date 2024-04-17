@@ -14,6 +14,7 @@ public class Rope : MonoBehaviour{
     [SerializeField] private int connectionPointsCount = 5;
 
     private float _lifetime;
+    private bool _sleeping;
 
     private static GameObject _globalRopeHandler;
     private GameObject _myRopeHandler;
@@ -29,7 +30,14 @@ public class Rope : MonoBehaviour{
     
         _lr = GetComponent<LineRenderer>();
     
-        _myRopeHandler = new GameObject("RopeHandler: " + gameObject.name);
+        string ropeHandlerName = "RopeHandler: ";
+        if (transform.parent){
+            ropeHandlerName += transform.parent.name;
+        } else{
+            ropeHandlerName += gameObject.name;
+        }
+    
+        _myRopeHandler = new GameObject(ropeHandlerName);
         _myRopeHandler.transform.SetParent(_globalRopeHandler.transform, true);
     
         _nodePrefab = GetPrefab("BaseRopeNode").GetComponent<RopeNode>();
@@ -55,6 +63,16 @@ public class Rope : MonoBehaviour{
         }
         
         SetLineRendererPositions();
+    }
+    
+    private void OnEnable(){
+        _myRopeHandler.SetActive(true);
+    }
+    
+    private void OnDisable(){
+        if (_myRopeHandler){
+            _myRopeHandler.SetActive(false);
+        }
     }
     
     private void FixedUpdate(){
