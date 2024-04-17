@@ -21,8 +21,4 @@ public class WindArea : MonoBehaviour{
         float powerProgress = 1f - Clamp01(Vector3.Distance(transform.position, atPosition) / (boxCollider.size.z * 2));
         return transform.forward * windPower * powerProgress;
     }
-    
-    private void OnTriggerEnter(Collider col){
-        Debug.Log(col.name);
-    }
 }
