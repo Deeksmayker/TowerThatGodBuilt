@@ -24,12 +24,12 @@ public static class Utils{
         return Camera.main.transform;
     }
     
-    public static Collider GetClosestFromColliders(Vector3 distanceToWhom, Collider[] colliders, GameObject excludedObject = null){
+    public static Collider ClosestCollider(Vector3 distanceToWhom, (Collider[], int) colliders, GameObject excludedObject = null){
         var minDistance = 1000000000f;
         int indexOfMin = 0;
         
-        for (int i = 0; i < colliders.Length; i++){
-            Transform colliderToCheck = colliders[i].transform;
+        for (int i = 0; i < colliders.Item2; i++){
+            Transform colliderToCheck = colliders.Item1[i].transform;
             if (colliderToCheck.parent){
                 colliderToCheck = colliderToCheck.parent;
             }
@@ -37,18 +37,32 @@ public static class Utils{
             if (excludedObject && excludedObject.name == colliderToCheck.gameObject.name){
                 continue;
             }
-            var distance = Vector3.Distance(colliders[i].transform.position, distanceToWhom);
+            var distance = Vector3.Distance(colliders.Item1[i].transform.position, distanceToWhom);
             if (distance < minDistance){
                 minDistance = distance;
                 indexOfMin = i;
             }
         }
         
-        return colliders[indexOfMin];
+        return colliders.Item1[indexOfMin];
     }
     
     private static Collider[] _targetColliders = new Collider[20];
     private static Collider[] _targetCollidersBig = new Collider[100];
+    
+    public static void MoveSphereOutCollision(Transform targetTransform, float radius, LayerMask layers){
+        (Collider[], int) collidersNearby = CollidersInRadius(targetTransform.position, radius, layers);
+        
+        for (int i = 0; i < collidersNearby.Item2; i++){
+            Collider col = collidersNearby.Item1[i];
+            
+            Vector3 colPoint = col.ClosestPoint(targetTransform.position);
+            Vector3 vecToMe = (targetTransform.position - colPoint);
+            Vector3 dirToMe = vecToMe.normalized;
+            
+            targetTransform.position += colPoint - (targetTransform.position - dirToMe * radius);
+        }
+    }
     
     public static (Collider[], int) CollidersInRadius(Vector3 position, float radius, LayerMask layers){
         ClearArray(_targetColliders);
@@ -72,9 +86,9 @@ public static class Utils{
     }
     
     public static Enemy GetClosestEnemy(Vector3 position, GameObject excludedObject = null){
-        var enemiesInRange = OverlapSphere(position, 1000, Layers.EnemyHurtBox);
-        if (enemiesInRange.Length > 0){
-            var closestEnemy = GetClosestFromColliders(position, enemiesInRange, excludedObject);
+        (Collider[], int) enemiesInRange = CollidersInRadius(position, 1000, Layers.EnemyHurtBox);
+        if (enemiesInRange.Item2 > 0){
+            var closestEnemy = ClosestCollider(position, enemiesInRange, excludedObject);
             var toEnemy = closestEnemy.transform.position - position;
             
             if (false && Raycast(position, toEnemy * 0.9f, Layers.Environment)){

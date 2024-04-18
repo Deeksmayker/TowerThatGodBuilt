@@ -537,6 +537,7 @@ public class EnemiesController : MonoBehaviour{
             
             Vector3 colPoint = col.ClosestPoint(enemy.transform.position);
             Vector3 dirToEnemy = enemy.transform.position - colPoint;
+            if (dirToEnemy.sqrMagnitude <= EPSILON) dirToEnemy = enemy.transform.forward;
             enemy.transform.rotation = Quaternion.LookRotation(dirToEnemy);
             enemy.transform.position += dirToEnemy;
         }
@@ -555,7 +556,7 @@ public class EnemiesController : MonoBehaviour{
             return false;
         }
     
-        (Collider[], int) collidersNearby = CollidersInRadius(enemy.transform.position, enemy.sphere.radius, Layers.Environment | Layers.EnemyHurtBox);
+        (Collider[], int) collidersNearby = CollidersInRadius(enemy.transform.position, enemy.sphere.radius, Layers.Environment | Layers.EnemyHurtBox | Layers.Rope);
         
         for (int i = 0; i < collidersNearby.Item2; i++){
             Enemy otherEnemy = collidersNearby.Item1[i].GetComponentInParent<Enemy>();
@@ -569,6 +570,8 @@ public class EnemiesController : MonoBehaviour{
             } else if (collidersNearby.Item1[i].TryGetComponent<WinGate>(out var winGate)){
                 _player.Win(enemy.transform.position); 
                 enemy.TakeHit();
+            } else if (collidersNearby.Item1[i].TryGetComponent<RopeNode>(out var ropeNode)){
+                ropeNode.velocity += enemy.velocity * Time.deltaTime * 20;
             } else{
                 enemy.TakeHit();
             }

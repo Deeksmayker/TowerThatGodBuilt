@@ -159,6 +159,7 @@ MonoBehaviour:
   sphere: {fileID: 0}
   index: 0
   velocity: {x: 0, y: 0, z: 0}
+  timeInKickFlight: 0
   hitImmuneCountdown: 0
   kickImmuneCountdown: 0
   effectsCooldown: 0
@@ -313,7 +314,7 @@ PrefabInstance:
     - target: {fileID: 571635416026901791, guid: 12b185fbfdfe69143880fda5f29201da,
         type: 3}
       propertyPath: nodesCount
-      value: 10
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 571635416026901791, guid: 12b185fbfdfe69143880fda5f29201da,
         type: 3}
@@ -323,13 +324,33 @@ PrefabInstance:
     - target: {fileID: 571635416026901791, guid: 12b185fbfdfe69143880fda5f29201da,
         type: 3}
       propertyPath: targetDistance
-      value: 1
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 571635416026901791, guid: 12b185fbfdfe69143880fda5f29201da,
+        type: 3}
+      propertyPath: connectionPointsCount
+      value: 10
       objectReference: {fileID: 0}
     - target: {fileID: 4449453477830190216, guid: 12b185fbfdfe69143880fda5f29201da,
         type: 3}
       propertyPath: m_Materials.Array.data[0]
       value: 
       objectReference: {fileID: 2100000, guid: 08c9c7063fa39c5489babeda30a5b74a, type: 2}
+    - target: {fileID: 4449453477830190216, guid: 12b185fbfdfe69143880fda5f29201da,
+        type: 3}
+      propertyPath: m_Parameters.widthCurve.m_Curve.Array.size
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 4449453477830190216, guid: 12b185fbfdfe69143880fda5f29201da,
+        type: 3}
+      propertyPath: m_Parameters.widthCurve.m_Curve.Array.data[1].time
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4449453477830190216, guid: 12b185fbfdfe69143880fda5f29201da,
+        type: 3}
+      propertyPath: m_Parameters.widthCurve.m_Curve.Array.data[1].value
+      value: 0.4196407
+      objectReference: {fileID: 0}
     - target: {fileID: 5492872385717153415, guid: 12b185fbfdfe69143880fda5f29201da,
         type: 3}
       propertyPath: m_Name
@@ -422,7 +443,7 @@ PrefabInstance:
     - target: {fileID: 571635416026901791, guid: 12b185fbfdfe69143880fda5f29201da,
         type: 3}
       propertyPath: nodesCount
-      value: 10
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 571635416026901791, guid: 12b185fbfdfe69143880fda5f29201da,
         type: 3}
@@ -432,13 +453,33 @@ PrefabInstance:
     - target: {fileID: 571635416026901791, guid: 12b185fbfdfe69143880fda5f29201da,
         type: 3}
       propertyPath: targetDistance
-      value: 1
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 571635416026901791, guid: 12b185fbfdfe69143880fda5f29201da,
+        type: 3}
+      propertyPath: connectionPointsCount
+      value: 10
       objectReference: {fileID: 0}
     - target: {fileID: 4449453477830190216, guid: 12b185fbfdfe69143880fda5f29201da,
         type: 3}
       propertyPath: m_Materials.Array.data[0]
       value: 
       objectReference: {fileID: 2100000, guid: 08c9c7063fa39c5489babeda30a5b74a, type: 2}
+    - target: {fileID: 4449453477830190216, guid: 12b185fbfdfe69143880fda5f29201da,
+        type: 3}
+      propertyPath: m_Parameters.widthCurve.m_Curve.Array.size
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 4449453477830190216, guid: 12b185fbfdfe69143880fda5f29201da,
+        type: 3}
+      propertyPath: m_Parameters.widthCurve.m_Curve.Array.data[1].time
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4449453477830190216, guid: 12b185fbfdfe69143880fda5f29201da,
+        type: 3}
+      propertyPath: m_Parameters.widthCurve.m_Curve.Array.data[1].value
+      value: 0.4196407
+      objectReference: {fileID: 0}
     - target: {fileID: 5492872385717153415, guid: 12b185fbfdfe69143880fda5f29201da,
         type: 3}
       propertyPath: m_Name
