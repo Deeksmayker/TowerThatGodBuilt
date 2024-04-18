@@ -538,8 +538,9 @@ public class EnemiesController : MonoBehaviour{
             Vector3 colPoint = col.ClosestPoint(enemy.transform.position);
             Vector3 dirToEnemy = enemy.transform.position - colPoint;
             if (dirToEnemy.sqrMagnitude <= EPSILON) dirToEnemy = enemy.transform.forward;
-            enemy.transform.rotation = Quaternion.LookRotation(dirToEnemy);
-            enemy.transform.position += dirToEnemy;
+            // enemy.transform.rotation = Quaternion.LookRotation(dirToEnemy);
+            // enemy.transform.position += dirToEnemy;
+            enemy.velocity = dirToEnemy.normalized * (enemy.velocity.magnitude + 10);
         }
     }
 
