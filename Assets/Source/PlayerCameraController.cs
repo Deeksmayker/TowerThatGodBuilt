@@ -5,6 +5,8 @@ using static UnityEngine.Mathf;
 public class PlayerCameraController : MonoBehaviour{
     public static PlayerCameraController Instance;
 
+    [SerializeField] private float followSpeed = 60;
+
     [SerializeField] private Transform cameraTarget;
     [SerializeField] private Transform xRotationTarget;
     [SerializeField] private Transform yRotationTarget;
@@ -66,7 +68,7 @@ public class PlayerCameraController : MonoBehaviour{
     }
     
     private void LateUpdate(){
-        transform.position = Vector3.Lerp(transform.position, cameraTarget.position, 60 * Time.deltaTime);
+        transform.position = Vector3.Lerp(transform.position, cameraTarget.position, followSpeed * Time.deltaTime);
     }
     
     private void Shake(){
