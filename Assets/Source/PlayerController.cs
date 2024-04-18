@@ -828,25 +828,8 @@ public class PlayerController : MonoBehaviour{
                 continue;
             }
             
-            /*
-            if (!imaginaryBall && otherHits[i].normal.y == 1){
-                ball.groundBounceCount++;
-                if (ball.groundBounceCount >= 2){
-                    DisableBall(ref ball);
-                    break;
-                } else if (ball.groundBounceCount == 1){
-                    Animations.Instance.ChangeMeshRenderersColor(ball.GetComponentsInChildren<MeshRenderer>(), Colors.DangerRed * 2, Colors.DangerRed * 2);
-                }
-            }
-            */
-            
             ball.velocity = Vector3.Reflect(ball.velocity, otherHits[i].normal) * 0.6f;
-            ball.velocity = Vector3.ClampMagnitude(ball.velocity, 60);
-            if (otherHits[i].normal.y == 1 && ball.velocity.y < 20){
-                //ball.velocity.y = 20;
-                //ball.angularVelocity.x = 10;
-            }
-            
+            //ball.velocity = Vector3.ClampMagnitude(ball.velocity, 60);
             ball.angularVelocity = Vector3.zero;
         }
     }
@@ -885,6 +868,7 @@ public class PlayerController : MonoBehaviour{
             GameObject ballObject = _ballInHold.gameObject;
             Animations.Instance.ChangeMaterialColor(ref ballObject, Colors.BallHighlightColor, 0.002f);
             _ballInHold.transform.position = Vector3.Lerp(_ballInHold.transform.position, BallStartPosition(), Time.deltaTime * 10 * Clamp(_playerSpeed / _player.baseSpeed, 1, 10));
+            MoveSphereOutCollision(_ballInHold.transform, 0.5f, Layers.Environment);
             _holdingBall = true;
             _ballInHold.inHold = true;
 
@@ -946,6 +930,8 @@ public class PlayerController : MonoBehaviour{
             
             _balls.Add(newBall);
         }
+        
+        MoveSphereOutCollision(newBall.transform, 0.5f, Layers.Environment);
         
         return newBall;        
     }

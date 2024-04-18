@@ -47,12 +47,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   firstPos: {fileID: 7046607964763393496}
   nodesCount: 30
-  targetDistance: 2
+  targetDistance: 1.5
   maxForce: 40
   damping: 3
   gravity: 100
   iterationCount: 3
-  connectionPointsCount: 5
+  connectionPointsCount: 3
 --- !u!120 &4449453477830190216
 LineRenderer:
   serializedVersion: 2
