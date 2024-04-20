@@ -85,6 +85,9 @@ public class PlayerController : MonoBehaviour{
     private float _playerTimeScale = 1;
     
     private bool _holdingBall;
+    private bool _catchedBallOnInput;
+    private float _holdingBallTime;
+    private float _timeSinceHoldingBall;
     private float _ballReloadCountdown;
     private int   _currentBallCount;
     
@@ -228,6 +231,13 @@ public class PlayerController : MonoBehaviour{
         }
         
         UpdateBalls();
+        
+        if (!_holdingBall){
+            _timeSinceHoldingBall += Time.deltaTime;
+        } else{
+            _timeSinceHoldingBall = 0;
+        }
+        
         UpdateKick();
         BulletTime();
         
@@ -544,6 +554,8 @@ public class PlayerController : MonoBehaviour{
             _currentStartAngularVelocity = Vector3.zero;
         }
         
+        HoldBallLogic();
+        
         if (Input.GetMouseButton(1)){
             PredictAndDrawBallTrajectory();
         } else{
@@ -816,7 +828,7 @@ public class PlayerController : MonoBehaviour{
         
         for (int i = 0; i < otherHits.Length; i++){
             EnemyProjectile enemyProjectile = otherHits[i].transform.GetComponentInParent<EnemyProjectile>();
-            if (!imaginaryBall && ball.speed > 10){
+            if (!imaginaryBall && ball.speed > 35){
                 Particles.Instance.SpawnAndPlay(_ballHitParticles, otherHits[i].point);
             }
             
@@ -828,7 +840,12 @@ public class PlayerController : MonoBehaviour{
                 continue;
             }
             
-            ball.velocity = Vector3.Reflect(ball.velocity, otherHits[i].normal) * 0.6f;
+            Vector3 velocityReflectedVec = Vector3.Reflect(ball.velocity, otherHits[i].normal);
+            float velocityMultiplier = 0.6f;
+            if (velocityReflectedVec.y <= 5 && ball.speed <= 40){ 
+                velocityMultiplier = 0.95f;
+            }
+            ball.velocity = velocityReflectedVec * velocityMultiplier;
             //ball.velocity = Vector3.ClampMagnitude(ball.velocity, 60);
             ball.angularVelocity = Vector3.zero;
         }
@@ -846,42 +863,105 @@ public class PlayerController : MonoBehaviour{
         ball.gameObject.SetActive(false);
     }
     
-    private void PredictAndDrawBallTrajectory(){
-        _holdingBall = false;
-
-        if (_player.haveScope){
-            _currentStartAngularVelocity += new Vector3(Input.GetAxis("Mouse Y"), Input.GetAxis("Mouse X"), 0) * _player.angularVelocitySense;
-            _currentStartAngularVelocity.x = Clamp(_currentStartAngularVelocity.x, -_player.maxAngularVelocity, _player.maxAngularVelocity);
-            _currentStartAngularVelocity.y = Clamp(_currentStartAngularVelocity.y, -_player.maxAngularVelocity, _player.maxAngularVelocity);
+    private PlayerBall BallInRange(float multiplier = 2){
+        var kickTargets = GetKickTargetsInRange(multiplier);
+        for (int i = 0; i < kickTargets.Length; i++){
+            var ball = kickTargets[i].GetComponentInParent<PlayerBall>();
+            if (ball && ball.lifeTime > 1){
+                return ball;
+            }
         }
+        return null;
+    }
     
-        if (!_ballInHold){
+    private void HoldBallLogic(){
+        //_holdingBall = false;
+        
+        // if (Input.GetMouseButtonDown(1)){
+        //     //_ballInHold = BallInRange();
+        // }
+        
+        if (Input.GetMouseButton(1) && !_catchedBallOnInput){
+            var ballInRange = BallInRange(2);
+            if (ballInRange){
+                ballInRange.velocity = playerVelocity;
+                GameObject ballObject = ballInRange.gameObject;
+                Animations.Instance.MoveObject(ref ballObject, BallStartPosition(), 0.1f, false, 0, (a) => a * a);
+                Animations.Instance.ChangeMaterialColor(ref ballObject, Colors.BallHighlightColor, 0.1f);
+                _catchedBallOnInput = true;
+            }
+
+            // if (!_ballInHold){
+            //     _ballInHold = BallInRange();
+            // }
+            
+            // if (_ballInHold){
+            //     _holdingBallTime += Time.deltaTime;
+            // }
+        }
+        
+        if (Input.GetMouseButtonUp(1)){
+            _catchedBallOnInput = false;
+            //StopHoldingBall(true);
+        }
+        /*
+        return;
+
+        if (!_ballInHold && (_timeSinceGrounded <= 0.3f || _timeSinceHoldingBall >= 0.5f)){
             var kickTargets = GetKickTargetsInRange(2f);
             for (int i = 0; i < kickTargets.Length; i++){
                 var ball = kickTargets[i].GetComponentInParent<PlayerBall>();
                 if (ball && ball.lifeTime > 1){
+                    //if (_timeSinceGrounded <= 0.3f){
                     _ballInHold = ball;
+                    //AirCatch
+                    if (_timeSinceGrounded >= 0.3f){
+                        GameObject ballObject = _ballInHold.gameObject;
+                        //Animations.Instance.ChangeMaterialColor(ref ballObject, Colors.BallHighlightColor, 0.2f);
+                    }
+                    //} else{
+                        //ball.velocity = playerVelocity;
+                    //}
                     break;
                 }
             }
-        } else{
-            GameObject ballObject = _ballInHold.gameObject;
-            Animations.Instance.ChangeMaterialColor(ref ballObject, Colors.BallHighlightColor, 0.002f);
-            _ballInHold.transform.position = Vector3.Lerp(_ballInHold.transform.position, BallStartPosition(), Time.deltaTime * 10 * Clamp(_playerSpeed / _player.baseSpeed, 1, 10));
-            MoveSphereOutCollision(_ballInHold.transform, 0.5f, Layers.Environment);
-            _holdingBall = true;
-            _ballInHold.inHold = true;
+        } 
+        
+        if (_ballInHold){
+            _holdingBallTime += Time.deltaTime;
+            if (_timeSinceGrounded <= 0.2f || _holdingBallTime <= 0.5f){
+                GameObject ballObject = _ballInHold.gameObject;
+                Animations.Instance.ChangeMaterialColor(ref ballObject, Colors.BallHighlightColor, 0.002f);
+                _ballInHold.transform.position = Vector3.Lerp(_ballInHold.transform.position, BallStartPosition(), Time.deltaTime * 10 * Clamp(_playerSpeed / _player.baseSpeed, 1, 10));
+                MoveSphereOutCollision(_ballInHold.transform, 0.5f, Layers.Environment);
+                //_holdingBall = true;
+                _ballInHold.inHold = true;
+            } else{
+                StopHoldingBall(true);
+            }
 
+        } else if (_ballInHold){
+            StopHoldingBall(true);
+        }
+        */
+    }
+    
+    private void PredictAndDrawBallTrajectory(){
+        if (_player.haveScope){
+            _currentStartAngularVelocity += new Vector3(Input.GetAxis("Mouse Y"), Input.GetAxis("Mouse X"), 0) * _player.angularVelocitySense;
+            _currentStartAngularVelocity.x = Clamp(_currentStartAngularVelocity.x, -_player.maxAngularVelocity, _player.maxAngularVelocity);
+            _currentStartAngularVelocity.y = Clamp(_currentStartAngularVelocity.y, -_player.maxAngularVelocity, _player.maxAngularVelocity);
         }
         
         if (_player.haveScope){
             var imaginaryBall = SpawnPlayerBall();
             imaginaryBall.imaginary = true;
             
-            if (_ballInHold){
-                imaginaryBall.transform.position = _ballInHold.transform.position;
-                imaginaryBall.angularVelocity = _ballInHold.angularVelocity;
-                imaginaryBall.velocity = _ballInHold.velocity;
+            PlayerBall ballInKickRange = BallInRange(1);
+            if (ballInKickRange){
+                imaginaryBall.transform.position = ballInKickRange.transform.position;
+                imaginaryBall.angularVelocity = ballInKickRange.angularVelocity;
+                imaginaryBall.velocity = ballInKickRange.velocity;
             }
             
             SetKickVelocityToBall(ref imaginaryBall);
@@ -904,11 +984,12 @@ public class PlayerController : MonoBehaviour{
         if (!_ballInHold) return;
     
         _ballInHold.inHold = false;
+        _holdingBallTime = 0;
         
         if (inheritVelocity) _ballInHold.velocity = playerVelocity;
         
         _ballInHold = null;
-        _holdingBall = false;
+        //_holdingBall = false;
     }
     
     private PlayerBall SpawnPlayerBall(){

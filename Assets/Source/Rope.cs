@@ -160,12 +160,18 @@ public class Rope : MonoBehaviour{
     private RaycastHit[] _collisionHits = new RaycastHit[10];
     private void CalculateNodeCollisions(ref RopeNode node){
         var deltaVelocity = node.velocity * Time.fixedDeltaTime / iterationCount;
-        Utils.ClearArray(_collisionHits);
-        int hitsCount = SphereCastNonAlloc(node.transform.position, node.sphere.radius, node.velocity.normalized, _collisionHits, deltaVelocity.magnitude, Layers.Environment);
+        //Utils.ClearArray(_collisionHits);
+        (Collider[], int) collidersNearby = Utils.CollidersInRadius(node.transform.position, node.sphere.radius, Layers.Environment);
         
-        for (int i = 0; i < hitsCount; i++){
+        for (int i = 0; i < collidersNearby.Item2; i++){
             //node.transform.position += _collisionHits[i].normal * node.sphere.radius;
-            node.velocity += _collisionHits[i].normal * node.velocity.magnitude * 1.1f;
+            Vector3 colPoint = collidersNearby.Item1[i].ClosestPoint(node.transform.position);
+            Vector3 vecToNode = node.transform.position - colPoint;
+            Vector3 dirToNode = vecToNode.normalized;
+            //node.velocity += _collisionHits[i].normal * node.velocity.magnitude * 1.0f;
+            //node.transform.position += vecToNode;
+            //node.velocity -= dirToNode * Vector3.Dot(node.velocity, dirToNode);
+            node.velocity = Vector3.Reflect(node.velocity, dirToNode);
             
             if (node.stopOnCollision){
                 node.velocity = Vector3.zero;

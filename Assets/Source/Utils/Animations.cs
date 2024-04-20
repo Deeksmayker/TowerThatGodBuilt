@@ -7,6 +7,7 @@ public class Animations : MonoBehaviour{
     
     private List<MaterialTask> _materialTasks = new(); 
     private List<ScaleTask> _scaleTasks = new();
+    private List<MoveTask> _moveTasks = new();
     
     private MaterialPropertyBlock _propertyBlock;
     
@@ -70,7 +71,61 @@ public class Animations : MonoBehaviour{
                 _scaleTasks.RemoveAt(i);
             }
         }
+        
+        for (int i = 0; i < _moveTasks.Count; i++){
+            MoveTask task = _moveTasks[i];
+            if (!task.targetObject){
+                _moveTasks.RemoveAt(i);
+                continue;
+            }
+            
+            if (task.goingBackwards){
+                task.elapsed -= Time.deltaTime;
+            } else{
+                task.elapsed += Time.deltaTime;
+            }
+            
+            float t = task.goingBackwards ? task.elapsed / task.backwardsDuration : task.elapsed / task.duration;
+            task.targetObject.transform.position = Vector3.Lerp(task.startPos, task.targetPos, task.easeFunction.Invoke(t));
+            
+            if (!task.goingBackwards && task.elapsed >= task.duration){
+                if (task.backAfterCompleted){
+                    task.elapsed *= task.backwardsDuration / task.duration;
+                    task.goingBackwards = true;
+                } else{
+                    _moveTasks.RemoveAt(i);
+                }
+            }
+            
+            if (task.goingBackwards && task.elapsed <= 0){
+                _moveTasks.RemoveAt(i);
+            }
+        }
     }
+    
+    public void MoveObject(ref GameObject targetObject, Vector3 targetPos, float duration, bool backAfterCompleted, float backwardsDuration, Func<float, float> easeFunction){
+        MoveTask task = MoveTaskExist(targetObject);
+        bool taskIsNew = false;
+        if (task == null){
+            taskIsNew = true;
+            task = new MoveTask();
+            task.targetObject = targetObject;
+            task.startPos = targetObject.transform.position;
+        }
+        
+        task.targetPos = targetPos;
+        task.duration = duration;
+        task.elapsed = 0;
+        task.backAfterCompleted = backAfterCompleted;
+        task.backwardsDuration = backwardsDuration;
+        task.goingBackwards = false;
+        task.easeFunction = easeFunction;
+        
+        if (taskIsNew){
+            _moveTasks.Add(task);
+        }
+    }
+
     
     public void ChangeScale(GameObject targetObject, Vector3 targetScale, float duration, bool backAfterCompleted, float backwardsDuration, Func<float, float> easeFunction){
         var task = ScaleTaskExist(targetObject);
@@ -99,6 +154,16 @@ public class Animations : MonoBehaviour{
         for (int i = 0; i < _scaleTasks.Count; i++){
             if (_scaleTasks[i].targetObject == targetObject){
                 return _scaleTasks[i];
+            }
+        }
+        
+        return null;
+    }
+    
+    private MoveTask MoveTaskExist(GameObject targetObject){
+        for (int i = 0; i < _moveTasks.Count; i++){
+            if (_moveTasks[i].targetObject == targetObject){
+                return _moveTasks[i];
             }
         }
         
@@ -179,6 +244,19 @@ public class ScaleTask{
     public GameObject targetObject;
     public Vector3 targetScale;
     public Vector3 startScale;
+    public float duration;
+    public float backwardsDuration;
+    public bool backAfterCompleted;
+    public bool goingBackwards;
+    public Func<float, float> easeFunction;
+    public float elapsed;
+}
+
+[Serializable]
+public class MoveTask{
+    public GameObject targetObject;
+    public Vector3 targetPos;
+    public Vector3 startPos;
     public float duration;
     public float backwardsDuration;
     public bool backAfterCompleted;
