@@ -233,6 +233,7 @@ MonoBehaviour:
   sphere: {fileID: 0}
   index: 0
   velocity: {x: 0, y: 0, z: 0}
+  timeInKickFlight: 0
   hitImmuneCountdown: 0
   kickImmuneCountdown: 0
   effectsCooldown: 0
@@ -5314,6 +5315,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 571635416026901791, guid: 12b185fbfdfe69143880fda5f29201da,
         type: 3}
+      propertyPath: maxForce
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 571635416026901791, guid: 12b185fbfdfe69143880fda5f29201da,
+        type: 3}
       propertyPath: nodesCount
       value: 12
       objectReference: {fileID: 0}
@@ -5415,6 +5421,11 @@ PrefabInstance:
         type: 3}
       propertyPath: damping
       value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 571635416026901791, guid: 12b185fbfdfe69143880fda5f29201da,
+        type: 3}
+      propertyPath: maxForce
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 571635416026901791, guid: 12b185fbfdfe69143880fda5f29201da,
         type: 3}
@@ -5522,6 +5533,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 571635416026901791, guid: 12b185fbfdfe69143880fda5f29201da,
         type: 3}
+      propertyPath: maxForce
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 571635416026901791, guid: 12b185fbfdfe69143880fda5f29201da,
+        type: 3}
       propertyPath: nodesCount
       value: 12
       objectReference: {fileID: 0}
@@ -5623,6 +5639,11 @@ PrefabInstance:
         type: 3}
       propertyPath: damping
       value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 571635416026901791, guid: 12b185fbfdfe69143880fda5f29201da,
+        type: 3}
+      propertyPath: maxForce
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 571635416026901791, guid: 12b185fbfdfe69143880fda5f29201da,
         type: 3}

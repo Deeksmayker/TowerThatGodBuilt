@@ -7,8 +7,8 @@ public class Rope : MonoBehaviour{
     [SerializeField] private Transform firstPos; 
     [SerializeField] private int nodesCount = 30;
     [SerializeField] private float targetDistance = 1f;
-    [SerializeField] private float maxForce = 10f;
-    [SerializeField] private float damping = 1f;
+    [SerializeField] private float strength = 1f;
+    [SerializeField] private float airFriction = 0.5f;
     [SerializeField] private float gravity = 1f;
     [SerializeField] private float iterationCount = 3;
     [SerializeField] private int connectionPointsCount = 5;
@@ -75,7 +75,97 @@ public class Rope : MonoBehaviour{
         }
     }
     
+    private void ApplyGravity(ref RopeNode node){
+        var gravityValue = node.stopOnCollision ? gravity * 0.25f : gravity;
+        node.forces += Vector3.down * gravityValue * node.mass;
+    }
+    
+    private void ApplyAirFriction(ref RopeNode node){
+        if (node.stopOnCollision){
+            return;
+        }
+        node.forces -= node.velocity * airFriction;
+    }
+    
+    private void UpdatePosition(ref RopeNode node, float delta){
+        if (!node.canMove){
+            return;
+        }
+        
+        node.oldPosition = node.transform.position;
+        node.velocity += (node.forces / node.mass) * delta;
+        node.transform.position += node.velocity * delta;
+    }
+    
+    private void MoveNode(ref RopeNode node, Vector3 vec){
+        if (!node.canMove){
+            return;
+        }
+        
+        node.transform.position += vec;
+    }
+    
+    private void SolveConstraint(ref RopeNode node1, ref RopeNode node2){
+        Vector3 vecToFirst = node1.transform.position - node2.transform.position;
+        float distance = vecToFirst.magnitude;
+        if (distance > targetDistance){
+            //broken = distance > targetDistance * max_elongation_ratio;
+            Vector3 dir = vecToFirst / distance;
+            float distDiff = targetDistance - distance;
+            
+            Vector3 powerVec = -(distDiff * strength) / (node1.mass + node2.mass) * dir;
+            if (!node1.stopOnCollision){
+                MoveNode(ref node1, -powerVec / node1.mass);
+            }
+            if (!node2.stopOnCollision){
+                MoveNode(ref node2, powerVec / node2.mass);
+            }
+        }
+    }
+    
+    private void UpdateDerivative(ref RopeNode node, float delta){
+        node.velocity = (node.transform.position - node.oldPosition) / delta;
+        node.forces = Vector3.zero;
+    }
+    
     private void FixedUpdate(){
+        for (int i = 0; i < nodesCount; i++){
+            RopeNode node = _nodes[i];
+            
+            ApplyGravity(ref node);
+            ApplyAirFriction(ref node);
+            UpdatePosition(ref node, Time.fixedDeltaTime);
+            CalculateNodeCollisions(ref node);
+        }
+        
+        for (int iteration = 1; iteration <= iterationCount; iteration++){
+            for (int i = 0; i < nodesCount; i++){
+                RopeNode node = _nodes[i];
+                for (int j = 0; j < _nodes[i].neighbourIndexes.Length; j++){
+                    RopeNode neighbour = _nodes[node.neighbourIndexes[j]];
+                    SolveConstraint(ref node, ref neighbour);
+                }
+                
+                CalculateNodeCollisions(ref node);
+            }
+        }
+        
+        for (int i = 0; i < nodesCount; i++){
+            RopeNode node = _nodes[i];
+            
+            UpdateDerivative(ref node, Time.fixedDeltaTime);
+        }
+        
+        SetLineRendererPositions();
+        
+        _lifetime += Time.fixedDeltaTime;
+        if (_lifetime >= 5 && _nodes[0].stopOnCollision){
+            DestroyRope();
+            return;
+        }
+    
+    return;
+    /*
         for (int iteration = 1; iteration <= iterationCount; iteration++){
             for (int i = 0; i < nodesCount; i++){
                 RopeNode node = _nodes[i];
@@ -90,10 +180,10 @@ public class Rope : MonoBehaviour{
                     float difference = (targetDistance - vecLength) / vecLength;
                     
                     if (node.canMove && !node.stopOnCollision){
-                        node.velocity += vecToMe * 0.5f * maxForce * difference;
+                        node.velocity += vecToMe * 0.5f * strength * difference;
                     }
                     if (neighbour.canMove && !neighbour.stopOnCollision){
-                        neighbour.velocity -= vecToMe * 0.5f * maxForce * difference;
+                        neighbour.velocity -= vecToMe * 0.5f * strength * difference;
                     }
                 }
             }
@@ -124,6 +214,7 @@ public class Rope : MonoBehaviour{
             DestroyRope();
             return;
         }
+    */
     }
     
     private void SetLineRendererPositions(){
@@ -157,21 +248,14 @@ public class Rope : MonoBehaviour{
         _nodes[0].velocity = velocity;
     }
     
-    private RaycastHit[] _collisionHits = new RaycastHit[10];
     private void CalculateNodeCollisions(ref RopeNode node){
-        var deltaVelocity = node.velocity * Time.fixedDeltaTime / iterationCount;
-        //Utils.ClearArray(_collisionHits);
         (Collider[], int) collidersNearby = Utils.CollidersInRadius(node.transform.position, node.sphere.radius, Layers.Environment);
-        
         for (int i = 0; i < collidersNearby.Item2; i++){
             //node.transform.position += _collisionHits[i].normal * node.sphere.radius;
             Vector3 colPoint = collidersNearby.Item1[i].ClosestPoint(node.transform.position);
             Vector3 vecToNode = node.transform.position - colPoint;
             Vector3 dirToNode = vecToNode.normalized;
-            //node.velocity += _collisionHits[i].normal * node.velocity.magnitude * 1.0f;
-            //node.transform.position += vecToNode;
-            //node.velocity -= dirToNode * Vector3.Dot(node.velocity, dirToNode);
-            node.velocity = Vector3.Reflect(node.velocity, dirToNode);
+            node.transform.position += colPoint - (node.transform.position - dirToNode * node.sphere.radius);
             
             if (node.stopOnCollision){
                 node.velocity = Vector3.zero;
@@ -179,7 +263,17 @@ public class Rope : MonoBehaviour{
                 node.stopOnCollision = false;
                 return;
             }
-            //node.velocity = Vector3.ClampMagnitude(node.velocity, 60);
         }
+        
+        /*
+        RaycastHit[] velocityHits = SphereCastAll(node.transform.position, node.sphere.radius, node.velocity.normalized, (node.velocity * Time.fixedDeltaTime).magnitude, Layers.Environment);
+        
+        for (int i = 0; i < velocityHits.Length; i++){
+            Vector3 vecToNode = node.transform.position - velocityHits[i].point;
+            Vector3 dirToNode = vecToNode.normalized;
+
+            node.transform.position += velocityHits[i].point - (node.transform.position - velocityHits[i].normal * node.sphere.radius);
+        }
+        */
     }
 }
