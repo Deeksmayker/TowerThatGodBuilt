@@ -883,7 +883,7 @@ PrefabInstance:
     - target: {fileID: 571635416026901791, guid: 12b185fbfdfe69143880fda5f29201da,
         type: 3}
       propertyPath: maxForce
-      value: 25
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 571635416026901791, guid: 12b185fbfdfe69143880fda5f29201da,
         type: 3}
@@ -1856,6 +1856,11 @@ PrefabInstance:
       propertyPath: m_Name
       value: Blocker (3)
       objectReference: {fileID: 0}
+    - target: {fileID: 1044279421291561906, guid: a02e524ca686b1c48af7dfaa82461981,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 6856801465065180470, guid: a02e524ca686b1c48af7dfaa82461981,
         type: 3}
       propertyPath: m_RootOrder
@@ -2688,6 +2693,11 @@ PrefabInstance:
       propertyPath: m_Name
       value: Blocker (1)
       objectReference: {fileID: 0}
+    - target: {fileID: 1044279421291561906, guid: a02e524ca686b1c48af7dfaa82461981,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 6856801465065180470, guid: a02e524ca686b1c48af7dfaa82461981,
         type: 3}
       propertyPath: m_RootOrder
@@ -2986,6 +2996,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: Blocker (2)
+      objectReference: {fileID: 0}
+    - target: {fileID: 1044279421291561906, guid: a02e524ca686b1c48af7dfaa82461981,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6856801465065180470, guid: a02e524ca686b1c48af7dfaa82461981,
         type: 3}
@@ -8999,6 +9014,11 @@ PrefabInstance:
       propertyPath: m_Name
       value: WindGuy
       objectReference: {fileID: 0}
+    - target: {fileID: 2863323653047324311, guid: 98a48f1b50b1ac44381bde7945451121,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 5050027027131211290, guid: 98a48f1b50b1ac44381bde7945451121,
         type: 3}
       propertyPath: weight
@@ -9076,6 +9096,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: Blocker
+      objectReference: {fileID: 0}
+    - target: {fileID: 1044279421291561906, guid: a02e524ca686b1c48af7dfaa82461981,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6856801465065180470, guid: a02e524ca686b1c48af7dfaa82461981,
         type: 3}
@@ -9204,6 +9229,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: Ricoche
+      objectReference: {fileID: 0}
+    - target: {fileID: 9167095706484921016, guid: 1e54802ab288a2647a40aa50d5ac3f49,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
