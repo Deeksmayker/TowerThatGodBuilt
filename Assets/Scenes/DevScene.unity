@@ -434,7 +434,7 @@ PrefabInstance:
     - target: {fileID: 7582078771761990044, guid: 4aeacc321b779d04f972906b7946d35b,
         type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -877,28 +877,38 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 571635416026901791, guid: 12b185fbfdfe69143880fda5f29201da,
         type: 3}
+      propertyPath: aboba
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 571635416026901791, guid: 12b185fbfdfe69143880fda5f29201da,
+        type: 3}
       propertyPath: maxForce
       value: 25
       objectReference: {fileID: 0}
     - target: {fileID: 571635416026901791, guid: 12b185fbfdfe69143880fda5f29201da,
         type: 3}
+      propertyPath: maxDamping
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 571635416026901791, guid: 12b185fbfdfe69143880fda5f29201da,
+        type: 3}
       propertyPath: nodesCount
-      value: 40
+      value: 50
       objectReference: {fileID: 0}
     - target: {fileID: 571635416026901791, guid: 12b185fbfdfe69143880fda5f29201da,
         type: 3}
       propertyPath: iterationCount
-      value: 2
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 571635416026901791, guid: 12b185fbfdfe69143880fda5f29201da,
         type: 3}
       propertyPath: targetDistance
-      value: 1.5
+      value: 0.7
       objectReference: {fileID: 0}
     - target: {fileID: 571635416026901791, guid: 12b185fbfdfe69143880fda5f29201da,
         type: 3}
       propertyPath: connectionPointsCount
-      value: 3
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 5492872385717153415, guid: 12b185fbfdfe69143880fda5f29201da,
         type: 3}
@@ -1754,7 +1764,7 @@ PrefabInstance:
     - target: {fileID: 7582078771761990044, guid: 4aeacc321b779d04f972906b7946d35b,
         type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -2176,6 +2186,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c35de42ddbc32b14c9b0ddf805d16af5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  followSpeed: 400
   cameraTarget: {fileID: 1323377275}
   xRotationTarget: {fileID: 487328578}
   yRotationTarget: {fileID: 405827257}
@@ -2332,7 +2343,7 @@ PrefabInstance:
     - target: {fileID: 7582078771761990044, guid: 4aeacc321b779d04f972906b7946d35b,
         type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
