@@ -12,6 +12,7 @@ public class Rope : MonoBehaviour{
     [SerializeField] private float gravity = 1f;
     [SerializeField] private float iterationCount = 3;
     [SerializeField] private int connectionPointsCount = 5;
+    [SerializeField] private int collisionSamples = 1;
 
     private float _lifetime;
     private bool _sleeping;
@@ -43,17 +44,23 @@ public class Rope : MonoBehaviour{
         _nodePrefab = GetPrefab("BaseRopeNode").GetComponent<RopeNode>();
     
         _nodes = new RopeNode[nodesCount];
-        _lr.positionCount = nodesCount * connectionPointsCount - connectionPointsCount;
+        _lr.positionCount = nodesCount;// * connectionPointsCount - connectionPointsCount;
         
         _nodes[0] = Instantiate(_nodePrefab, transform);
         _nodes[0].transform.position = firstPos.position;
         _nodes[0].neighbourIndexes = new int[]{1};
+        _nodes[0].oldPosition = _nodes[0].transform.position;
+        _nodes[0].framePreviousPos = _nodes[0].transform.position;
+        
     
         for (int i = 1; i < nodesCount; i++){
             _nodes[i] = Instantiate(_nodePrefab, _myRopeHandler.transform);
             _nodes[i].transform.position = firstPos.position + Random.onUnitSphere;//firstPos.position - transform.up * targetDistance * i + Random.onUnitSphere;
             _nodes[i].canMove = true;
             _nodes[i].GetComponent<MeshRenderer>().enabled = false;
+            _nodes[i].oldPosition = _nodes[i].transform.position;
+            _nodes[i].framePreviousPos = _nodes[i].transform.position;
+            
             
             if (i == nodesCount - 1){
                 _nodes[i].neighbourIndexes = new int[]{i - 1};
@@ -62,7 +69,7 @@ public class Rope : MonoBehaviour{
             }
         }
         
-        SetLineRendererPositions();
+        //SetLineRendererPositions();
     }
     
     private void OnEnable(){
@@ -132,6 +139,8 @@ public class Rope : MonoBehaviour{
         for (int i = 0; i < nodesCount; i++){
             RopeNode node = _nodes[i];
             
+            node.frameStartPos = node.transform.position;
+            
             ApplyGravity(ref node);
             ApplyAirFriction(ref node);
             UpdatePosition(ref node, Time.fixedDeltaTime);
@@ -154,68 +163,20 @@ public class Rope : MonoBehaviour{
             RopeNode node = _nodes[i];
             
             UpdateDerivative(ref node, Time.fixedDeltaTime);
+            
+            node.framePreviousPos = node.transform.position;
+            
+            _lr.SetPosition(i, node.transform.position);
         }
         
-        SetLineRendererPositions();
+        //SetLineRendererPositions();
         
         _lifetime += Time.fixedDeltaTime;
         if (_lifetime >= 5 && _nodes[0].stopOnCollision){
             DestroyRope();
             return;
         }
-    
-    return;
-    /*
-        for (int iteration = 1; iteration <= iterationCount; iteration++){
-            for (int i = 0; i < nodesCount; i++){
-                RopeNode node = _nodes[i];
-                
-                for (int j = 0; j < node.neighbourIndexes.Length; j++){
-                    RopeNode neighbour = _nodes[node.neighbourIndexes[j]];
-                    
-                    Vector3 vecToMe = node.transform.position - neighbour.transform.position;
-                    float vecLength = vecToMe.magnitude;
-                    Vector3 dirToMe = vecToMe / vecLength;
-                    
-                    float difference = (targetDistance - vecLength) / vecLength;
-                    
-                    if (node.canMove && !node.stopOnCollision){
-                        node.velocity += vecToMe * 0.5f * strength * difference;
-                    }
-                    if (neighbour.canMove && !neighbour.stopOnCollision){
-                        neighbour.velocity -= vecToMe * 0.5f * strength * difference;
-                    }
-                }
-            }
-            
-            for (int i = 0; i < nodesCount; i++){
-                RopeNode node = _nodes[i];
-                if (!node.canMove){
-                    _lr.SetPosition(i, node.transform.position);
-                    continue;
-                }
-                
-                //node.velocity *= 1f - (1.1f - (i / nodesCount)) * damping * Time.fixedDeltaTime / iterationCount;
-                float gravityValue = node.stopOnCollision ? gravity * 0.25f : gravity;
-                node.velocity += Vector3.down * gravityValue * Time.fixedDeltaTime / iterationCount;
-                if (!node.stopOnCollision){
-                    node.velocity *= 1f - damping * Time.fixedDeltaTime / iterationCount;
-                }
-                CalculateNodeCollisions(ref node);
-                node.transform.position += node.velocity * Time.fixedDeltaTime / iterationCount;
-            }
-        }
-        
-        //Render lines
-        SetLineRendererPositions();
-        
-        _lifetime += Time.fixedDeltaTime;
-        if (_lifetime >= 2 && _nodes[0].stopOnCollision){
-            DestroyRope();
-            return;
-        }
-    */
-    }
+    }    
     
     private void SetLineRendererPositions(){
         Vector3 previousLineVec = Vector3.zero;
@@ -249,31 +210,31 @@ public class Rope : MonoBehaviour{
     }
     
     private void CalculateNodeCollisions(ref RopeNode node){
-        (Collider[], int) collidersNearby = Utils.CollidersInRadius(node.transform.position, node.sphere.radius, Layers.Environment);
-        for (int i = 0; i < collidersNearby.Item2; i++){
-            //node.transform.position += _collisionHits[i].normal * node.sphere.radius;
-            Vector3 colPoint = collidersNearby.Item1[i].ClosestPoint(node.transform.position);
-            Vector3 vecToNode = node.transform.position - colPoint;
-            Vector3 dirToNode = vecToNode.normalized;
-            node.transform.position += colPoint - (node.transform.position - dirToNode * node.sphere.radius);
+        Vector3 startPos = node.framePreviousPos;
+        Vector3 targetPos = node.transform.position;
+        Vector3 resultPos = targetPos;
+        for (int sample = 1; sample <= collisionSamples; sample++){
+            resultPos = Vector3.Lerp(startPos, targetPos, (float)sample / (float)collisionSamples);
             
-            if (node.stopOnCollision){
-                node.velocity = Vector3.zero;
-                node.canMove = false;
-                node.stopOnCollision = false;
-                return;
+            (Collider[], int) collidersNearby = Utils.CollidersInRadius(resultPos, node.sphere.radius, Layers.Environment);
+            for (int i = 0; i < collidersNearby.Item2; i++){
+                Vector3 colPoint = collidersNearby.Item1[i].ClosestPoint(resultPos);
+                Vector3 vecToNode = resultPos - colPoint;
+                Vector3 dirToNode = vecToNode.normalized;
+                var added = colPoint - (resultPos - dirToNode * node.sphere.radius);
+                startPos += added;
+                targetPos += added;
+                
+                if (node.stopOnCollision){
+                    node.velocity = Vector3.zero;
+                    node.canMove = false;
+                    node.stopOnCollision = false;
+                    node.transform.position = targetPos;
+                    return;
+                }
             }
+            
+            node.transform.position = targetPos;
         }
-        
-        /*
-        RaycastHit[] velocityHits = SphereCastAll(node.transform.position, node.sphere.radius, node.velocity.normalized, (node.velocity * Time.fixedDeltaTime).magnitude, Layers.Environment);
-        
-        for (int i = 0; i < velocityHits.Length; i++){
-            Vector3 vecToNode = node.transform.position - velocityHits[i].point;
-            Vector3 dirToNode = vecToNode.normalized;
-
-            node.transform.position += velocityHits[i].point - (node.transform.position - velocityHits[i].normal * node.sphere.radius);
-        }
-        */
-    }
+    }        
 }

@@ -264,6 +264,7 @@ MonoBehaviour:
   sphere: {fileID: 0}
   index: 0
   velocity: {x: 0, y: 0, z: 0}
+  timeInKickFlight: 0
   hitImmuneCountdown: 0
   kickImmuneCountdown: 0
   effectsCooldown: 0
@@ -412,12 +413,17 @@ PrefabInstance:
     - target: {fileID: 571635416026901791, guid: 12b185fbfdfe69143880fda5f29201da,
         type: 3}
       propertyPath: gravity
-      value: 10
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 571635416026901791, guid: 12b185fbfdfe69143880fda5f29201da,
         type: 3}
       propertyPath: nodesCount
       value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 571635416026901791, guid: 12b185fbfdfe69143880fda5f29201da,
+        type: 3}
+      propertyPath: airFriction
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 571635416026901791, guid: 12b185fbfdfe69143880fda5f29201da,
         type: 3}
