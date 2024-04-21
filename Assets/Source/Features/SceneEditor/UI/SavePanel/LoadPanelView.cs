@@ -1,6 +1,7 @@
 ﻿using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 
 namespace Source.Features.SceneEditor.UI.SavePanel
 {
@@ -34,6 +35,8 @@ namespace Source.Features.SceneEditor.UI.SavePanel
         public void Show()
         {
             gameObject.SetActive(true);
+            EventSystem.current .SetSelectedGameObject(_inputField.gameObject, null);
+            _inputField.OnPointerClick(new PointerEventData(EventSystem.current));
         }
         
         public void Hide()
