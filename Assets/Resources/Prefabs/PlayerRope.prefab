@@ -46,13 +46,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   firstPos: {fileID: 7046607964763393496}
-  nodesCount: 30
-  targetDistance: 1.5
-  maxForce: 40
-  damping: 3
+  nodesCount: 50
+  targetDistance: 0.8
+  strength: 1
+  airFriction: 0.5
   gravity: 100
   iterationCount: 3
   connectionPointsCount: 3
+  collisionSamples: 3
 --- !u!120 &4449453477830190216
 LineRenderer:
   serializedVersion: 2
@@ -146,13 +147,13 @@ LineRenderer:
       m_ColorSpace: -1
       m_NumColorKeys: 2
       m_NumAlphaKeys: 2
-    numCornerVertices: 0
+    numCornerVertices: 6
     numCapVertices: 0
     alignment: 0
     textureMode: 0
     textureScale: {x: 1, y: 1}
     shadowBias: 0.5
-    generateLightingData: 0
+    generateLightingData: 1
   m_MaskInteraction: 0
   m_UseWorldSpace: 1
   m_Loop: 0

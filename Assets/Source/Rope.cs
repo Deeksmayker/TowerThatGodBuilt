@@ -198,9 +198,11 @@ public class Rope : MonoBehaviour{
         }
     }
     
-    public void DestroyRope(){
-        Destroy(_myRopeHandler);
-        Destroy(gameObject);
+    public void DestroyRope(float time = 0){
+        _nodes[0].canMove = true;
+        _nodes[nodesCount-1].canMove = true;
+        Destroy(_myRopeHandler, time);
+        Destroy(gameObject, time);
     }
     
     public void SetVelocityToFirstNode(Vector3 velocity){
@@ -237,4 +239,24 @@ public class Rope : MonoBehaviour{
             node.transform.position = targetPos;
         }
     }        
+    
+    public void LockLastNode(Transform targetTransform, Vector3 position){
+        _nodes[nodesCount-1].transform.SetParent(targetTransform, true);
+        _nodes[nodesCount-1].transform.position = position;
+        _nodes[nodesCount-1].canMove = false;
+    }
+    
+    public void LockFirstNode(Transform targetTransform, Vector3 position){
+        _nodes[0].transform.SetParent(targetTransform, true);
+        _nodes[0].transform.position = position;
+        _nodes[0].canMove = false;
+    }
+    
+    public RopeNode FirstNode(){
+        return _nodes[0];
+    }
+    
+    public Vector3 EndToStartDirection(){
+        return (_nodes[0].transform.position - _nodes[nodesCount-1].transform.position).normalized;
+    }
 }

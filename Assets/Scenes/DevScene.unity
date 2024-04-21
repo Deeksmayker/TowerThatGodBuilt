@@ -893,7 +893,7 @@ PrefabInstance:
     - target: {fileID: 571635416026901791, guid: 12b185fbfdfe69143880fda5f29201da,
         type: 3}
       propertyPath: nodesCount
-      value: 75
+      value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 571635416026901791, guid: 12b185fbfdfe69143880fda5f29201da,
         type: 3}
@@ -903,7 +903,7 @@ PrefabInstance:
     - target: {fileID: 571635416026901791, guid: 12b185fbfdfe69143880fda5f29201da,
         type: 3}
       propertyPath: targetDistance
-      value: 0.3
+      value: 4
       objectReference: {fileID: 0}
     - target: {fileID: 571635416026901791, guid: 12b185fbfdfe69143880fda5f29201da,
         type: 3}
@@ -914,6 +914,11 @@ PrefabInstance:
         type: 3}
       propertyPath: connectionPointsCount
       value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 4449453477830190216, guid: 12b185fbfdfe69143880fda5f29201da,
+        type: 3}
+      propertyPath: m_Parameters.widthCurve.m_Curve.Array.data[0].value
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 5492872385717153415, guid: 12b185fbfdfe69143880fda5f29201da,
         type: 3}
@@ -1326,6 +1331,10 @@ MonoBehaviour:
     bulletTimeStaminaDrain: 10
     ballReloadTime: 5
     maxBallCount: 5
+    hookPullDelay: 0.4
+    hookPullPower: 40
+    hookUpPower: 40
+    ballDetectRadius: 7
     kickHitBoxLength: 5
     kickHitBoxWidth: 5
     kickDuration: 0.2
@@ -1363,6 +1372,10 @@ MonoBehaviour:
     bulletTimeStaminaDrain: 10
     ballReloadTime: 5
     maxBallCount: 3
+    hookPullDelay: 0.4
+    hookPullPower: 40
+    hookUpPower: 20
+    ballDetectRadius: 7
     kickHitBoxLength: 5
     kickHitBoxWidth: 5
     kickDuration: 0.2
