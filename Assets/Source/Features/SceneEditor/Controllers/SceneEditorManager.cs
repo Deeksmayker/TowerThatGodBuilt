@@ -165,7 +165,7 @@ namespace Source.Features.SceneEditor.Controllers
         {
             _inputHandler.BuildingStateButtonPressed -= _buildingStateController.ChangeState;
             
-            _buildingStateController.ChangeState(EBuildingState.Build);
+            _buildingStateController.ChangeState(EBuildingState.Disabled);
         }
 
         private void InitializeBuilderStateController()
