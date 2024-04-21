@@ -9,6 +9,8 @@ TagManager:
   - PlayerBall
   - BallCounter
   - KickLeg
+  - AvaliableModesText
+  - EditModeText
   layers:
   - Default
   - TransparentFX
