@@ -8,7 +8,10 @@ public static class Layers{
     public static LayerMask PlayerProjectile {get;}  = LayerMask.GetMask("PlayerProjectile");
     public static LayerMask EnemyProjectile  {get;}  = LayerMask.GetMask("EnemyProjectile");
     public static LayerMask EnemyHurtBox     {get;}  = LayerMask.GetMask("EnemyHurtBox");
+    public static LayerMask Area             {get;}  = LayerMask.GetMask("Area");
+    public static LayerMask Rope             {get;}  = LayerMask.GetMask("Rope");
     
     //Specified usecase
     public static LayerMask PlayerBallHitable {get;} = Environment | EnemyHurtBox | EnemyProjectile;
+    public static LayerMask PlayerKickHitable {get;} = EnemyHurtBox | EnemyProjectile | PlayerProjectile | Rope;
 }
