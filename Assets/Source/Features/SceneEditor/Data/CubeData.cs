@@ -4,7 +4,7 @@ using UnityEngine;
 namespace Source.Features.SceneEditor.Data
 {
     [Serializable]
-    public class CellData
+    public class CubeData
     {
         public float X;
         public float Y;
@@ -14,9 +14,9 @@ namespace Source.Features.SceneEditor.Data
         public float YRotation;
         public float ZRotation;
 
-        public int IndexSpawnedObject;
+        public int PrefabIndex;
 
-        public CellData(Vector3 position, Quaternion rotation, int indexSpawnedObject)
+        public CubeData(Vector3 position, Quaternion rotation, int prefabIndex)
         {
             X = position.x;
             Y = position.y;
@@ -26,7 +26,7 @@ namespace Source.Features.SceneEditor.Data
             YRotation = rotation.eulerAngles.y;
             ZRotation = rotation.eulerAngles.z;
 
-            IndexSpawnedObject = indexSpawnedObject;
+            PrefabIndex = prefabIndex;
         }
     }
 }

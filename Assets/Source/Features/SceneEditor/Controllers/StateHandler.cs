@@ -10,6 +10,8 @@ namespace Source.Features.SceneEditor.Controllers
     {
         private readonly List<IChangeStateListener<T>> _listeners;
 
+        private T _currentState;
+        
         public StateHandler(IEnumerable<IChangeStateListener<T>> listeners)
         {
             _listeners = listeners.ToList();
@@ -17,10 +19,22 @@ namespace Source.Features.SceneEditor.Controllers
 
         public void ChangeState(T state)
         {
+            _currentState = state;
+            
             foreach (var listener in _listeners)
             {
                 listener.OnStateChange(state);
             }
+        }
+        
+        public void AddListener(IChangeStateListener<T> listener)
+        {
+            _listeners.Add(listener);
+        }
+
+        public T GetCurrentState()
+        {
+            return _currentState;
         }
     }
 }

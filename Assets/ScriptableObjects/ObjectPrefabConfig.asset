@@ -13,5 +13,9 @@ MonoBehaviour:
   m_Name: ObjectPrefabConfig
   m_EditorClassIdentifier: 
   _objectPrefabs:
-  - {fileID: 7783939639289534635, guid: 6297370f386bf05429444093c46eb3e4, type: 3}
-  - {fileID: 7783939639289534635, guid: ed937bb32376f09438a0fa29939cfd96, type: 3}
+  - {fileID: 6101644448935367539, guid: 6297370f386bf05429444093c46eb3e4, type: 3}
+  - {fileID: 6246570959805142757, guid: ed937bb32376f09438a0fa29939cfd96, type: 3}
+  _buildingGhostCubePrefab: {fileID: 7783939639289534635, guid: ff46994bef5de83498da71411d5fd0f9,
+    type: 3}
+  _destroyingGhostCubePrefab: {fileID: 7783939639289534635, guid: 0ca176f1188e2ee42b55d279e2ef1c41,
+    type: 3}
