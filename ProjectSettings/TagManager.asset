@@ -8,6 +8,7 @@ TagManager:
   - StaminaSlider
   - PlayerBall
   - BallCounter
+  - KickLeg
   layers:
   - Default
   - TransparentFX
@@ -21,8 +22,8 @@ TagManager:
   - EnemyHurtBox
   - PlayerHurtBox
   - EnemyProjectile
-  - 
-  - 
+  - Area
+  - Rope
   - 
   - 
   - 
