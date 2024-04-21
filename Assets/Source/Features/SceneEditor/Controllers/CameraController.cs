@@ -32,7 +32,12 @@ namespace Source.Features.SceneEditor.Controllers
 
         private void KeyboardControl()
         {
-            var dv = _moveSpeed * Time.deltaTime;
+            float speedMultiplier = _moveSpeed;
+            if (Input.GetKey(KeyCode.LeftShift)){
+                speedMultiplier = _moveSpeed * 2;
+            }
+            
+            var dv = speedMultiplier * Time.deltaTime;
             
             if (Input.GetKey(KeyCode.A))
             {
@@ -54,7 +59,7 @@ namespace Source.Features.SceneEditor.Controllers
                 transform.position += transform.right * dv;
             }
             
-            if (Input.GetKey(KeyCode.LeftShift))
+            if (Input.GetKey(KeyCode.Space))
             {
                 transform.position += transform.up * dv;
             }
