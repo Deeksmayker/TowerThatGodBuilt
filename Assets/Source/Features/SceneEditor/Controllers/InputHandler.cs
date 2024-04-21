@@ -1,6 +1,8 @@
 ﻿using System;
 using Source.Features.SceneEditor.Enums;
 using UnityEngine;
+using TMPro;
+
 
 namespace Source.Features.SceneEditor.Controllers
 {
@@ -11,6 +13,17 @@ namespace Source.Features.SceneEditor.Controllers
         public event Action<EBuildingState> BuildingStateButtonPressed;
         
         private bool _isInputLocked;
+        
+        //@TODO: who knows - knows
+        private TextMeshProUGUI _currentEditModeTextMesh;
+        private TextMeshProUGUI _avaliableModesTextMesh;
+        
+        private void Awake(){
+            _currentEditModeTextMesh = GameObject.FindWithTag("EditModeText").GetComponent<TextMeshProUGUI>();
+            _avaliableModesTextMesh = GameObject.FindWithTag("AvaliableModesText").GetComponent<TextMeshProUGUI>();;
+            _currentEditModeTextMesh.text = "Disbaled";
+            _avaliableModesTextMesh.text = " Z - Disabled \n X - Build \n C - Destroy \n R - Default \n T - Tassel";
+        }
 
         private void Update()
         {
@@ -18,20 +31,30 @@ namespace Source.Features.SceneEditor.Controllers
             
             CheckAlphaButtonPressed();
 
-            if (Input.GetKeyDown(KeyCode.Z))
+            if (Input.GetKeyDown(KeyCode.Z)){
                 BuildingStateButtonPressed?.Invoke(EBuildingState.Disabled);
+                _currentEditModeTextMesh.text = "Disabled";
+            }
             
-            if (Input.GetKeyDown(KeyCode.X))
+            if (Input.GetKeyDown(KeyCode.X)){
                 BuildingStateButtonPressed?.Invoke(EBuildingState.Build);
+                _currentEditModeTextMesh.text = "Build";
+            }
 
-            if (Input.GetKeyDown(KeyCode.C))
+            if (Input.GetKeyDown(KeyCode.C)){
                 BuildingStateButtonPressed?.Invoke(EBuildingState.Destroy);
+                _currentEditModeTextMesh.text = "Destroy";
+            }
 
-            if (Input.GetKeyDown(KeyCode.R))
+            if (Input.GetKeyDown(KeyCode.R)){
                 InstrumentStateButtonPressed?.Invoke(EInstrumentState.Default);
+                _currentEditModeTextMesh.text = "Default";
+            }
 
-            if (Input.GetKeyDown(KeyCode.T))
+            if (Input.GetKeyDown(KeyCode.T)){
                 InstrumentStateButtonPressed?.Invoke(EInstrumentState.Tassel);
+                _currentEditModeTextMesh.text = "Tassel";
+            }
         }
 
         public void LockInput()

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Source.Features.SceneEditor.Enums;
 using Source.Features.SceneEditor.Objects;
