@@ -4,6 +4,7 @@ using Source.Features.SceneEditor.Data;
 using Source.Features.SceneEditor.Objects;
 using Source.Features.SceneEditor.ScriptableObjects;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using Object = UnityEngine.Object;
 
 namespace Source.Features.SceneEditor.Utils
@@ -12,56 +13,61 @@ namespace Source.Features.SceneEditor.Utils
     {
         private static ObjectPrefabsConfig _objectPrefabsConfig;
 
-        public static void BuildLevel(GridController gridController)
+        private static CubeFabric _cubeFabric; 
+        
+        public static void Construct(CubeFabric cubeFabric)
         {
-            var cellsData = LoadGrid();
-            
-            BuildLevel(cellsData, gridController);
+            _cubeFabric = cubeFabric;
         }
         
-        public static void BuildLevel(CellData[,] cellsData, GridController gridController)
+        public static Cube[] BuildLevel(string sceneName)
         {
-            var width = cellsData.GetLength(0);
-            var height = cellsData.GetLength(1);
+            var cubesData = Load(sceneName);
             
-            var cells = gridController.GetCells();
+            return BuildLevel(cubesData);
+        }
 
-            for (int x = 0; x < width; x++)
+        public static void ClearLevel()
+        {
+            foreach (Transform child in _cubeFabric.GetParentTransform())
             {
-                for (int y = 0; y < height; y++)
-                {
-                    if (cellsData[x, y].IndexSpawnedObject != -1)
-                    {
-                        cells[x, y].SetIndexSpawnedObject(cellsData[x, y].IndexSpawnedObject);
-                        cells[x, y].ResetMaterial();
-                        
-                        var spawnedObject = 
-                            Object.Instantiate(_objectPrefabsConfig.GetObjectPrefabs()[cellsData[x, y].IndexSpawnedObject],
-                                cells[x, y].transform);
-                        spawnedObject.layer = 6;
-                    }
-                }
+                Object.Destroy(child.gameObject);
             }
         }
         
-        public static void SaveGrid(GridController gridController)
+        private static Cube[] BuildLevel(CubeData[] cubesData)
         {
-            var gridDataController = new GridDataController();
+            var cubes = new Cube[cubesData.Length];
             
-            gridDataController.Save(gridController.GetCells(), 0);
+            for (int i = 0; i < cubesData.Length; i++)
+            {
+                var position = new Vector3(cubesData[i].X, cubesData[i].Y, cubesData[i].Z);
+                var rotation = Quaternion.Euler(cubesData[i].XRotation, cubesData[i].YRotation, cubesData[i].ZRotation);
+
+                cubes[i] = _cubeFabric.SpawnCube(cubesData[i].PrefabIndex, position, rotation);
+            }
+
+            return cubes;
+        }
+        
+        public static void Save(Cube[] cubes, string name)
+        {
+            var cubesDataController = new CubesDataController();
+            
+            cubesDataController.Save(cubes, name);
         }
 
-        public static CellData[,] LoadGrid()
+        private static CubeData[] Load(string name)
         {
-            var gridDataController = new GridDataController();
-            var cellsData = gridDataController.Load(0);
+            var cubesDataController = new CubesDataController();
+            var cubesData = cubesDataController.Load(name);
 
-            if (cellsData == null)
+            if (cubesData == null)
             {
                 throw new NullReferenceException();
             }
             
-            return cellsData;
+            return cubesData;
         }
 
         public static void SetObjectPrefabsConfig(ObjectPrefabsConfig objectPrefabsConfig)

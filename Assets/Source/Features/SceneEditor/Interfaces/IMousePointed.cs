@@ -7,6 +7,6 @@ namespace Source.Features.SceneEditor.Interfaces
         void MouseExit();
         void MouseEnter();
         void MouseLeftButtonUp();
-        void MouseLeftButton();
+        void MouseLeftButtonDown();
     }
 }

@@ -2,6 +2,7 @@
 {
     public enum EBuildingState
     {
+        Disabled,
         Build,
         Destroy
     }
