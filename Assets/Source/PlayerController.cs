@@ -38,6 +38,12 @@ public class PlayerSettings{
     public float ballReloadTime = 5;
     public int   maxBallCount = 3;
     
+    //hook
+    public float hookPullDelay = 0.4f;
+    public float hookPullPower = 40;
+    public float hookUpPower = 20;
+    public float ballDetectRadius = 7;
+    
     //Kick
     public float kickHitBoxLength = 5;
     public float kickHitBoxWidth = 5;
@@ -118,6 +124,16 @@ public class PlayerController : MonoBehaviour{
     
     private PlayerBall _ballInHold;
     
+    //Ropes
+    private Rope _hookRope;
+    private PlayerBall _hookPullingBall;
+    private bool _hookPulled;
+    private bool _pulledBall;
+    private float _hookTimer;
+    private float _hookFlyTimer;
+    private Vector3 _hookTargetPoint;
+    private GameObject _scopeObject;
+    
     private Collider[] _imaginaryBallAreas;
 
     private Vector3 _spawnPosition;
@@ -147,6 +163,7 @@ public class PlayerController : MonoBehaviour{
         
         _playerBallPrefab           = GetPrefab("PlayerBall").GetComponent<PlayerBall>();
         _ropePrefab                 = GetPrefab("PlayerRope").GetComponent<Rope>();
+        _scopeObject                = Instantiate(GetPrefab("ScopePrefab"));
         _ballPredictionLineRenderer = Instantiate(GetPrefab("PredictionTrail")).GetComponent<LineRenderer>();
         
         _currentStamina  = _player.maxStamina;
@@ -330,9 +347,82 @@ public class PlayerController : MonoBehaviour{
             _currentStamina = Clamp(_currentStamina + _player.staminaRecoveryRate * Time.deltaTime, 0, _player.maxStamina);
         }
         
+        //Rope logics
         if (Input.GetKeyDown(KeyCode.C)){
             Rope rope = Instantiate(_ropePrefab, BallStartPosition(), Quaternion.identity);
             rope.SetVelocityToFirstNode(GetCameraTransform().forward * _player.maxBallSpeed + playerVelocity * 0.5f);
+        }
+        if (_hookTimer <= 0){
+            PlayerBall ballInHookRange = null;
+            _hookTargetPoint = Vector3.zero;
+            bool foundGroundPoint = false;
+            if (SphereCast(GetCameraTransform().position, _player.ballDetectRadius, GetCameraTransform().forward, out var hit, 100, Layers.PlayerProjectile)){
+                if (hit.transform.TryGetComponent<PlayerBall>(out var playerBall)){
+                    ballInHookRange = playerBall;
+                    _scopeObject.transform.position = hit.point;
+                    _hookTargetPoint = hit.point;
+                }
+            } else if (Raycast(GetCameraTransform().position, GetCameraTransform().forward, out var hit1, 300, Layers.Environment)){
+                _scopeObject.transform.position = hit1.point;
+                _hookTargetPoint = hit1.point;
+                foundGroundPoint = true;
+            } else if (SphereCast(GetCameraTransform().position, _player.ballDetectRadius, GetCameraTransform().forward, out var hit2, 100, Layers.Environment)){
+                _scopeObject.transform.position = hit2.point;
+                _hookTargetPoint = hit2.point;
+                foundGroundPoint = true;
+            } else{
+                //_hookTargetPoint = GetCameraTransform().position + GetCameraTransform().forward * 100;
+                _scopeObject.transform.position = GetCameraTransform().position + GetCameraTransform().forward * 1000;
+            }
+            
+            if (Input.GetKeyDown(KeyCode.V) && _hookTimer <= 0){
+                if (foundGroundPoint || ballInHookRange){
+                    //hookTargetPos = _hookTargetPoint;
+                    _hookRope = Instantiate(_ropePrefab, BallStartPosition(), Quaternion.identity);
+                    _hookRope.LockLastNode(GetCameraTransform(), BallStartPosition());
+                    _hookRope.SetVelocityToFirstNode(GetCameraTransform().forward * 20);
+                    GameObject firstNodeObject = _hookRope.FirstNode().gameObject;
+                    //Animations.Instance.MoveObject(ref firstNodeObject, _hookTargetPoint, _player.hookPullDelay, false, 0, (a) => Sqrt(a));
+                }
+                
+                if (ballInHookRange){
+                    _hookPullingBall = ballInHookRange;
+                    _pulledBall = true;
+                }
+            }
+        }
+        
+        if (_hookRope){
+            if (_hookTimer <= _player.hookPullDelay){
+                Vector3 targetPoint = _hookTargetPoint;
+                if (_hookPullingBall){
+                    targetPoint = _hookPullingBall.transform.position;
+                    _scopeObject.transform.position = targetPoint;
+                }
+                var ropeTransform = _hookRope.FirstNode().transform;
+                MoveToPosition(ref ropeTransform, ref _hookFlyTimer, _player.hookPullDelay, BallStartPosition(), targetPoint, false, (a) => Sqrt(a));
+            } else{
+                _scopeObject.transform.position = _hookRope.FirstNode().transform.position;
+            }
+            _hookTimer += playerDelta;
+            if (_hookTimer >= _player.hookPullDelay && !_hookPulled){
+                _hookPulled = true;
+                if (_hookPullingBall){
+                    _ballInHold = _hookPullingBall;
+                    _hookPullingBall = null;
+                    _hookRope.LockFirstNode(_ballInHold.transform, _ballInHold.transform.position);
+                } else{
+                    playerVelocity = _hookRope.EndToStartDirection() * _player.hookPullPower;
+                }
+                playerVelocity.y += _player.hookUpPower;
+            }
+            if (_hookTimer >= _player.hookPullDelay * 2){
+                _hookPulled = false;
+                _hookRope.DestroyRope(1);
+                _hookRope = null;
+                _hookTimer = 0;
+                _hookFlyTimer = 0;
+            }
         }
         
         _staminaSlider.value = _currentStamina / _player.maxStamina;
@@ -564,7 +654,7 @@ public class PlayerController : MonoBehaviour{
         }
         if (Input.GetMouseButtonUp(1)){
             _ballPredictionLineRenderer.positionCount = 0;
-            StopHoldingBall(true);
+            //StopHoldingBall(true);
         }
     
         if (Input.GetMouseButton(1) && Input.GetMouseButtonDown(0) && _shootCooldownTimer <= 0 && _currentBallCount > 0 && !TargetInKickRange() && !_ballInHold){
@@ -881,13 +971,15 @@ public class PlayerController : MonoBehaviour{
         //     //_ballInHold = BallInRange();
         // }
         
+        float snappingBallTime = 0.3f;
+        
         if (Input.GetMouseButton(1) && !_catchedBallOnInput){
-            var ballInRange = BallInRange(2);
-            if (ballInRange){
-                ballInRange.velocity = playerVelocity;
-                GameObject ballObject = ballInRange.gameObject;
-                Animations.Instance.MoveObject(ref ballObject, BallStartPosition(), 0.1f, false, 0, (a) => a * a);
-                Animations.Instance.ChangeMaterialColor(ref ballObject, Colors.BallHighlightColor, 0.1f);
+            _ballInHold = BallInRange(4);
+            if (_ballInHold){
+                _ballInHold.velocity = playerVelocity;
+                GameObject ballObject = _ballInHold.gameObject;
+                //Animations.Instance.MoveObject(ref ballObject, BallStartPosition(), 0.1f, false, 0, (a) => a * a);
+                Animations.Instance.ChangeMaterialColor(ref ballObject, Colors.BallHighlightColor, snappingBallTime);
                 _catchedBallOnInput = true;
             }
 
@@ -903,6 +995,27 @@ public class PlayerController : MonoBehaviour{
         if (Input.GetMouseButtonUp(1)){
             _catchedBallOnInput = false;
             //StopHoldingBall(true);
+            //StopHoldingBall(true);
+        }
+        
+        if (_ballInHold){
+            float maxHoldTime = snappingBallTime;
+            if (_pulledBall){
+                maxHoldTime *= 4;
+            }
+            float ballSnapSpeed = 20;
+            if (_pulledBall){
+                ballSnapSpeed = 5;
+            }
+            
+            _holdingBallTime += Time.deltaTime;
+            _ballInHold.transform.position = Vector3.Lerp(_ballInHold.transform.position, BallStartPosition(), Time.deltaTime * ballSnapSpeed * Clamp(_playerSpeed / _player.baseSpeed, 1, 10));
+            MoveSphereOutCollision(_ballInHold.transform, _ballInHold.sphere.radius, Layers.Environment);
+            _ballInHold.velocity = playerVelocity;
+            
+            if (_holdingBallTime >= maxHoldTime){
+                StopHoldingBall(true);
+            }
         }
         /*
         return;
@@ -985,6 +1098,7 @@ public class PlayerController : MonoBehaviour{
     
         _ballInHold.inHold = false;
         _holdingBallTime = 0;
+        _pulledBall = false;
         
         if (inheritVelocity) _ballInHold.velocity = playerVelocity;
         
