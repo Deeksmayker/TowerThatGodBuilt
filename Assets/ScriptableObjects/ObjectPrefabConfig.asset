@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4475e6755d5f488080fc82b577447cfb, type: 3}
+  m_Name: ObjectPrefabConfig
+  m_EditorClassIdentifier: 
+  _objectPrefabs:
+  - {fileID: 6101644448935367539, guid: 6297370f386bf05429444093c46eb3e4, type: 3}
+  - {fileID: 6246570959805142757, guid: ed937bb32376f09438a0fa29939cfd96, type: 3}
+  _buildingGhostCubePrefab: {fileID: 7783939639289534635, guid: ff46994bef5de83498da71411d5fd0f9,
+    type: 3}
+  _destroyingGhostCubePrefab: {fileID: 7783939639289534635, guid: 0ca176f1188e2ee42b55d279e2ef1c41,
+    type: 3}
