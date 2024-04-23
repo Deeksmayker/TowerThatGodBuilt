@@ -207,6 +207,12 @@ public class PlayerController : MonoBehaviour{
     private float _unscaledDelta;
     
     private void Update(){
+        if (GAME_DELTA_SCALE <= 0){
+            DebugStuff();
+        
+            return;
+        }
+    
         float fullDelta = Time.deltaTime * GAME_DELTA_SCALE;
         _unscaledDelta = Time.unscaledDeltaTime * GAME_DELTA_SCALE;
         fullDelta += _previousDelta;
@@ -1226,6 +1232,10 @@ public class PlayerController : MonoBehaviour{
         
         if (Input.GetKeyDown(KeyCode.T)){
             SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+        }
+        
+        if (Input.GetKeyDown(KeyCode.P)){
+            GAME_DELTA_SCALE = GAME_DELTA_SCALE < 1 ? 1 : 0;
         }
     }
 }
