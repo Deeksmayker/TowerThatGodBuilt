@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Source.Features.SceneEditor.Enums;
 using Source.Features.SceneEditor.Objects;
 using Source.Features.SceneEditor.ScriptableObjects;
+using Source.Features.SceneEditor.UI.ModePanel;
 using Source.Features.SceneEditor.UI.SavePanel;
 using Source.Features.SceneEditor.Utils;
 using Unity.Mathematics;
@@ -10,6 +11,7 @@ using UnityEngine;
 
 namespace Source.Features.SceneEditor.Controllers
 {
+    // TODO: refactoring to Bootstrapper
     public class SceneEditorManager : MonoBehaviour
     {
         [SerializeField] private InputHandler _inputHandler;
@@ -18,6 +20,8 @@ namespace Source.Features.SceneEditor.Controllers
         [SerializeField] private ObjectPrefabsConfig _objectPrefabsConfig;
         [SerializeField] private Transform _parentTransform;
 
+        [SerializeField] private TextView _currentInstrumentTextView;
+        [SerializeField] private TextView _currentModeTextView;
         [SerializeField] private SavePanelView _savePanelView;
         [SerializeField] private LoadPanelView _loadPanelView;
 
@@ -25,6 +29,9 @@ namespace Source.Features.SceneEditor.Controllers
         
         private SavePanelController _savePanelController;
         private LoadPanelController _loadPanelController;
+
+        private BuildingModeViewController _buildingModeViewController;
+        private InstrumentModeViewController _instrumentModeViewController;
         
         private List<Cube> _cubes;        
         
@@ -41,6 +48,9 @@ namespace Source.Features.SceneEditor.Controllers
             
             _savePanelController = new SavePanelController(_savePanelView);
             _loadPanelController = new LoadPanelController(_loadPanelView);
+
+            _buildingModeViewController = new BuildingModeViewController(_currentModeTextView);
+            _instrumentModeViewController = new InstrumentModeViewController(_currentInstrumentTextView);
         }
 
         private void Start()
@@ -54,6 +64,9 @@ namespace Source.Features.SceneEditor.Controllers
             
             OnAlphaPressed(0);
             _cubes.Add(SpawnCube(transform));
+
+            _buildingStateController.AddListener(_buildingModeViewController);
+            _instrumentController.AddListener(_instrumentModeViewController);
         }
 
         private void OnEnable()
@@ -178,17 +191,17 @@ namespace Source.Features.SceneEditor.Controllers
 
         private void ResetInstrumentController()
         {
-            /*_inputHandler.InstrumentStateButtonPressed -= _instrumentController.ChangeState;
+            _inputHandler.InstrumentStateButtonPressed -= _instrumentController.ChangeState;
 
-            _instrumentController.ChangeState((int)EInstrumentState.Default);*/
+            _instrumentController.ChangeState((int)EInstrumentState.Default);
         }
 
         private void InitializeInstrumentStateController()
         {
-            /*_instrumentController =
+            _instrumentController =
                 new StateHandler<EInstrumentState>(_cubes);
 
-            _inputHandler.InstrumentStateButtonPressed += _instrumentController.ChangeState;*/
+            _inputHandler.InstrumentStateButtonPressed += _instrumentController.ChangeState;
         }
     }
 }
