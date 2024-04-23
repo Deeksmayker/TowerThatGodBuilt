@@ -1,5 +1,6 @@
 ﻿using System;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace Source.Features.SceneEditor.UI.SavePanel
@@ -28,7 +29,7 @@ namespace Source.Features.SceneEditor.UI.SavePanel
 
         private void OnSaveButtonClicked()
         {
-            var fileName = _view.GetInputFieldText();
+            var fileName = _view.GetInputField().text;
 
             if (string.IsNullOrEmpty(fileName))
             {
@@ -53,6 +54,9 @@ namespace Source.Features.SceneEditor.UI.SavePanel
             
             _openButton.gameObject.SetActive(false);
             _view.Show();
+            
+            EventSystem.current .SetSelectedGameObject(_view.GetInputField().gameObject, null);
+            _view.GetInputField().OnPointerClick(new PointerEventData(EventSystem.current));
         }
     }
 }

@@ -12,9 +12,9 @@ namespace Source.Features.SceneEditor.UI.SavePanel
         [SerializeField] private Button _showButton;
         [SerializeField] private TMP_InputField _inputField;
 
-        public string GetInputFieldText()
+        public TMP_InputField GetInputField()
         {
-            return _inputField.text;
+            return _inputField;
         }
 
         public Button GetLoadButton()
@@ -35,8 +35,7 @@ namespace Source.Features.SceneEditor.UI.SavePanel
         public void Show()
         {
             gameObject.SetActive(true);
-            EventSystem.current .SetSelectedGameObject(_inputField.gameObject, null);
-            _inputField.OnPointerClick(new PointerEventData(EventSystem.current));
+            
         }
         
         public void Hide()

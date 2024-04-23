@@ -13,48 +13,14 @@ namespace Source.Features.SceneEditor.Controllers
         public event Action<EBuildingState> BuildingStateButtonPressed;
         
         private bool _isInputLocked;
-        
-        //@TODO: who knows - knows
-        private TextMeshProUGUI _currentEditModeTextMesh;
-        private TextMeshProUGUI _avaliableModesTextMesh;
-        
-        private void Awake(){
-            _currentEditModeTextMesh = GameObject.FindWithTag("EditModeText").GetComponent<TextMeshProUGUI>();
-            _avaliableModesTextMesh = GameObject.FindWithTag("AvaliableModesText").GetComponent<TextMeshProUGUI>();;
-            _currentEditModeTextMesh.text = "Disbaled";
-            _avaliableModesTextMesh.text = " Z - Disabled \n X - Build \n C - Destroy \n R - Default \n T - Tassel";
-        }
 
         private void Update()
         {
             if (_isInputLocked) return;
             
             CheckAlphaButtonPressed();
-
-            if (Input.GetKeyDown(KeyCode.Z)){
-                BuildingStateButtonPressed?.Invoke(EBuildingState.Disabled);
-                _currentEditModeTextMesh.text = "Disabled";
-            }
-            
-            if (Input.GetKeyDown(KeyCode.X)){
-                BuildingStateButtonPressed?.Invoke(EBuildingState.Build);
-                _currentEditModeTextMesh.text = "Build";
-            }
-
-            if (Input.GetKeyDown(KeyCode.C)){
-                BuildingStateButtonPressed?.Invoke(EBuildingState.Destroy);
-                _currentEditModeTextMesh.text = "Destroy";
-            }
-
-            if (Input.GetKeyDown(KeyCode.R)){
-                InstrumentStateButtonPressed?.Invoke(EInstrumentState.Default);
-                _currentEditModeTextMesh.text = "Default";
-            }
-
-            if (Input.GetKeyDown(KeyCode.T)){
-                InstrumentStateButtonPressed?.Invoke(EInstrumentState.Tassel);
-                _currentEditModeTextMesh.text = "Tassel";
-            }
+            CheckBuildingModeButtonPressed();
+            CheckInstrumentButtonPressed();
         }
 
         public void LockInput()
@@ -65,6 +31,37 @@ namespace Source.Features.SceneEditor.Controllers
         public void UnlockInput()
         {
             _isInputLocked = false;
+        }
+
+        private void CheckBuildingModeButtonPressed()
+        {
+            if (Input.GetKeyDown(KeyCode.Z))
+            {
+                BuildingStateButtonPressed?.Invoke(EBuildingState.Disabled);
+            }
+            
+            if (Input.GetKeyDown(KeyCode.X))
+            {
+                BuildingStateButtonPressed?.Invoke(EBuildingState.Build);
+            }
+
+            if (Input.GetKeyDown(KeyCode.C))
+            {
+                BuildingStateButtonPressed?.Invoke(EBuildingState.Destroy);
+            }
+        }
+
+        private void CheckInstrumentButtonPressed()
+        {
+            if (Input.GetKeyDown(KeyCode.R))
+            {
+                InstrumentStateButtonPressed?.Invoke(EInstrumentState.Default);
+            }
+
+            if (Input.GetKeyDown(KeyCode.T))
+            {
+                InstrumentStateButtonPressed?.Invoke(EInstrumentState.Tassel);
+            }
         }
 
         private void CheckAlphaButtonPressed()
