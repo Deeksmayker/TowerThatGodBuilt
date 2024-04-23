@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 using System;
+using System.Reflection;
 using Array = System.Array;
 using UnityEditor;
 using static UnityEngine.Mathf;
@@ -17,6 +18,7 @@ public enum EnemyType{
     WindGuyType
 }
 
+[Serializable] 
 public class Dummy{
     public Enemy enemy;
     public Vector3 dodgeStartPosition;
@@ -115,6 +117,7 @@ public class EnemiesController : MonoBehaviour{
         for (int i = 0; i < enemiesOnScene.Length; i++){
             enemiesOnScene[i].sphere = enemiesOnScene[i].GetComponent<SphereCollider>();
             enemiesOnScene[i].kickTrailParticles = Instantiate(Particles.Instance.GetParticles("KickTrailParticles"), enemiesOnScene[i].transform);
+            
             switch (enemiesOnScene[i].type){
                 case DummyType:
                     _dummies.Add(new Dummy() { enemy = enemiesOnScene[i] });
@@ -163,6 +166,10 @@ public class EnemiesController : MonoBehaviour{
     
     private float _previousDelta;
     private void Update(){
+        if (GAME_DELTA_SCALE <= 0){
+            return;
+        }
+    
         float fullDelta = Time.deltaTime * GAME_DELTA_SCALE;
         //_unscaledDelta = Time.unscaledDeltaTime * GAME_DELTA_SCALE;
         fullDelta += _previousDelta;
