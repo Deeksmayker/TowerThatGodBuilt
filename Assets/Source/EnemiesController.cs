@@ -161,19 +161,40 @@ public class EnemiesController : MonoBehaviour{
         }
     }
     
+    private float _previousDelta;
     private void Update(){
-        _playerPosition = _playerTransform.position;
-        UpdateRicoches();
-        UpdateShooters();
-        UpdateEnemyProjectiles();
-        UpdateDummies();
-        UpdateBlockers();
-        UpdateWindGuys();
+        float fullDelta = Time.deltaTime * GAME_DELTA_SCALE;
+        //_unscaledDelta = Time.unscaledDeltaTime * GAME_DELTA_SCALE;
+        fullDelta += _previousDelta;
+        _previousDelta = 0;
         
-        UpdateDebug();
+        if (fullDelta > MIN_FRAME_DELTA){
+            float delta = MIN_FRAME_DELTA * Time.timeScale * GAME_DELTA_SCALE;
+            while (fullDelta > MIN_FRAME_DELTA){
+                UpdateAll(delta);
+                fullDelta -= MIN_FRAME_DELTA;
+//                _unscaledDelta = 0;
+            }
+            _previousDelta = fullDelta;
+        } else{
+            UpdateAll(fullDelta);
+        }
+
     }
     
-    private void UpdateWindGuys(){
+    private void UpdateAll(float delta){
+        _playerPosition = _playerTransform.position;
+        UpdateRicoches(delta);
+        UpdateShooters(delta);
+        UpdateEnemyProjectiles(delta);
+        UpdateDummies(delta);
+        UpdateBlockers(delta);
+        UpdateWindGuys(delta);
+        
+        UpdateDebug(delta);
+    }
+    
+    private void UpdateWindGuys(float delta){
         for (int i = 0; i < _windGuys.Count; i++){
             var windGuy = _windGuys[i];
             
@@ -181,9 +202,9 @@ public class EnemiesController : MonoBehaviour{
                 continue;
             }
             
-            MoveByVelocity(ref windGuy.enemy);            
-            FlyByKick(ref windGuy.enemy);
-            EnemyCountdowns(ref windGuy.enemy);
+            MoveByVelocity(ref windGuy.enemy, delta);            
+            FlyByKick(ref windGuy.enemy, delta);
+            EnemyCountdowns(ref windGuy.enemy, delta);
             
             if (EnemyHit(ref windGuy.enemy)){
                 continue;
@@ -207,23 +228,23 @@ public class EnemiesController : MonoBehaviour{
                 }
                 
                 if (otherEnemy && otherEnemy != windGuy.enemy){
-                    otherEnemy.velocity += (windGuy.windArea.PowerVector(otherEnemy.transform.position) / otherEnemy.weight) * Time.deltaTime;
+                    otherEnemy.velocity += (windGuy.windArea.PowerVector(otherEnemy.transform.position) / otherEnemy.weight) * delta;
                 } else if (target.TryGetComponent<PlayerBall>(out var playerBall)){
-                    playerBall.velocity += windGuy.windArea.PowerVector(playerBall.transform.position) * Time.deltaTime;
+                    playerBall.velocity += windGuy.windArea.PowerVector(playerBall.transform.position) * delta;
                 } else if (target.TryGetComponent<PlayerController>(out var player)){
-                    player.playerVelocity += windGuy.windArea.PowerVector(player.transform.position) * Time.deltaTime;
+                    player.playerVelocity += windGuy.windArea.PowerVector(player.transform.position) * delta;
                 } else if(target.TryGetComponent<EnemyProjectile>(out var enemyProjectile)){ 
-                    enemyProjectile.velocity += windGuy.windArea.PowerVector(enemyProjectile.transform.position) * Time.deltaTime;
+                    enemyProjectile.velocity += windGuy.windArea.PowerVector(enemyProjectile.transform.position) * delta;
                 } else if (target.TryGetComponent<RopeNode>(out var ropeNode)){
-                    ropeNode.velocity += windGuy.windArea.PowerVector(ropeNode.transform.position) * Time.deltaTime * 10;
+                    ropeNode.velocity += windGuy.windArea.PowerVector(ropeNode.transform.position) * delta * 10;
                 }
             }
             
-            windGuyTransform.Rotate(Vector3.forward * windGuyPower * 5 * Time.deltaTime); 
+            windGuyTransform.Rotate(Vector3.forward * windGuyPower * 5 * delta); 
         }
     }
     
-    private void UpdateRicoches(){
+    private void UpdateRicoches(float delta){
         for (int i = 0; i < _ricoches.Count; i++){
             var ricoche = _ricoches[i];
             
@@ -231,31 +252,31 @@ public class EnemiesController : MonoBehaviour{
                 continue;
             }
             
-            MoveByVelocity(ref ricoche.enemy);
-            EnemyCountdowns(ref ricoche.enemy);
+            MoveByVelocity(ref ricoche.enemy, delta);
+            EnemyCountdowns(ref ricoche.enemy, delta);
             
-            if (FlyByKick(ref ricoche.enemy) || EnemyHit(ref ricoche.enemy)){
+            if (FlyByKick(ref ricoche.enemy, delta) || EnemyHit(ref ricoche.enemy)){
                 continue;
             }
             
             var ricocheTransform = ricoche.enemy.transform;
             
-            ricoche.pivotPosition += ricoche.enemy.velocity * Time.deltaTime;
-            ricocheTransform.position += ricoche.enemy.velocity * Time.deltaTime;
+            ricoche.pivotPosition += ricoche.enemy.velocity * delta;
+            ricocheTransform.position += ricoche.enemy.velocity * delta;
             
-            ricoche.orbitPosition = Quaternion.AngleAxis(ricoche.orbitingSpeed * Time.deltaTime, ricoche.orbitAxis) * ricoche.orbitPosition;
+            ricoche.orbitPosition = Quaternion.AngleAxis(ricoche.orbitingSpeed * delta, ricoche.orbitAxis) * ricoche.orbitPosition;
                         
             ricocheTransform.position = ricoche.pivotPosition + ricoche.orbitPosition;
             
             ricocheTransform.rotation = Quaternion.Slerp(ricocheTransform.rotation,
                                                          Quaternion.LookRotation((_playerPosition - ricocheTransform.position).normalized),
-                                                         Time.deltaTime * 5);
+                                                         delta * 5);
                                                          
             Enemy closestEnemy = GetClosestEnemy(ricocheTransform.position, ricoche.enemy.gameObject);
             
             if (closestEnemy){
                 ricoche.targetLine.positionCount = 2;
-                Vector3 lineTargetPosition = Vector3.Lerp(ricoche.targetLine.GetPosition(1), closestEnemy.transform.position, Time.deltaTime * 20);
+                Vector3 lineTargetPosition = Vector3.Lerp(ricoche.targetLine.GetPosition(1), closestEnemy.transform.position, delta * 20);
                 ricoche.targetLine.SetPosition(0, ricocheTransform.position);
                 ricoche.targetLine.SetPosition(1, lineTargetPosition);
             } else{
@@ -266,7 +287,7 @@ public class EnemiesController : MonoBehaviour{
         }
     }
     
-    private void UpdateBlockers(){
+    private void UpdateBlockers(float delta){
         for (int i = 0; i < _blockers.Count; i++){
             var blocker = _blockers[i];
             
@@ -276,11 +297,11 @@ public class EnemiesController : MonoBehaviour{
             
             var blockerTransform = blocker.enemy.transform;
             
-            blocker.pivotPosition += MoveByVelocity(ref blocker.enemy);
+            blocker.pivotPosition += MoveByVelocity(ref blocker.enemy, delta);
             
-            EnemyCountdowns(ref blocker.enemy);
+            EnemyCountdowns(ref blocker.enemy, delta);
             
-            if (FlyByKick(ref blocker.enemy) || EnemyHit(ref blocker.enemy)){
+            if (FlyByKick(ref blocker.enemy, delta) || EnemyHit(ref blocker.enemy)){
                 blocker.cycleProgress = 0.25f;
                 blocker.pivotPosition = blockerTransform.position;
                 continue;
@@ -289,7 +310,7 @@ public class EnemiesController : MonoBehaviour{
             HandleEnvCollisions(ref blocker.enemy);
             
             if (blocker.blockCooldownCountdown > 0){
-                blocker.blockCooldownCountdown -= Time.deltaTime;
+                blocker.blockCooldownCountdown -= delta;
             }
             
             if (!blocker.blocking && blocker.blockTimer <= 0 && blocker.blockCooldownCountdown <= 0){
@@ -316,7 +337,7 @@ public class EnemiesController : MonoBehaviour{
             }
             
             if (!blocker.blocking){
-                blocker.cycleProgress += Time.deltaTime / blocker.cycleTime;
+                blocker.cycleProgress += delta / blocker.cycleTime;
                 
                 float t = blocker.cycleProgress <= 0.5f ? blocker.cycleProgress * 2 : 1f - (blocker.cycleProgress - 0.5f) * 2;
                 
@@ -334,24 +355,24 @@ public class EnemiesController : MonoBehaviour{
         }
     }
     
-    private void EnemyCountdowns(ref Enemy enemy){
+    private void EnemyCountdowns(ref Enemy enemy, float delta){
         if (enemy.hitImmuneCountdown > 0){
-            enemy.hitImmuneCountdown -= Time.deltaTime;
+            enemy.hitImmuneCountdown -= delta;
             enemy.hitImmuneCountdown = Clamp(enemy.hitImmuneCountdown, 0, 1);
         }
         if (enemy.kickImmuneCountdown > 0){
-            enemy.kickImmuneCountdown -= Time.deltaTime;
+            enemy.kickImmuneCountdown -= delta;
             enemy.kickImmuneCountdown = Clamp(enemy.kickImmuneCountdown, 0, 1);
         }
         if (enemy.effectsCooldown > 0){
-            enemy.effectsCooldown -= Time.deltaTime;
+            enemy.effectsCooldown -= delta;
             enemy.effectsCooldown = Clamp(enemy.effectsCooldown, 0, 1);
         }
     }
     
-    private Vector3 MoveByVelocity(ref Enemy enemy){
-        enemy.transform.position += enemy.velocity * Time.deltaTime;
-        enemy.velocity *= 1f - enemy.weight * Time.deltaTime;
+    private Vector3 MoveByVelocity(ref Enemy enemy, float delta){
+        enemy.transform.position += enemy.velocity * delta;
+        enemy.velocity *= 1f - enemy.weight * delta;
         
         if (enemy.velocity.sqrMagnitude <= EPSILON){
             enemy.velocity = Vector3.zero;
@@ -360,7 +381,7 @@ public class EnemiesController : MonoBehaviour{
             enemy.timeInKickFlight = 0;
         }
         
-        return enemy.velocity * Time.deltaTime;
+        return enemy.velocity * delta;
     }
     
     private bool EnemyHit(ref Enemy enemy){
@@ -402,7 +423,7 @@ public class EnemiesController : MonoBehaviour{
         return false;
     }
     
-    private void UpdateShooters(){
+    private void UpdateShooters(float delta){
         for (int i = 0; i < _shooters.Count; i++){
             var shooter = _shooters[i];
             
@@ -410,13 +431,13 @@ public class EnemiesController : MonoBehaviour{
                 continue;
             }
             
-            UpdateDummy(ref shooter.dummyDodgeComponent);
+            UpdateDummy(ref shooter.dummyDodgeComponent, delta);
             
-            EnemyCountdowns(ref shooter.enemy);
+            EnemyCountdowns(ref shooter.enemy, delta);
             
-            MoveByVelocity(ref shooter.enemy);
+            MoveByVelocity(ref shooter.enemy, delta);
             
-            if (FlyByKick(ref shooter.enemy) || EnemyHit(ref shooter.enemy)){            
+            if (FlyByKick(ref shooter.enemy, delta) || EnemyHit(ref shooter.enemy)){            
                 continue;
             }
             
@@ -425,12 +446,12 @@ public class EnemiesController : MonoBehaviour{
             var vectorToPlayer = (_playerPosition - shooterTransform.position).normalized;
             /*
             var horizontalVectorToPlayer = new Vector3(vectorToPlayer.x, 0, vectorToPlayer.z);
-            shooter.enemy.transform.rotation = Quaternion.Slerp(shooterTransform.rotation, Quaternion.LookRotation(horizontalVectorToPlayer), Time.deltaTime * 3);
+            shooter.enemy.transform.rotation = Quaternion.Slerp(shooterTransform.rotation, Quaternion.LookRotation(horizontalVectorToPlayer), delta * 3);
             */
             
             KillPlayerIfNearby(shooter.enemy);
             
-            shooter.cooldownTimer -= Time.deltaTime;
+            shooter.cooldownTimer -= delta;
             
             if (shooter.cooldownTimer > 0){
                 continue;
@@ -447,12 +468,12 @@ public class EnemiesController : MonoBehaviour{
                     shooter.shootedCount = 0;
                 }
             } else{
-                shooter.delayTimer -= Time.deltaTime;
+                shooter.delayTimer -= delta;
             }
         }
     }
     
-    private void UpdateEnemyProjectiles(){
+    private void UpdateEnemyProjectiles(float delta){
         for (int i = 0; i < _enemyProjectiles.Count; i++){
             if (!_enemyProjectiles[i].gameObject.activeSelf){
                 continue;
@@ -465,16 +486,16 @@ public class EnemiesController : MonoBehaviour{
                 continue;
             }
                 
-            CalculateEnemyProjectileCollisions(ref projectile);
+            CalculateEnemyProjectileCollisions(ref projectile, delta);
             
             projectile.transform.rotation = Quaternion.LookRotation(projectile.velocity);
-            projectile.transform.Translate(projectile.velocity * Time.deltaTime, Space.World);
+            projectile.transform.Translate(projectile.velocity * delta, Space.World);
             
-            projectile.lifeTime += Time.deltaTime;
+            projectile.lifeTime += delta;
             
             if (projectile.lifeTime >= projectile.slowingLifetime){
                 float lifetimeOvershoot = projectile.lifeTime - projectile.slowingLifetime;
-                projectile.velocity *= 1f - Time.deltaTime * (lifetimeOvershoot * lifetimeOvershoot);
+                projectile.velocity *= 1f - delta * (lifetimeOvershoot * lifetimeOvershoot);
                 
                 if (projectile.velocity.sqrMagnitude <= EPSILON){
                     DisableEnemyProjectile(ref projectile);
@@ -511,12 +532,12 @@ public class EnemiesController : MonoBehaviour{
         projectile.gameObject.SetActive(false);
     }
     
-    private void CalculateEnemyProjectileCollisions(ref EnemyProjectile projectile){
+    private void CalculateEnemyProjectileCollisions(ref EnemyProjectile projectile, float delta){
         if (projectile == null){
             return;
         }
     
-        var deltaVelocity = projectile.velocity * Time.deltaTime;
+        var deltaVelocity = projectile.velocity * delta;
         var hits = SphereCastAll(projectile.transform.position, projectile.sphere.radius, projectile.velocity.normalized, deltaVelocity.magnitude, Layers.PlayerHurtBox | Layers.Environment);
         
         for (int i = 0; i < hits.Length; i++){
@@ -544,12 +565,12 @@ public class EnemiesController : MonoBehaviour{
         }
     }
 
-    private bool FlyByKick(ref Enemy enemy){
+    private bool FlyByKick(ref Enemy enemy, float delta){
         if (!enemy.takedKick){
             return false;
         }
         
-        enemy.timeInKickFlight += Time.deltaTime;
+        enemy.timeInKickFlight += delta;
         if (enemy.timeInKickFlight >= 6){
             enemy.takedKick = false;
             enemy.kickTrailParticles.Stop();
@@ -572,7 +593,7 @@ public class EnemiesController : MonoBehaviour{
                 _player.Win(enemy.transform.position); 
                 enemy.TakeHit();
             } else if (collidersNearby.Item1[i].TryGetComponent<RopeNode>(out var ropeNode)){
-                ropeNode.velocity += enemy.velocity * Time.deltaTime * 20;
+                ropeNode.velocity += enemy.velocity * delta * 20;
             } else{
                 enemy.TakeHit();
             }
@@ -581,16 +602,16 @@ public class EnemiesController : MonoBehaviour{
         return true;
     }
     
-    private void UpdateDummy(ref Dummy dummy){
+    private void UpdateDummy(ref Dummy dummy, float delta){
         if (!dummy.enemy.gameObject.activeSelf){
             return;
         }
         
-        EnemyCountdowns(ref dummy.enemy);
+        EnemyCountdowns(ref dummy.enemy, delta);
         
-        dummy.dodgeStartPosition += MoveByVelocity(ref dummy.enemy);
+        dummy.dodgeStartPosition += MoveByVelocity(ref dummy.enemy, delta);
         
-        if (FlyByKick(ref dummy.enemy) || EnemyHit(ref dummy.enemy)){
+        if (FlyByKick(ref dummy.enemy, delta) || EnemyHit(ref dummy.enemy)){
             dummy.dodging = false;
             dummy.dodgeTimer = 0;
             dummy.dodgeStartPosition = dummy.enemy.transform.position;
@@ -636,18 +657,18 @@ public class EnemiesController : MonoBehaviour{
         }
         
         if (!dummy.dodging && dummy.dodgeTimer <= 0){
-            dummyTransform.rotation = Quaternion.Slerp(dummyTransform.rotation, Quaternion.LookRotation((_playerPosition - dummyTransform.position).normalized), Time.deltaTime * 5);
+            dummyTransform.rotation = Quaternion.Slerp(dummyTransform.rotation, Quaternion.LookRotation((_playerPosition - dummyTransform.position).normalized), delta * 5);
 
         }
         
         KillPlayerIfNearby(dummy.enemy);
     }
     
-    private void UpdateDummies(){
+    private void UpdateDummies(float delta){
         for (int i = 0; i < _dummies.Count; i++){
             Dummy dummy = _dummies[i];
                         
-            UpdateDummy(ref dummy);
+            UpdateDummy(ref dummy, delta);
         }
     }
     
@@ -689,7 +710,7 @@ public class EnemiesController : MonoBehaviour{
         enemy.velocity = Vector3.zero;
     }
     
-    private void UpdateDebug(){
+    private void UpdateDebug(float delta){
         if (Input.GetKeyDown(KeyCode.U)){
             for (int i = 0; i < _enemies.Count; i++){
                 var enemy = _enemies[i];

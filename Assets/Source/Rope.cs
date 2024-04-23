@@ -135,6 +135,18 @@ public class Rope : MonoBehaviour{
         node.forces = Vector3.zero;
     }
     
+    // private void Update(){
+    //     for (int i = 0; i < nodesCount; i++){
+    //         RopeNode node = _nodes[i];
+    //         if (!node.canMove){
+    //             return;
+    //         }
+            
+    //         _lr.SetPosition(i, _lr.GetPosition(i) + node.velocity * Time.deltaTime);
+    //     }
+    // }
+    
+    
     private void FixedUpdate(){
         for (int i = 0; i < nodesCount; i++){
             RopeNode node = _nodes[i];

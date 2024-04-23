@@ -203,8 +203,30 @@ public class PlayerController : MonoBehaviour{
         _spawnPosition = transform.position;
     }
     
+    private float _previousDelta;
+    private float _unscaledDelta;
+    
     private void Update(){
-        var playerDelta = Time.deltaTime * _playerTimeScale * Time.timeScale;
+        float fullDelta = Time.deltaTime * GAME_DELTA_SCALE;
+        _unscaledDelta = Time.unscaledDeltaTime * GAME_DELTA_SCALE;
+        fullDelta += _previousDelta;
+        _previousDelta = 0;
+        
+        if (fullDelta > MIN_FRAME_DELTA){
+            float delta = MIN_FRAME_DELTA * Time.timeScale * GAME_DELTA_SCALE;
+            while (fullDelta > MIN_FRAME_DELTA){
+                UpdateAll(delta);
+                fullDelta -= MIN_FRAME_DELTA;
+                _unscaledDelta = 0;
+            }
+            _previousDelta = fullDelta;
+        } else{
+            UpdateAll(fullDelta);
+        }
+    }
+    
+    private void UpdateAll(float delta){
+        //var delta = delta * _playerTimeScale;
     
         _moveInput = new Vector3(Input.GetAxisRaw("Horizontal"), 0, Input.GetAxisRaw("Vertical"));
         
@@ -217,45 +239,45 @@ public class PlayerController : MonoBehaviour{
         if (IsGrounded()){
             _timeSinceGrounded = 0;
         
-            GroundMove(Time.deltaTime, wishDirection);
+            GroundMove(delta, wishDirection);
             
             if (_jumpBufferTimer > 0){
                 Jump(wishDirection);
             }
         } else{
-            _timeSinceGrounded += playerDelta;
+            _timeSinceGrounded += delta;
         
-            AirMove(playerDelta, wishDirection);
+            AirMove(delta, wishDirection);
         }
         
         var gravityMultiplierProgress = InverseLerp(0, _player.minJumpForce, playerVelocity.y);
         var gravityMultiplier         = Lerp(1, 2, gravityMultiplierProgress * gravityMultiplierProgress);
-        playerVelocity += Vector3.down * _player.gravity * gravityMultiplier * playerDelta;
+        playerVelocity += Vector3.down * _player.gravity * gravityMultiplier * delta;
         
-        StaminaAbilities(playerDelta, wishDirection);
-        UpdateRopeMovement();
+        StaminaAbilities(delta, wishDirection);
+        UpdateRopeMovement(delta);
                 
         _playerSpeed = playerVelocity.magnitude;
         
-        CalculatePlayerCollisions(ref playerVelocity);
+        CalculatePlayerCollisions(ref playerVelocity, delta);
         
         _playerSpeed = playerVelocity.magnitude;
         
-        transform.Translate(playerVelocity * playerDelta);
+        transform.Translate(playerVelocity * delta);
         
         if (transform.position.y < -30){
             transform.position = _spawnPosition;
         }
         
-        UpdateBalls();
+        UpdateBalls(delta);
         
         if (!_holdingBall){
-            _timeSinceHoldingBall += Time.deltaTime;
+            _timeSinceHoldingBall += delta;
         } else{
             _timeSinceHoldingBall = 0;
         }
         
-        UpdateKick();
+        UpdateKick(delta);
         BulletTime();
         
         if (showPlayerStats){
@@ -264,13 +286,13 @@ public class PlayerController : MonoBehaviour{
         }
         
         if (!_holdingBall){
-            //_playerTimeScale = Lerp(_playerTimeScale, 1, Time.unscaledDeltaTime * 5);
+            //_playerTimeScale = Lerp(_playerTimeScale, 1, _unscaledDelta * 5);
         }
         
         DebugStuff();
     }
     
-    private void UpdateRopeMovement(){
+    private void UpdateRopeMovement(float delta){
         if (!Input.GetKey(KeyCode.Space)){
             return;
         }
@@ -283,30 +305,28 @@ public class PlayerController : MonoBehaviour{
         (Collider[], int) ropeColliders = CollidersInRadius(transform.position, ropeCheckRadius, Layers.Rope);
         for (int i = 0; i < ropeColliders.Item2; i++){
             if (ropeColliders.Item1[i].TryGetComponent<RopeNode>(out var ropeNode)){
-                ropeNode.velocity.x += playerVelocity.x * Time.deltaTime * 10;
-                ropeNode.velocity.z += playerVelocity.z * Time.deltaTime * 10;
-                ropeNode.velocity.y -= playerVelocity.y * Time.deltaTime * 10;
+                ropeNode.velocity.x += playerVelocity.x * delta * 10;
+                ropeNode.velocity.z += playerVelocity.z * delta * 10;
+                ropeNode.velocity.y -= playerVelocity.y * delta * 10;
                 foundOne = true;
             }
         }
         if (foundOne){
-            playerVelocity.x *= 1f - ropeDamping * Time.deltaTime;
-            playerVelocity.z *= 1f - ropeDamping * Time.deltaTime;
-            playerVelocity.y = MoveTowards(playerVelocity.y, ropeTargetSpeed, ropeAcceleration * Time.deltaTime);
+            playerVelocity.x *= 1f - ropeDamping * delta;
+            playerVelocity.z *= 1f - ropeDamping * delta;
+            playerVelocity.y = MoveTowards(playerVelocity.y, ropeTargetSpeed, ropeAcceleration * delta);
         }
         if (CheckSphere(transform.position, ropeCheckRadius, Layers.Rope)){
         }
     }
+
     
-    private void UpdateAll(float delta){
-        
-    }
-    
-    private void StaminaAbilities(float playerDelta, Vector3 wishDirection){
+    private void StaminaAbilities(float delta, Vector3 wishDirection){
         if (Input.GetKey(KeyCode.Space)){   
             if (_currentStamina > 0 && _jumpChargeProgress < 1){
-                _jumpChargeProgress += Time.unscaledDeltaTime / _player.timeToChargeMaxJump;
-                _currentStamina -= Time.unscaledDeltaTime * _player.jumpChargeStaminaDrain;
+                _jumpChargeProgress += _unscaledDelta / _player.timeToChargeMaxJump;
+                _currentStamina -= _unscaledDelta * _player.jumpChargeStaminaDrain;
+                //Debug.Log(_unscaledDelta);
                 _jumpBufferTimer = 0;
                 _currentFriction = _player.friction * 0.5f;
             } else{
@@ -316,14 +336,14 @@ public class PlayerController : MonoBehaviour{
         if (Input.GetKey(KeyCode.LeftShift)){
             if (_currentStamina > 0){
                 _currentSpeed = _player.sprintSpeed;
-                _currentStamina -= playerDelta * _player.sprintStaminaDrain;
+                _currentStamina -= delta * _player.sprintStaminaDrain;
             } else {
                 _currentSpeed = _player.baseSpeed;
             }
         }
         
         if (_jumpBufferTimer > 0){
-            _jumpBufferTimer -= Time.deltaTime;
+            _jumpBufferTimer -= delta;
             if (_jumpBufferTimer <= 0){
                 _currentStamina += _jumpChargeProgress * _player.timeToChargeMaxJump * _player.jumpChargeStaminaDrain;
                 _jumpChargeProgress = 0;
@@ -344,7 +364,7 @@ public class PlayerController : MonoBehaviour{
         }
         
         if (!Input.GetKey(KeyCode.Space) && !Input.GetKey(KeyCode.LeftShift) && !Input.GetKey(_bulletTimeKey)){
-            _currentStamina = Clamp(_currentStamina + _player.staminaRecoveryRate * Time.deltaTime, 0, _player.maxStamina);
+            _currentStamina = Clamp(_currentStamina + _player.staminaRecoveryRate * delta, 0, _player.maxStamina);
         }
         
         //Rope logics
@@ -378,8 +398,8 @@ public class PlayerController : MonoBehaviour{
             if (Input.GetKeyDown(KeyCode.V) && _hookTimer <= 0){
                 if (foundGroundPoint || ballInHookRange){
                     //hookTargetPos = _hookTargetPoint;
-                    _hookRope = Instantiate(_ropePrefab, BallStartPosition(), Quaternion.identity);
-                    _hookRope.LockLastNode(GetCameraTransform(), BallStartPosition());
+                    _hookRope = Instantiate(_ropePrefab, transform.position - transform.forward, Quaternion.identity);
+                    _hookRope.LockLastNode(GetCameraTransform(), transform.position - transform.forward);
                     _hookRope.SetVelocityToFirstNode(GetCameraTransform().forward * 20);
                     GameObject firstNodeObject = _hookRope.FirstNode().gameObject;
                     //Animations.Instance.MoveObject(ref firstNodeObject, _hookTargetPoint, _player.hookPullDelay, false, 0, (a) => Sqrt(a));
@@ -404,7 +424,7 @@ public class PlayerController : MonoBehaviour{
             } else{
                 _scopeObject.transform.position = _hookRope.FirstNode().transform.position;
             }
-            _hookTimer += playerDelta;
+            _hookTimer += delta;
             if (_hookTimer >= _player.hookPullDelay && !_hookPulled){
                 _hookPulled = true;
                 if (_hookPullingBall){
@@ -414,7 +434,7 @@ public class PlayerController : MonoBehaviour{
                 } else{
                     playerVelocity = _hookRope.EndToStartDirection() * _player.hookPullPower;
                 }
-                playerVelocity.y += _player.hookUpPower;
+                playerVelocity.y = Clamp(playerVelocity.y, 0, 40) + _player.hookUpPower;
             }
             if (_hookTimer >= _player.hookPullDelay * 2){
                 _hookPulled = false;
@@ -429,9 +449,9 @@ public class PlayerController : MonoBehaviour{
 
     }
     
-    private void UpdateKick(){
+    private void UpdateKick(float delta){
         if (_kickCooldownTimer > 0){
-            _kickCooldownTimer -= Time.deltaTime;
+            _kickCooldownTimer -= delta;
         }
         if (_kickCooldownTimer > 0){
             return;
@@ -443,7 +463,7 @@ public class PlayerController : MonoBehaviour{
         }
     
         if (_kickPerformingTimer > 0){
-            _kickPerformingTimer -= Time.deltaTime;
+            _kickPerformingTimer -= delta;
         
             Collider[] targets = GetKickTargetsInRange();            
             
@@ -522,6 +542,7 @@ public class PlayerController : MonoBehaviour{
     
     private void Jump(Vector3 wishDirection){
         playerVelocity.y += Lerp(_player.minJumpForce, _player.maxJumpForce, _jumpChargeProgress);
+        //Debug.Log(_jumpChargeProgress);
         playerVelocity += wishDirection * _player.jumpForwardBoost;
         
         PlayerCameraController.Instance.ShakeCameraLong(_jumpChargeProgress * 1f);
@@ -543,7 +564,7 @@ public class PlayerController : MonoBehaviour{
         _playerSpeed = playerVelocity.magnitude;
         
         if (_playerSpeed > _player.baseSpeed && directionDotVelocity < 0.1f){
-            PlayerCameraController.Instance.ShakeCameraRapid(Time.deltaTime * 5);
+            PlayerCameraController.Instance.ShakeCameraRapid(delta * 5);
         }
         
         if (_playerSpeed <= EPSILON){
@@ -587,11 +608,11 @@ public class PlayerController : MonoBehaviour{
         playerVelocity += frictionForce;
     }  
     
-    private void CalculatePlayerCollisions(ref Vector3 velocity){
+    private void CalculatePlayerCollisions(ref Vector3 velocity, float delta){
         var sphereCenter1 = transform.position - Vector3.up * _collider.height * 0.5f;
         var sphereCenter2 = transform.position + Vector3.up * _collider.height * 0.5f;
         
-        var deltaVelocity = velocity * Time.deltaTime;
+        var deltaVelocity = velocity * delta;
         bool foundGround = false;
         
         (Collider[], int) groundColliders = CollidersInCapsule(sphereCenter1, sphereCenter2, _collider.radius, Layers.Environment);
@@ -621,9 +642,9 @@ public class PlayerController : MonoBehaviour{
         _grounded = foundGround;
     }
     
-    private void UpdateBalls(){
+    private void UpdateBalls(float delta){
         if (_currentBallCount < _player.maxBallCount){
-            _ballReloadCountdown -= Time.deltaTime;
+            _ballReloadCountdown -= delta;
             if (_ballReloadCountdown <= 0){
                 _currentBallCount++;
                 _ballCounterTextMesh.text = _currentBallCount.ToString();
@@ -635,7 +656,7 @@ public class PlayerController : MonoBehaviour{
         }
     
         if (_shootCooldownTimer > 0){
-            _shootCooldownTimer -= Time.deltaTime;
+            _shootCooldownTimer -= delta;
         }
     
         var angularVelocityDecreaseMultiplier = 0.5f; 
@@ -644,12 +665,12 @@ public class PlayerController : MonoBehaviour{
             _currentStartAngularVelocity = Vector3.zero;
         }
         
-        HoldBallLogic();
+        HoldBallLogic(delta);
         
         if (Input.GetMouseButton(1)){
             PredictAndDrawBallTrajectory();
         } else{
-            //_currentStartAngularVelocity = Vector3.Lerp(_currentStartAngularVelocity, Vector3.zero, Time.deltaTime * 4);
+            //_currentStartAngularVelocity = Vector3.Lerp(_currentStartAngularVelocity, Vector3.zero, delta * 4);
             angularVelocityDecreaseMultiplier = 2f;
         }
         if (Input.GetMouseButtonUp(1)){
@@ -671,7 +692,7 @@ public class PlayerController : MonoBehaviour{
             _shootCooldownTimer = _player.shootCooldown;
         }
         
-        _currentStartAngularVelocity = Vector3.Lerp(_currentStartAngularVelocity, Vector3.zero, Time.unscaledDeltaTime * angularVelocityDecreaseMultiplier);
+        _currentStartAngularVelocity = Vector3.Lerp(_currentStartAngularVelocity, Vector3.zero, _unscaledDelta * angularVelocityDecreaseMultiplier);
         
         
         for (int i = 0; i < _balls.Count; i++){
@@ -679,7 +700,7 @@ public class PlayerController : MonoBehaviour{
                 //_balls.RemoveAt(i);
                 continue;
             }
-            UpdateBall(_balls[i], Time.deltaTime);    
+            UpdateBall(_balls[i], delta);    
         }
     }
     
@@ -713,7 +734,7 @@ public class PlayerController : MonoBehaviour{
         if (ball.groundBounceCount >= 1 
                 && Raycast(ball.transform.position, ball.velocityNormalized, out var hit, 10, Layers.Environment) 
                 && hit.normal.y == 1){
-            ball.velocity *= 1f - Time.deltaTime * 5;
+            ball.velocity *= 1f - delta * 5;
             /*
             if (ball.velocity.sqrMagnitude < 2 * 2){
                 ball.velocity = Vector3.ClampMagnitude(ball.velocity, 1);
@@ -964,7 +985,7 @@ public class PlayerController : MonoBehaviour{
         return null;
     }
     
-    private void HoldBallLogic(){
+    private void HoldBallLogic(float delta){
         //_holdingBall = false;
         
         // if (Input.GetMouseButtonDown(1)){
@@ -988,7 +1009,7 @@ public class PlayerController : MonoBehaviour{
             // }
             
             // if (_ballInHold){
-            //     _holdingBallTime += Time.deltaTime;
+            //     _holdingBallTime += delta;
             // }
         }
         
@@ -1008,8 +1029,8 @@ public class PlayerController : MonoBehaviour{
                 ballSnapSpeed = 5;
             }
             
-            _holdingBallTime += Time.deltaTime;
-            _ballInHold.transform.position = Vector3.Lerp(_ballInHold.transform.position, BallStartPosition(), Time.deltaTime * ballSnapSpeed * Clamp(_playerSpeed / _player.baseSpeed, 1, 10));
+            _holdingBallTime += delta;
+            _ballInHold.transform.position = Vector3.Lerp(_ballInHold.transform.position, BallStartPosition(), delta * ballSnapSpeed * Clamp(_playerSpeed / _player.baseSpeed, 1, 10));
             MoveSphereOutCollision(_ballInHold.transform, _ballInHold.sphere.radius, Layers.Environment);
             _ballInHold.velocity = playerVelocity;
             
@@ -1041,11 +1062,11 @@ public class PlayerController : MonoBehaviour{
         } 
         
         if (_ballInHold){
-            _holdingBallTime += Time.deltaTime;
+            _holdingBallTime += delta;
             if (_timeSinceGrounded <= 0.2f || _holdingBallTime <= 0.5f){
                 GameObject ballObject = _ballInHold.gameObject;
                 Animations.Instance.ChangeMaterialColor(ref ballObject, Colors.BallHighlightColor, 0.002f);
-                _ballInHold.transform.position = Vector3.Lerp(_ballInHold.transform.position, BallStartPosition(), Time.deltaTime * 10 * Clamp(_playerSpeed / _player.baseSpeed, 1, 10));
+                _ballInHold.transform.position = Vector3.Lerp(_ballInHold.transform.position, BallStartPosition(), delta * 10 * Clamp(_playerSpeed / _player.baseSpeed, 1, 10));
                 MoveSphereOutCollision(_ballInHold.transform, 0.5f, Layers.Environment);
                 //_holdingBall = true;
                 _ballInHold.inHold = true;
@@ -1148,7 +1169,7 @@ public class PlayerController : MonoBehaviour{
     private void BulletTime(){
         if (_currentStamina > 0 && Input.GetKey(_bulletTimeKey)){
             Time.timeScale = 0.05f;
-            _currentStamina -= Time.unscaledDeltaTime * _player.bulletTimeStaminaDrain;
+            _currentStamina -= _unscaledDelta * _player.bulletTimeStaminaDrain;
         } 
         else if (Input.GetKeyUp(_bulletTimeKey) || _currentStamina <= 0){
             Time.timeScale = 1f;

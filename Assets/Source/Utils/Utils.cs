@@ -5,6 +5,9 @@ using static UnityEngine.Mathf;
 using static UnityEngine.Physics;
 
 public static class Utils{
+    public static float GAME_DELTA_SCALE = 1;
+
+    public const float MIN_FRAME_DELTA = 0.01666666f;
     public const float EPSILON = 0.000001f;
 
     public static void ToggleCursor(bool canISeeYou){
