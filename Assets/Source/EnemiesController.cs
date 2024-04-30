@@ -89,6 +89,12 @@ public class EnemiesController : MonoBehaviour{
     private Vector3          _playerPosition;
     
     private EnemyProjectile _shooterProjectilePrefab;
+    private Enemy _dummyPrefab;
+    private Enemy _horizontalShooterPrefab;
+    private Enemy _verticalShooterPrefab;
+    private Enemy _blockerPrefab;
+    private Enemy _ricochePrefab;
+    private Enemy _windGuyPrefab;
     
     private ParticleSystem _baseDeadManParticles;
     
@@ -101,9 +107,17 @@ public class EnemiesController : MonoBehaviour{
     
     private List<Enemy> _enemies = new();
     
-    private void Start(){
+    private void Awake(){
         _shooterProjectilePrefab = GetPrefab("ShooterProjectile").GetComponent<EnemyProjectile>();
-        
+        //_dummyPrefab = GetPrefab("Dummy").GetComponent<EnemyProjectile>();
+        _horizontalShooterPrefab = GetPrefab("HorizontalDummyShooter").GetComponent<Enemy>();
+        _verticalShooterPrefab = GetPrefab("VerticalDummyShooter").GetComponent<Enemy>();
+        _blockerPrefab = GetPrefab("Blocker").GetComponent<Enemy>();
+        _ricochePrefab = GetPrefab("Ricoche").GetComponent<Enemy>();
+        _windGuyPrefab = GetPrefab("Ricoche").GetComponent<Enemy>();
+    }
+    
+    private void Start(){
         _baseDeadManParticles = Particles.Instance.GetParticles("BaseDeadManParticles");
         
         _playerTransform = FindObjectOfType<PlayerController>().transform;
@@ -118,50 +132,83 @@ public class EnemiesController : MonoBehaviour{
             enemiesOnScene[i].sphere = enemiesOnScene[i].GetComponent<SphereCollider>();
             enemiesOnScene[i].kickTrailParticles = Instantiate(Particles.Instance.GetParticles("KickTrailParticles"), enemiesOnScene[i].transform);
             
-            switch (enemiesOnScene[i].type){
-                case DummyType:
-                    _dummies.Add(new Dummy() { enemy = enemiesOnScene[i] });
-                    _dummies[_dummies.Count-1].dodgeStartPosition = _dummies[_dummies.Count-1].enemy.transform.position;
-                    _dummies[_dummies.Count-1].enemy.index = _dummies.Count-1;
-                    break;
-                case ShooterType:
-                    var shooter = new Shooter() {enemy = enemiesOnScene[i]};
-                    shooter.enemy.index = _shooters.Count;
-                    shooter.cooldownTimer = shooter.shootCooldown;
-                    shooter.dummyDodgeComponent = new Dummy() {enemy = shooter.enemy};
-                    shooter.dummyDodgeComponent.dodgeStartPosition = shooter.enemy.transform.position;
-                    _shooters.Add(shooter);
-                    break;
-                case BlockerType:
-                    _blockers.Add(new Blocker() {enemy = enemiesOnScene[i]});
-                    _blockers[_blockers.Count-1].pivotPosition = _blockers[_blockers.Count-1].enemy.transform.position;
-                    _blockers[_blockers.Count-1].enemy.index = _blockers.Count-1;
-                    break;
-                case RicocheType:
-                    var ricoche = new Ricoche() {enemy = enemiesOnScene[i]};
-                    ricoche.pivotPosition = ricoche.enemy.transform.position;
-                    ricoche.enemy.index = _ricoches.Count;
-                    
-                    ricoche.orbitAxis = ricoche.enemy.transform.up;
-                    ricoche.orbitPosition = ricoche.enemy.transform.right * ricoche.orbitRadius;
-                    
-                    ricoche.targetLine = ricoche.enemy.GetComponent<LineRenderer>();
-                    
-                    _ricoches.Add(ricoche);
-                    break;
-                case WindGuyType:
-                    var windGuy = new WindGuy() {enemy = enemiesOnScene[i]};
-                    windGuy.enemy.index = _windGuys.Count;
-                    windGuy.windArea = windGuy.enemy.GetComponentInChildren<WindArea>();
-                    windGuy.windArea.windPower = windGuyPower;
-                    windGuy.windArea.boxCollider.center = windGuy.enemy.transform.forward * windGuyLength * 0.5f;
-                    windGuy.windArea.SetColliderSize(new Vector3(windGuyWidth, windGuyWidth, windGuyLength));
-                    _windGuys.Add(windGuy);
-                    break;
-            }
-            
-            _enemies.Add(enemiesOnScene[i]);
+            Enemy enemy = enemiesOnScene[i];
+            InitEnemy(ref enemy);
         }
+    }
+    
+    public void SpawnEnemy(EnemyType type, Vector3 position, Quaternion rotation, int variation = 1){
+        Enemy enemy = null;
+    
+        switch (type){
+            case DummyType:
+                enemy = Instantiate(_dummyPrefab, position, rotation);
+                break;
+            case ShooterType:
+                if (variation == 1){
+                    enemy = Instantiate(_horizontalShooterPrefab, position, rotation);
+                } else{
+                    enemy = Instantiate(_verticalShooterPrefab, position, rotation);
+                }
+                break;
+            case BlockerType:
+                enemy = Instantiate(_blockerPrefab, position, rotation);
+                break;
+            case RicocheType:
+                enemy = Instantiate(_ricochePrefab, position, rotation);
+                break;
+            case WindGuyType:
+                enemy = Instantiate(_windGuyPrefab, position, rotation);
+                break;
+        }
+        
+        InitEnemy(ref enemy);
+    }
+    
+    private void InitEnemy(ref Enemy enemy){
+        switch (enemy.type){
+            case DummyType:
+                _dummies.Add(new Dummy() { enemy = enemy });
+                _dummies[_dummies.Count-1].dodgeStartPosition = _dummies[_dummies.Count-1].enemy.transform.position;
+                _dummies[_dummies.Count-1].enemy.index = _dummies.Count-1;
+                break;
+            case ShooterType:
+                var shooter = new Shooter() {enemy = enemy};
+                shooter.enemy.index = _shooters.Count;
+                shooter.cooldownTimer = shooter.shootCooldown;
+                shooter.dummyDodgeComponent = new Dummy() {enemy = shooter.enemy};
+                shooter.dummyDodgeComponent.dodgeStartPosition = shooter.enemy.transform.position;
+                _shooters.Add(shooter);
+                break;
+            case BlockerType:
+                _blockers.Add(new Blocker() {enemy = enemy});
+                _blockers[_blockers.Count-1].pivotPosition = _blockers[_blockers.Count-1].enemy.transform.position;
+                _blockers[_blockers.Count-1].enemy.index = _blockers.Count-1;
+                break;
+            case RicocheType:
+                var ricoche = new Ricoche() {enemy = enemy};
+                ricoche.pivotPosition = ricoche.enemy.transform.position;
+                ricoche.enemy.index = _ricoches.Count;
+                
+                ricoche.orbitAxis = ricoche.enemy.transform.up;
+                ricoche.orbitPosition = ricoche.enemy.transform.right * ricoche.orbitRadius;
+                
+                ricoche.targetLine = ricoche.enemy.GetComponent<LineRenderer>();
+                
+                _ricoches.Add(ricoche);
+                break;
+            case WindGuyType:
+                var windGuy = new WindGuy() {enemy = enemy};
+                windGuy.enemy.index = _windGuys.Count;
+                windGuy.windArea = windGuy.enemy.GetComponentInChildren<WindArea>();
+                windGuy.windArea.windPower = windGuyPower;
+                windGuy.windArea.boxCollider.center = windGuy.enemy.transform.forward * windGuyLength * 0.5f;
+                windGuy.windArea.SetColliderSize(new Vector3(windGuyWidth, windGuyWidth, windGuyLength));
+                _windGuys.Add(windGuy);
+                break;
+        }
+        
+        _enemies.Add(enemy);
     }
     
     private float _previousDelta;

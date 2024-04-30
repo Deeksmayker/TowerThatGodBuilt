@@ -156,7 +156,7 @@ public class Rope : MonoBehaviour{
             ApplyGravity(ref node);
             ApplyAirFriction(ref node);
             UpdatePosition(ref node, Time.fixedDeltaTime);
-            CalculateNodeCollisions(ref node);
+            //CalculateNodeCollisions(ref node);
         }
         
         for (int iteration = 1; iteration <= iterationCount; iteration++){
@@ -224,6 +224,10 @@ public class Rope : MonoBehaviour{
     }
     
     private void CalculateNodeCollisions(ref RopeNode node){
+        if (!node.canMove){
+            return;
+        }
+    
         Vector3 startPos = node.framePreviousPos;
         Vector3 targetPos = node.transform.position;
         Vector3 resultPos = targetPos;
