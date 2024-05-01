@@ -9,10 +9,15 @@ using UnityEngine.SceneManagement;
 
 namespace Source.Features.SceneEditor.Objects
 {
-    public class Cube : MonoBehaviour, IMousePointed, IChangeStateListener<EBuildingState>, IChangeStateListener<EInstrumentState>
+    public class Cube : MonoBehaviour, IMousePointed, ISelectListener,
+        IChangeStateListener<EBuildingState>, IChangeStateListener<EInstrumentState>
     {
+        public event Action<ISelectListener> Selected;
         public event Action<Cube> DestroyMouseLeftButtonClicked;
         public event Action<Transform> BuildMouseLeftButtonClicked;
+     
+        [SerializeField] private ECubeType _type;
+        [SerializeField] private HighlightComponent _highlightComponent;
         
         private MouseHandler _mouseHandler;
         private GameObject _buildingGhostCubePrefab;
@@ -23,16 +28,17 @@ namespace Source.Features.SceneEditor.Objects
         
         private EBuildingState _buildingState;
         private EInstrumentState _instrumentState;
-
+        private bool _isSelected;
+        
         private CubeData _cubeData;
         
-        public void Construct(MouseHandler mouseHandler, GameObject buildingGhostCubePrefab, GameObject destroyGhostCubePrefab, int objectIndex)
+        public void Construct(GameObject buildingGhostCubePrefab, GameObject destroyGhostCubePrefab, int objectIndex)
         {
-            _mouseHandler = mouseHandler;
+            _mouseHandler = MouseHandler.Instance;
             _buildingGhostCubePrefab = buildingGhostCubePrefab;
             _destroyGhostCubePrefab = destroyGhostCubePrefab;
 
-            _cubeData = new CubeData(transform.position, transform.rotation, objectIndex);
+            _cubeData = new CubeData(transform.position, transform.rotation, objectIndex, _type);
         }
         
         public void MouseExit()
@@ -51,27 +57,29 @@ namespace Source.Features.SceneEditor.Objects
 
         public void MouseLeftButtonUp()
         {
-            if (_buildingState == EBuildingState.Build)
+            switch (_buildingState)
             {
-                BuildMouseLeftButtonClicked?.Invoke(_ghostCube.transform);
-
-                Destroy(_ghostCube);
-                _previousClosestPoint = default;
-            }
-            else if (_buildingState == EBuildingState.Destroy)
-            {
-                DestroyMouseLeftButtonClicked?.Invoke(this);
-                
-                Destroy(_ghostCube);
+                case EBuildingState.Build:
+                    BuildMouseLeftButtonClicked?.Invoke(_ghostCube.transform);
+                    Destroy(_ghostCube);
+                    _previousClosestPoint = default;
+                    break;
+                case EBuildingState.Destroy:
+                    DestroyMouseLeftButtonClicked?.Invoke(this);
+                    Destroy(_ghostCube);
+                    break;
+                case EBuildingState.Disabled:
+                    Selected?.Invoke(this);
+                    break;
+                default:
+                    Debug.LogError($"Building State: {_buildingState.ToString()} not implemented!");
+                    break;
             }
         }
 
         public void MouseLeftButtonDown()
         {
-            /*if (_instrumentState == EInstrumentState.Tassel)
-            {
-                var vector = _ghostCube.transform
-            }*/
+            
         }
         
         public void OnStateChange(EBuildingState state)
@@ -85,6 +93,30 @@ namespace Source.Features.SceneEditor.Objects
         public void OnStateChange(EInstrumentState state)
         {
             _instrumentState = state;
+        }
+
+        public Transform GetTransform()
+        {
+            return transform;
+        }
+
+        public ECubeType GetType()
+        {
+            return _type;
+        }
+
+        public void OnSelectStateChange(bool isSelected)
+        {
+            _isSelected = isSelected;
+
+            if (_isSelected)
+            {
+                _highlightComponent.SetHighlight();
+            }
+            else
+            {
+                _highlightComponent.SetDefault();
+            }
         }
 
         public CubeData GetData()
@@ -121,12 +153,12 @@ namespace Source.Features.SceneEditor.Objects
 
             var points = new List<Vector3>()
             {
-                position + new Vector3(1, 0, 0),
-                position + new Vector3(0, 1, 0),
-                position + new Vector3(0, 0, 1),
-                position + new Vector3(-1, 0, 0),
-                position + new Vector3(0, -1, 0),
-                position + new Vector3(0, 0, -1)
+                position + new Vector3(4, 0, 0),
+                position + new Vector3(0, 4, 0),
+                position + new Vector3(0, 0, 4),
+                position + new Vector3(-4, 0, 0),
+                position + new Vector3(0, -4, 0),
+                position + new Vector3(0, 0, -4)
             };
             
             var closestPointFromList = points[0];

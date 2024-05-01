@@ -13,7 +13,8 @@ GameObject:
   - component: {fileID: 8634657339383644159}
   - component: {fileID: 4110680112972130550}
   - component: {fileID: 6101644448935367539}
-  m_Layer: 0
+  - component: {fileID: 3294434696996924898}
+  m_Layer: 6
   m_Name: GrayCube
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -29,7 +30,7 @@ Transform:
   m_GameObject: {fileID: 7783939639289534635}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 4, y: 4, z: 4}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -63,7 +64,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
+  - {fileID: 2100000, guid: 5c265c7fc0dffbe4f9e84337a47f1e84, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -118,3 +119,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9906ea961d8d4ddeb5f5ec15a5ddf261, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _type: 0
+  _highlightComponent: {fileID: 3294434696996924898}
+--- !u!114 &3294434696996924898
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7783939639289534635}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 83ec374753fc4a5d9a257bab744e5ed5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _renderer: {fileID: 8634657339383644159}
+  _highlightMaterial: {fileID: 2100000, guid: 79949733c15a3484fadbe7660580d84c, type: 2}
+  _defaultMaterial: {fileID: 2100000, guid: 5c265c7fc0dffbe4f9e84337a47f1e84, type: 2}

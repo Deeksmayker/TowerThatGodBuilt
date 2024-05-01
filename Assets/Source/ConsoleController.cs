@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using Source.Features.SceneEditor.Controllers;
+using Source.Features.SceneEditor.Utils;
 using UnityEngine;
 using TMPro;
 
@@ -38,7 +40,7 @@ public class ConsoleController : MonoBehaviour
         }
     }
 
-    public void CreateNewHistoryText(string text)
+    private void CreateNewHistoryText(string text)
     {
         historyPanel.SetActive(true);
 
@@ -47,9 +49,9 @@ public class ConsoleController : MonoBehaviour
         newTextObject.GetComponent<TextMeshProUGUI>().text = text;
     }
 
-    public void CreateWrongHistoryText() => CreateNewHistoryText("No such command found");
+    private void CreateWrongHistoryText() => CreateNewHistoryText("No such command found");
 
-    public void CheckForHint()
+    private void CheckForHint()
     {
         consoleLine.text = consoleLine.text.ToLower();
         HideHints();
@@ -78,19 +80,21 @@ public class ConsoleController : MonoBehaviour
         }
     }
 
-    public void SwitchConsoleWindow()
+    private void SwitchConsoleWindow()
     {
         consoleWindow.SetActive(!_isConsoleOpened);
         _isConsoleOpened = !_isConsoleOpened;
     }
 
-    public void SendCommand()
+    private void SendCommand()
     {
         if (consoleLine != null)
         {
             CreateNewHistoryText("--" + consoleLine.text);
 
-            switch (consoleLine.text)
+            var commandParts = consoleLine.text.Split(' ');
+            
+            switch (commandParts[0])
             {
                 case "help":
                     Command_Help();
@@ -116,6 +120,9 @@ public class ConsoleController : MonoBehaviour
                 case "stats":
                     Command_Stats();
                     break;
+                case "load_level":
+                    Command_LoadLevel(commandParts[1]);
+                    break;
                 default:
                     CreateWrongHistoryText();
                     break;
@@ -126,29 +133,34 @@ public class ConsoleController : MonoBehaviour
         consoleLine.text = string.Empty;
     }
 
-    public void HideHints()
+    private void HideHints()
     {
         for (int i = 0; i < hintObjects.Count; i++)
             hintObjects[i].SetActive(false);
     }
 
-    public void Command_Help()
+    private void Command_Help()
     {
         for (int i = 0; i < commands.Count; i++)
             CreateNewHistoryText(commands[i] + " - " + commandMeanings[i]);
     }
 
-    public void Command_KillAll() => CreateNewHistoryText("All enemies are killed.");
+    private void Command_LoadLevel(string sceneName)
+    {
+        SceneLoader.LoadLevel(sceneName);
+    }
 
-    public void Command_ReloadLevel() => CreateNewHistoryText("The level has been reloaded.");
+    private void Command_KillAll() => CreateNewHistoryText("All enemies are killed.");
 
-    public void Command_Heal() => CreateNewHistoryText("The player's health is restored.");
+    private void Command_ReloadLevel() => CreateNewHistoryText("The level has been reloaded.");
 
-    public void Command_Teleport() => CreateNewHistoryText("The player is moved to the starting point.");
+    private void Command_Heal() => CreateNewHistoryText("The player's health is restored.");
 
-    public void Command_Save() => CreateNewHistoryText("The game is saved.");
+    private void Command_Teleport() => CreateNewHistoryText("The player is moved to the starting point.");
 
-    public void Command_Exit() => CreateNewHistoryText("The game is exiting.");
+    private void Command_Save() => CreateNewHistoryText("The game is saved.");
 
-    public void Command_Stats() => CreateNewHistoryText("The player's stats are shown.");
+    private void Command_Exit() => CreateNewHistoryText("The game is exiting.");
+
+    private void Command_Stats() => CreateNewHistoryText("The player's stats are shown.");
 }

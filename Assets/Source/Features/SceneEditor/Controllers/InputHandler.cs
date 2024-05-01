@@ -53,12 +53,12 @@ namespace Source.Features.SceneEditor.Controllers
 
         private void CheckInstrumentButtonPressed()
         {
-            if (Input.GetKeyDown(KeyCode.R))
+            if (Input.GetKeyDown(KeyCode.T))
             {
                 InstrumentStateButtonPressed?.Invoke(EInstrumentState.Default);
             }
 
-            if (Input.GetKeyDown(KeyCode.T))
+            if (Input.GetKeyDown(KeyCode.Y))
             {
                 InstrumentStateButtonPressed?.Invoke(EInstrumentState.Tassel);
             }
