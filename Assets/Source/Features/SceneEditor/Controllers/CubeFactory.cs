@@ -4,28 +4,23 @@ using UnityEngine;
 
 namespace Source.Features.SceneEditor.Controllers
 {
-    public class CubeFabric
+    public class CubeFactory
     {
+        // TODO: получать конфиг через DI
         private readonly ObjectPrefabsConfig _config;
         private readonly Transform _parent;
-        private readonly MouseHandler _mouseHandler;
 
-        public CubeFabric(ObjectPrefabsConfig config, Transform parent, MouseHandler mouseHandler)
+        public CubeFactory(ObjectPrefabsConfig config, Transform parent)
         {
             _config = config;
             _parent = parent;
-            _mouseHandler = mouseHandler;
         }
         
         public Cube SpawnCube(int prefabIndex, Vector3 position, Quaternion rotation)
         {
             var prefab = _config.GetObjectPrefabs()[prefabIndex];
-            
             var cube = Object.Instantiate(prefab, position, rotation);
             
-            cube.Construct(_mouseHandler, 
-                _config.GetBuildingGhostCubePrefab(),
-                _config.GetDestroyingGhostCubePrefab(), prefabIndex);
             cube.transform.SetParent(_parent);
             
             return cube;

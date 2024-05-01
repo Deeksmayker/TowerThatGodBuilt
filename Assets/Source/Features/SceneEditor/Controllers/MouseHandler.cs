@@ -8,8 +8,16 @@ namespace Source.Features.SceneEditor.Controllers
 {
     public class MouseHandler : MonoBehaviour
     {
+        // TODO: Передавать через DI или Service Locator
+        public static MouseHandler Instance;
+        
         private IMousePointed _previousPointed;
         private Vector3 _hitPoint;
+
+        private void Awake()
+        {
+            Instance = this;
+        }
 
         private void Update()
         {

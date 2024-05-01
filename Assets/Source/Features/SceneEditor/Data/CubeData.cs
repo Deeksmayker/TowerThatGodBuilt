@@ -1,4 +1,6 @@
 ﻿using System;
+using Source.Features.SceneEditor.Enums;
+using Source.Features.SceneEditor.Objects;
 using UnityEngine;
 
 namespace Source.Features.SceneEditor.Data
@@ -15,8 +17,9 @@ namespace Source.Features.SceneEditor.Data
         public float ZRotation;
 
         public int PrefabIndex;
+        public ECubeType Type;
 
-        public CubeData(Vector3 position, Quaternion rotation, int prefabIndex)
+        public CubeData(Vector3 position, Quaternion rotation, int prefabIndex, ECubeType type)
         {
             X = position.x;
             Y = position.y;
@@ -27,6 +30,7 @@ namespace Source.Features.SceneEditor.Data
             ZRotation = rotation.eulerAngles.z;
 
             PrefabIndex = prefabIndex;
+            Type = type;
         }
     }
 }

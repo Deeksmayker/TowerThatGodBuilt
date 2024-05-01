@@ -12,6 +12,7 @@ namespace Source.Features.SceneEditor.UI.ModePanel
         public BuildingModeViewController(TextView textView)
         {
             _textView = textView;
+            
             _textView.SetText(string.Format(CURRENT_MODE_TEXT_FORMAT, EBuildingState.Disabled));
         }
         

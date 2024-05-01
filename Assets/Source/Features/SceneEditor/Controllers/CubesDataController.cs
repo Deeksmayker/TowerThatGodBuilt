@@ -43,6 +43,11 @@ namespace Source.Features.SceneEditor.Controllers
             return cellsData;
         }
 
+        public bool LevelExists(string name)
+        {
+            return Directory.Exists(_cubesDataPath) && File.Exists(Path.Combine(_cubesDataPath, name + ".json"));
+        }
+
         private CubeData[] GetCubeData(Cube[] cubes)
         {
             var result = new CubeData[cubes.Length];

@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using Source.Features.SceneEditor.Enums;
+using Source.Features.SceneEditor.Interfaces;
 using Source.Features.SceneEditor.Objects;
 using Source.Features.SceneEditor.ScriptableObjects;
+using Source.Features.SceneEditor.UI.Inspector;
 using Source.Features.SceneEditor.UI.ModePanel;
 using Source.Features.SceneEditor.UI.SavePanel;
 using Source.Features.SceneEditor.Utils;
@@ -12,10 +14,9 @@ using UnityEngine;
 namespace Source.Features.SceneEditor.Controllers
 {
     // TODO: refactoring to Bootstrapper
-    public class SceneEditorManager : MonoBehaviour
+    public class SceneEditorManager : MonoBehaviour, IChangeStateListener<EBuildingState>
     {
         [SerializeField] private InputHandler _inputHandler;
-        [SerializeField] private MouseHandler _mouseHandler;
 
         [SerializeField] private ObjectPrefabsConfig _objectPrefabsConfig;
         [SerializeField] private Transform _parentTransform;
@@ -27,6 +28,10 @@ namespace Source.Features.SceneEditor.Controllers
 
         [SerializeField] private CameraController _cameraController;
         
+        [SerializeField] private InspectorView _inspectorView;
+        
+        private InspectorViewController _inspectorViewController;
+        
         private SavePanelController _savePanelController;
         private LoadPanelController _loadPanelController;
 
@@ -37,30 +42,34 @@ namespace Source.Features.SceneEditor.Controllers
         
         private StateHandler<EBuildingState> _buildingStateController;
         private StateHandler<EInstrumentState> _instrumentController;
+        private SelectController _selectController;
 
-        private CubeFabric _cubeFabric;
+        private CubeFactory _cubeFactory;
         private int _objectIndex;
+
+        private bool _panelOpened;
 
         private void Awake()
         {
             _cubes = new List<Cube>();
-            _cubeFabric = new CubeFabric(_objectPrefabsConfig, _parentTransform, _mouseHandler);
+            _cubeFactory = new CubeFactory(_objectPrefabsConfig, _parentTransform);
             
             _savePanelController = new SavePanelController(_savePanelView);
             _loadPanelController = new LoadPanelController(_loadPanelView);
 
             _buildingModeViewController = new BuildingModeViewController(_currentModeTextView);
             _instrumentModeViewController = new InstrumentModeViewController(_currentInstrumentTextView);
+
+            _inspectorViewController = new InspectorViewController(_inspectorView);
+            
+            InitializeBuilderStateController();
+            InitializeInstrumentStateController();
+            InitializeSelectController();
         }
 
         private void Start()
         {
-            SceneLoader.Construct(_cubeFabric);
-            
-            SceneLoader.SetObjectPrefabsConfig(_objectPrefabsConfig);
-            
-            InitializeBuilderStateController();
-            InitializeInstrumentStateController();
+            SceneLoader.Construct(_cubeFactory);
             
             OnAlphaPressed(0);
             _cubes.Add(SpawnCube(transform));
@@ -81,6 +90,8 @@ namespace Source.Features.SceneEditor.Controllers
             
             _savePanelController.SaveButtonClicked += SaveScene;
             _loadPanelController.LoadButtonClicked += LoadScene;
+
+            _selectController.SelectStateReset += OnSelectStateReset;
         }
 
         private void OnDisable()
@@ -95,10 +106,19 @@ namespace Source.Features.SceneEditor.Controllers
             
             _savePanelController.SaveButtonClicked -= SaveScene;
             _loadPanelController.LoadButtonClicked -= LoadScene;
+            
+            _selectController.SelectStateReset -= OnSelectStateReset;
+        }
+        
+        public void OnStateChange(EBuildingState state)
+        {
+            ResetSelectController();
         }
         
         private void OnPanelOpened()
         {
+            _panelOpened = true;
+            
             _cameraController.LockInput();
             _inputHandler.LockInput();
             _buildingStateController.ChangeState(EBuildingState.Disabled);
@@ -106,6 +126,8 @@ namespace Source.Features.SceneEditor.Controllers
 
         private void OnPanelClosed()
         {
+            _panelOpened = false;
+            
             _cameraController.UnlockInput();
             _inputHandler.UnlockInput();
         }
@@ -125,16 +147,34 @@ namespace Source.Features.SceneEditor.Controllers
 
         private Cube SpawnCube(Transform spawnTransform)
         {
-            var cube = _cubeFabric.SpawnCube(_objectIndex, spawnTransform.position, spawnTransform.rotation);
+            var cube = _cubeFactory.SpawnCube(_objectIndex, spawnTransform.position, spawnTransform.rotation);
+            
+            cube.Construct(_objectPrefabsConfig.GetBuildingGhostCubePrefab(), 
+                _objectPrefabsConfig.GetDestroyingGhostCubePrefab(),
+                _objectIndex);
             
             _buildingStateController.AddListener(cube);
             cube.OnStateChange(_buildingStateController.GetCurrentState());
             
+            _selectController.AddSelectListener(cube);
+            cube.Selected += OnSelected;
+            
             cube.BuildMouseLeftButtonClicked += OnBuildMouseLeftButtonClicked;
             cube.DestroyMouseLeftButtonClicked += OnDestroyMouseLeftButtonClicked;
             
-
             return cube;
+        }
+
+        private void OnSelected(ISelectListener listener)
+        {
+            if (_panelOpened) return;
+            
+            _selectController.ChangeSelected(listener);
+            
+            var selectedTransform = listener.GetTransform();
+            _inspectorViewController.Construct(selectedTransform, listener.GetType() != ECubeType.Cube);
+
+            _inspectorViewController.Show();
         }
 
         private void OnBuildMouseLeftButtonClicked(Transform cubeTransform)
@@ -144,6 +184,7 @@ namespace Source.Features.SceneEditor.Controllers
         
         private void OnDestroyMouseLeftButtonClicked(Cube cube)
         {
+            _selectController.RemoveSelectListener(cube);
             _cubes.Remove(cube);
             Destroy(cube.gameObject);
         }
@@ -155,6 +196,11 @@ namespace Source.Features.SceneEditor.Controllers
 
         private void LoadScene(string sceneName)
         {
+            for (int i = 0; i < _cubes.Count; i++)
+            {
+                _selectController.RemoveSelectListener(_cubes[i]);
+            }
+            
             _cubes.Clear();
             SceneLoader.ClearLevel();
             
@@ -162,9 +208,16 @@ namespace Source.Features.SceneEditor.Controllers
 
             for (int i = 0; i < _cubes.Count; i++)
             {
+                _cubes[i].Construct(_objectPrefabsConfig.GetBuildingGhostCubePrefab(),
+                    _objectPrefabsConfig.GetDestroyingGhostCubePrefab(), 
+                    _objectIndex);
+                
                 _buildingStateController.AddListener(_cubes[i]);
                 _cubes[i].BuildMouseLeftButtonClicked += OnBuildMouseLeftButtonClicked;
                 _cubes[i].DestroyMouseLeftButtonClicked += OnDestroyMouseLeftButtonClicked;
+                
+                _selectController.AddSelectListener(_cubes[i]);
+                _cubes[i].Selected += OnSelected;
             }
             
             ResetBuilderStateController();
@@ -172,6 +225,9 @@ namespace Source.Features.SceneEditor.Controllers
 
             ResetInstrumentController();
             InitializeInstrumentStateController();
+
+            InitializeSelectController();
+            ResetSelectController();
         }
 
         private void ResetBuilderStateController()
@@ -183,10 +239,11 @@ namespace Source.Features.SceneEditor.Controllers
 
         private void InitializeBuilderStateController()
         {
-            _buildingStateController =
-                new StateHandler<EBuildingState>(_cubes);
+            _buildingStateController ??= new StateHandler<EBuildingState>(_cubes);
 
             _inputHandler.BuildingStateButtonPressed += _buildingStateController.ChangeState;
+            
+            _buildingStateController.AddListener(this);
         }
 
         private void ResetInstrumentController()
@@ -198,10 +255,24 @@ namespace Source.Features.SceneEditor.Controllers
 
         private void InitializeInstrumentStateController()
         {
-            _instrumentController =
-                new StateHandler<EInstrumentState>(_cubes);
+            _instrumentController ??= new StateHandler<EInstrumentState>(_cubes);
 
             _inputHandler.InstrumentStateButtonPressed += _instrumentController.ChangeState;
+        }
+        
+        private void ResetSelectController()
+        {
+            _selectController.ResetSelectState();
+        }
+
+        private void OnSelectStateReset()
+        {
+            _inspectorViewController.Hide();
+        }
+
+        private void InitializeSelectController()
+        {
+            _selectController ??= new SelectController(_cubes);
         }
     }
 }
