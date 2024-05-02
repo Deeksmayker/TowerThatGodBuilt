@@ -129,9 +129,6 @@ public class EnemiesController : MonoBehaviour{
         var enemiesOnScene = FindObjectsOfType<Enemy>();
         
         for (int i = 0; i < enemiesOnScene.Length; i++){
-            enemiesOnScene[i].sphere = enemiesOnScene[i].GetComponent<SphereCollider>();
-            enemiesOnScene[i].kickTrailParticles = Instantiate(Particles.Instance.GetParticles("KickTrailParticles"), enemiesOnScene[i].transform);
-            
             Enemy enemy = enemiesOnScene[i];
             InitEnemy(ref enemy);
         }
@@ -166,6 +163,9 @@ public class EnemiesController : MonoBehaviour{
     }
     
     private void InitEnemy(ref Enemy enemy){
+        enemy.sphere = enemy.GetComponent<SphereCollider>();
+        enemy.kickTrailParticles = Instantiate(Particles.Instance.GetParticles("KickTrailParticles"), enemy.transform);
+    
         switch (enemy.type){
             case DummyType:
                 _dummies.Add(new Dummy() { enemy = enemy });
