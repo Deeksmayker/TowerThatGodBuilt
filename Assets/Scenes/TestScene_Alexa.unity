@@ -295,6 +295,7 @@ MonoBehaviour:
   - saves progress at the current point
   - exit the game
   - shows player stats
+  - 'load level with index (form: load_level X).'
   commands:
   - help
   - kill_all
@@ -304,6 +305,7 @@ MonoBehaviour:
   - save
   - exit
   - stats
+  - load_level
 --- !u!1 &98515344
 GameObject:
   m_ObjectHideFlags: 0

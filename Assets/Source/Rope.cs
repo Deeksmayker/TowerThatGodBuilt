@@ -1,5 +1,6 @@
+using Source.Utils;
 using UnityEngine;
-using static Utils;
+using static Source.Utils.Utils;
 using static UnityEngine.Mathf;
 using static UnityEngine.Physics;
 
@@ -13,6 +14,7 @@ public class Rope : MonoBehaviour{
     [SerializeField] private float iterationCount = 3;
     [SerializeField] private int connectionPointsCount = 5;
     [SerializeField] private int collisionSamples = 1;
+    [SerializeField] private float multiplier = 1f;
 
     private float _lifetime;
     private bool _sleeping;
@@ -115,10 +117,10 @@ public class Rope : MonoBehaviour{
     private void SolveConstraint(ref RopeNode node1, ref RopeNode node2){
         Vector3 vecToFirst = node1.transform.position - node2.transform.position;
         float distance = vecToFirst.magnitude;
-        if (distance > targetDistance){
+        if (distance > targetDistance*multiplier){
             //broken = distance > targetDistance * max_elongation_ratio;
             Vector3 dir = vecToFirst / distance;
-            float distDiff = targetDistance - distance;
+            float distDiff = targetDistance*multiplier - distance;
             
             Vector3 powerVec = -(distDiff * strength) / (node1.mass + node2.mass) * dir;
             if (!node1.stopOnCollision){
