@@ -26,6 +26,9 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/BalancedTutorial03.unity
     guid: 6c358276ea6434b4a827cef6fae278f2
+  - enabled: 1
+    path: Assets/Scenes/ConstructedSceneLevel.unity
+    guid: fe9c5d5ca54e533468033fbe0cea3a38
   - enabled: 0
     path: Assets/Scenes/DevScene.unity
     guid: 2f0bf2019210f0e4e90774a26bda8418

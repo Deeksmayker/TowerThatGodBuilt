@@ -8,7 +8,7 @@ namespace Source.Features.SceneEditor.Controllers
 {
     public class CubesDataController
     {
-        private const string GRID_DATA_DIRECTION_NAME = "GridData";
+        private const string GRID_DATA_DIRECTION_NAME = "LevelData";
         private readonly string _cubesDataPath;
 
         public CubesDataController()
@@ -41,6 +41,11 @@ namespace Source.Features.SceneEditor.Controllers
             var cellsData = JsonConvert.DeserializeObject<CubeData[]>(dataJson);
 
             return cellsData;
+        }
+
+        public bool LevelExists(string name)
+        {
+            return Directory.Exists(_cubesDataPath) && File.Exists(Path.Combine(_cubesDataPath, name + ".json"));
         }
 
         private CubeData[] GetCubeData(Cube[] cubes)
