@@ -4,6 +4,8 @@
     {
         Cube,
         Player,
-        Enemy
+        Enemy,
+        Gate,
+        Ball
     }
 }

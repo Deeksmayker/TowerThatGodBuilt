@@ -18,8 +18,9 @@ namespace Source.Features.SceneEditor.Data
 
         public int PrefabIndex;
         public ECubeType Type;
+        public EnemyType EnemyType;
 
-        public CubeData(Vector3 position, Quaternion rotation, int prefabIndex, ECubeType type)
+        public CubeData(Vector3 position, Quaternion rotation, int prefabIndex, ECubeType type, EnemyType enemyType)
         {
             X = position.x;
             Y = position.y;
@@ -31,6 +32,7 @@ namespace Source.Features.SceneEditor.Data
 
             PrefabIndex = prefabIndex;
             Type = type;
+            EnemyType = enemyType;
         }
     }
 }

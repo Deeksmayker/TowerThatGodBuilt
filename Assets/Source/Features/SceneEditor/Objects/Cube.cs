@@ -17,6 +17,7 @@ namespace Source.Features.SceneEditor.Objects
         public event Action<Transform> BuildMouseLeftButtonClicked;
      
         [SerializeField] private ECubeType _type;
+        [SerializeField] private EnemyType _enemyType;
         [SerializeField] private HighlightComponent _highlightComponent;
         
         private MouseHandler _mouseHandler;
@@ -38,7 +39,7 @@ namespace Source.Features.SceneEditor.Objects
             _buildingGhostCubePrefab = buildingGhostCubePrefab;
             _destroyGhostCubePrefab = destroyGhostCubePrefab;
 
-            _cubeData = new CubeData(transform.position, transform.rotation, objectIndex, _type);
+            _cubeData = new CubeData(transform.position, transform.rotation, objectIndex, _type, _enemyType);
         }
         
         public void MouseExit()
@@ -121,6 +122,17 @@ namespace Source.Features.SceneEditor.Objects
 
         public CubeData GetData()
         {
+            var position = transform.position;
+            var rotation = transform.rotation.eulerAngles;
+            
+            _cubeData.X = position.x;
+            _cubeData.Y = position.y;
+            _cubeData.Z = position.z;
+            
+            _cubeData.XRotation = rotation.x;
+            _cubeData.YRotation = rotation.y;
+            _cubeData.ZRotation = rotation.z;
+            
             return _cubeData;
         }
         

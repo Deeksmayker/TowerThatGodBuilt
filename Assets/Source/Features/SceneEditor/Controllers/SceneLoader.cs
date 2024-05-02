@@ -1,18 +1,21 @@
 ﻿using System;
-using Source.Features.SceneEditor.Controllers;
+using System.Linq;
 using Source.Features.SceneEditor.Data;
 using Source.Features.SceneEditor.Enums;
 using Source.Features.SceneEditor.Objects;
-using Source.Features.SceneEditor.ScriptableObjects;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using Object = UnityEngine.Object;
 
-namespace Source.Features.SceneEditor.Utils
+using static Source.Utils.Utils;
+
+namespace Source.Features.SceneEditor.Controllers
 {
     public static class SceneLoader
     {
         public static event Action<Transform> PlayerSpawnerFound;
+        public static event Action<Transform> BallSpawnerFound;
+        public static event Action<EnemyType, Transform> EnemySpawnerFound;
         
         private const string CONSTRUCTED_SCENE_LEVEL = "ConstructedSceneLevel";
         private static CubeFactory _cubeFactory; 
@@ -36,30 +39,6 @@ namespace Source.Features.SceneEditor.Utils
                 Debug.LogError("Could not load level " + sceneName);
             }
         }
-
-        public static void BuildGameLevel(string sceneName)
-        {
-            var cubesData = Load(sceneName);
-            var cubes =  BuildLevel(cubesData);
-            
-            for (int i = 0; i < cubes.Length; i++)
-            {
-                if (cubesData[i].Type == ECubeType.Player)
-                {
-                    PlayerSpawnerFound?.Invoke(cubes[i].transform);
-
-                    Object.Destroy(cubes[i].gameObject);
-                }
-                else if (cubesData[i].Type == ECubeType.Enemy)
-                {
-                    // Спавним врага вместо куба
-                }
-                else
-                {
-                    Object.Destroy(cubes[i]);
-                }
-            }
-        }
         
         public static Cube[] BuildLevel(string sceneName)
         {
@@ -74,6 +53,56 @@ namespace Source.Features.SceneEditor.Utils
             {
                 Object.Destroy(child.gameObject);
             }
+        }
+        
+        private static void BuildGameLevel(string sceneName)
+        {
+            var cubesData = Load(sceneName);
+            var cubes =  BuildLevel(cubesData);
+
+            InitializePlayerCube(cubesData, cubes);
+            
+            for (int i = 0; i < cubes.Length; i++)
+            {
+                if (cubesData[i].Type == ECubeType.Enemy)
+                {
+                    EnemySpawnerFound?.Invoke(cubesData[i].EnemyType, cubes[i].transform);
+                    
+                    Object.Destroy(cubes[i].gameObject);
+                }
+                else if (cubesData[i].Type == ECubeType.Gate)
+                {
+                    // TODO: Вынести в другой класс
+                    var gatePrefab = GetPrefab("WinGate");
+                    Object.Instantiate(gatePrefab, cubes[i].transform.position, cubes[i].transform.rotation);
+                    
+                    Object.Destroy(cubes[i].gameObject);
+                }
+                else if (cubesData[i].Type == ECubeType.Ball)
+                {
+                    // TODO: Вынести в другой класс
+                    /*var ballPrefab = GetPrefab("PlayerBall");
+                    Object.Instantiate(ballPrefab, cubes[i].transform.position, cubes[i].transform.rotation);*/
+                    
+                    BallSpawnerFound?.Invoke(cubes[i].transform);
+                    
+                    Object.Destroy(cubes[i].gameObject);
+                }
+                else
+                {
+                    Object.Destroy(cubes[i]);
+                }
+            }
+        }
+        
+        private static void InitializePlayerCube(CubeData[] cubesData, Cube[] cubes)
+        {
+            var playerCube = cubesData.First(x => x.Type == ECubeType.Player);
+            var playerCubeIndex = cubesData.ToList().IndexOf(playerCube);
+            
+            PlayerSpawnerFound?.Invoke(cubes[playerCubeIndex].transform);
+            
+            Object.Destroy(cubes[playerCubeIndex].gameObject);
         }
         
         private static Cube[] BuildLevel(CubeData[] cubesData)

@@ -154,7 +154,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b60a7242e1d328341b72617ee03cfda7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  type: 1
+  type: 2
   kickTrailParticles: {fileID: 0}
   sphere: {fileID: 0}
   index: 0

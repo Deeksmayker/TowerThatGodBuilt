@@ -8,7 +8,7 @@ namespace Source.Features.SceneEditor.Controllers
 {
     public class CubesDataController
     {
-        private const string GRID_DATA_DIRECTION_NAME = "GridData";
+        private const string GRID_DATA_DIRECTION_NAME = "LevelData";
         private readonly string _cubesDataPath;
 
         public CubesDataController()

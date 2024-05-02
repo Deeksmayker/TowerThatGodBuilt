@@ -20,8 +20,10 @@ namespace Source.Features.SceneEditor.Controllers
         {
             var prefab = _config.GetObjectPrefabs()[prefabIndex];
             var cube = Object.Instantiate(prefab, position, rotation);
-            
             cube.transform.SetParent(_parent);
+            
+            cube.Construct(_config.GetBuildingGhostCubePrefab(),
+                _config.GetDestroyingGhostCubePrefab(), prefabIndex);
             
             return cube;
         }

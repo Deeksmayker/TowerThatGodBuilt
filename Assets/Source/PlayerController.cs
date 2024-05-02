@@ -1,12 +1,13 @@
 using UnityEngine;
 using System.Collections.Generic;
 using System;
+using Source.Features.SceneEditor.Controllers;
 using TMPro;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using static UnityEngine.Mathf;
 using static UnityEngine.Physics;
-using static Utils;
+using static Source.Utils.Utils;
 using static EnemyType;
 
 public enum PlayerClass{
@@ -195,7 +196,17 @@ public class PlayerController : MonoBehaviour{
             _balls.Add(ball);
         }
     }
+
+    private void OnEnable()
+    {
+        SceneLoader.BallSpawnerFound += OnBallSpawnerFound;
+    }
     
+    private void OnDisable()
+    {
+        SceneLoader.BallSpawnerFound -= OnBallSpawnerFound;
+    }
+
     private void Start(){
         _kickHitParticles  = Particles.Instance.GetParticles("KickHitParticles");
         _ballHitParticles  = Particles.Instance.GetParticles("BallHitParticles");
@@ -917,7 +928,8 @@ public class PlayerController : MonoBehaviour{
                             ReflectToPlayer(ref ball, enemy);
                         }
                         break;
-                    case ShooterType:
+                    case HorizontalShooterType:
+                    case VerticalShooterType:
                         if (BallRicocheCharged(ref ball)){
                             ReflectToNearbyEnemy(ref ball, enemy);
                         } else{
@@ -1170,6 +1182,14 @@ public class PlayerController : MonoBehaviour{
     private void SetKickVelocityToBall(ref PlayerBall ball){
         ball.velocity = GetCameraTransform().forward * _player.maxBallSpeed + playerVelocity * 0.5f;
         ball.angularVelocity = _currentStartAngularVelocity;
+    }
+    
+    private void OnBallSpawnerFound(Transform spawnPoint)
+    {
+        var ball = Instantiate(_playerBallPrefab, spawnPoint.position, spawnPoint.rotation);
+        InitBall(ref ball);
+            
+        _balls.Add(ball);
     }
     
     private void BulletTime(){
