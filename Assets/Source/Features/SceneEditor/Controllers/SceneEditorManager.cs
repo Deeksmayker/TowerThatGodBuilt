@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using Source.Features.SceneEditor.Enums;
 using Source.Features.SceneEditor.Interfaces;
@@ -6,9 +5,9 @@ using Source.Features.SceneEditor.Objects;
 using Source.Features.SceneEditor.ScriptableObjects;
 using Source.Features.SceneEditor.UI.Inspector;
 using Source.Features.SceneEditor.UI.ModePanel;
+using Source.Features.SceneEditor.UI.ObjectsPanel;
+using Source.Features.SceneEditor.UI.QuickPlay;
 using Source.Features.SceneEditor.UI.SavePanel;
-using Source.Features.SceneEditor.Utils;
-using Unity.Mathematics;
 using UnityEngine;
 
 namespace Source.Features.SceneEditor.Controllers
@@ -20,20 +19,23 @@ namespace Source.Features.SceneEditor.Controllers
 
         [SerializeField] private ObjectPrefabsConfig _objectPrefabsConfig;
         [SerializeField] private Transform _parentTransform;
-
+        
         [SerializeField] private TextView _currentInstrumentTextView;
         [SerializeField] private TextView _currentModeTextView;
         [SerializeField] private SavePanelView _savePanelView;
         [SerializeField] private LoadPanelView _loadPanelView;
+        [SerializeField] private QuickPlayView _quickPlayView;
 
         [SerializeField] private CameraController _cameraController;
         
         [SerializeField] private InspectorView _inspectorView;
+        [SerializeField] private ObjectsPanel _objectsPanel;
         
         private InspectorViewController _inspectorViewController;
         
-        private SavePanelController _savePanelController;
-        private LoadPanelController _loadPanelController;
+        private SavePanelViewController _savePanelViewController;
+        private LoadPanelViewController _loadPanelViewController;
+        private QuickPlayViewController _quickPlayViewController;
 
         private BuildingModeViewController _buildingModeViewController;
         private InstrumentModeViewController _instrumentModeViewController;
@@ -54,8 +56,9 @@ namespace Source.Features.SceneEditor.Controllers
             _cubes = new List<Cube>();
             _cubeFactory = new CubeFactory(_objectPrefabsConfig, _parentTransform);
             
-            _savePanelController = new SavePanelController(_savePanelView);
-            _loadPanelController = new LoadPanelController(_loadPanelView);
+            _savePanelViewController = new SavePanelViewController(_savePanelView);
+            _loadPanelViewController = new LoadPanelViewController(_loadPanelView);
+            _quickPlayViewController = new QuickPlayViewController(_quickPlayView);
 
             _buildingModeViewController = new BuildingModeViewController(_currentModeTextView);
             _instrumentModeViewController = new InstrumentModeViewController(_currentInstrumentTextView);
@@ -82,14 +85,15 @@ namespace Source.Features.SceneEditor.Controllers
         {
             _inputHandler.AlphaButtonPressed += OnAlphaPressed;
             
-            _savePanelController.Opened += OnPanelOpened;
-            _loadPanelController.Opened += OnPanelOpened;
+            _savePanelViewController.Opened += OnPanelViewOpened;
+            _loadPanelViewController.Opened += OnPanelViewOpened;
             
-            _savePanelController.Closed += OnPanelClosed;
-            _loadPanelController.Closed += OnPanelClosed;
+            _savePanelViewController.Closed += OnPanelViewClosed;
+            _loadPanelViewController.Closed += OnPanelViewClosed;
             
-            _savePanelController.SaveButtonClicked += SaveScene;
-            _loadPanelController.LoadButtonClicked += LoadScene;
+            _savePanelViewController.SaveButtonClicked += SaveScene;
+            _loadPanelViewController.LoadButtonClicked += LoadScene;
+            _quickPlayViewController.ButtonClicked += OnQuickPlayButtonClicked;
 
             _selectController.SelectStateReset += OnSelectStateReset;
         }
@@ -98,14 +102,15 @@ namespace Source.Features.SceneEditor.Controllers
         {
             _inputHandler.AlphaButtonPressed -= OnAlphaPressed;
 
-            _savePanelController.Opened -= OnPanelOpened;
-            _loadPanelController.Opened -= OnPanelOpened;
+            _savePanelViewController.Opened -= OnPanelViewOpened;
+            _loadPanelViewController.Opened -= OnPanelViewOpened;
             
-            _savePanelController.Closed -= OnPanelClosed;
-            _loadPanelController.Closed -= OnPanelClosed;
+            _savePanelViewController.Closed -= OnPanelViewClosed;
+            _loadPanelViewController.Closed -= OnPanelViewClosed;
             
-            _savePanelController.SaveButtonClicked -= SaveScene;
-            _loadPanelController.LoadButtonClicked -= LoadScene;
+            _savePanelViewController.SaveButtonClicked -= SaveScene;
+            _loadPanelViewController.LoadButtonClicked -= LoadScene;
+            _quickPlayViewController.ButtonClicked -= OnQuickPlayButtonClicked;
             
             _selectController.SelectStateReset -= OnSelectStateReset;
         }
@@ -114,8 +119,16 @@ namespace Source.Features.SceneEditor.Controllers
         {
             ResetSelectController();
         }
+
+        private void OnQuickPlayButtonClicked()
+        {
+            var tempName = _cubes.GetHashCode().ToString();
+            
+            SaveScene(tempName);
+            SceneLoader.LoadLevel(tempName);
+        }
         
-        private void OnPanelOpened()
+        private void OnPanelViewOpened()
         {
             _panelOpened = true;
             
@@ -124,7 +137,7 @@ namespace Source.Features.SceneEditor.Controllers
             _buildingStateController.ChangeState(EBuildingState.Disabled);
         }
 
-        private void OnPanelClosed()
+        private void OnPanelViewClosed()
         {
             _panelOpened = false;
             
@@ -208,10 +221,6 @@ namespace Source.Features.SceneEditor.Controllers
 
             for (int i = 0; i < _cubes.Count; i++)
             {
-                _cubes[i].Construct(_objectPrefabsConfig.GetBuildingGhostCubePrefab(),
-                    _objectPrefabsConfig.GetDestroyingGhostCubePrefab(), 
-                    _objectIndex);
-                
                 _buildingStateController.AddListener(_cubes[i]);
                 _cubes[i].BuildMouseLeftButtonClicked += OnBuildMouseLeftButtonClicked;
                 _cubes[i].DestroyMouseLeftButtonClicked += OnDestroyMouseLeftButtonClicked;
@@ -244,6 +253,7 @@ namespace Source.Features.SceneEditor.Controllers
             _inputHandler.BuildingStateButtonPressed += _buildingStateController.ChangeState;
             
             _buildingStateController.AddListener(this);
+            _buildingStateController.AddListener(_objectsPanel);
         }
 
         private void ResetInstrumentController()

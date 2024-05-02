@@ -2,17 +2,19 @@ using UnityEngine;
 using System.Collections.Generic;
 using System;
 using System.Reflection;
+using Source.Features.SceneEditor.Controllers;
 using Array = System.Array;
 using UnityEditor;
 using static UnityEngine.Mathf;
 using static UnityEngine.Physics;
-using static Utils;
+using static Source.Utils.Utils;
 using static EnemyType;
 using static DodgeDirection;
 
 public enum EnemyType{
     DummyType,
-    ShooterType,
+    VerticalShooterType,
+    HorizontalShooterType,
     BlockerType,
     RicocheType,
     WindGuyType
@@ -114,7 +116,22 @@ public class EnemiesController : MonoBehaviour{
         _verticalShooterPrefab = GetPrefab("VerticalDummyShooter").GetComponent<Enemy>();
         _blockerPrefab = GetPrefab("Blocker").GetComponent<Enemy>();
         _ricochePrefab = GetPrefab("Ricoche").GetComponent<Enemy>();
-        _windGuyPrefab = GetPrefab("Ricoche").GetComponent<Enemy>();
+        _windGuyPrefab = GetPrefab("WindGuy").GetComponent<Enemy>();
+    }
+
+    private void OnEnable()
+    {
+        SceneLoader.EnemySpawnerFound += OnEnemySpawnerFound;
+    }
+    
+    private void OnDisable()
+    {
+        SceneLoader.EnemySpawnerFound -= OnEnemySpawnerFound;
+    }
+
+    private void OnEnemySpawnerFound(EnemyType type, Transform spawnPoint)
+    {
+        SpawnEnemy(type, spawnPoint.position, spawnPoint.rotation);
     }
     
     private void Start(){
@@ -137,19 +154,18 @@ public class EnemiesController : MonoBehaviour{
         }
     }
     
-    public void SpawnEnemy(EnemyType type, Vector3 position, Quaternion rotation, int variation = 1){
+    public void SpawnEnemy(EnemyType type, Vector3 position, Quaternion rotation){
         Enemy enemy = null;
     
         switch (type){
             case DummyType:
                 enemy = Instantiate(_dummyPrefab, position, rotation);
                 break;
-            case ShooterType:
-                if (variation == 1){
-                    enemy = Instantiate(_horizontalShooterPrefab, position, rotation);
-                } else{
-                    enemy = Instantiate(_verticalShooterPrefab, position, rotation);
-                }
+            case VerticalShooterType:
+                enemy = Instantiate(_verticalShooterPrefab, position, rotation);
+                break;
+            case HorizontalShooterType:
+                enemy = Instantiate(_horizontalShooterPrefab, position, rotation);
                 break;
             case BlockerType:
                 enemy = Instantiate(_blockerPrefab, position, rotation);
@@ -172,7 +188,8 @@ public class EnemiesController : MonoBehaviour{
                 _dummies[_dummies.Count-1].dodgeStartPosition = _dummies[_dummies.Count-1].enemy.transform.position;
                 _dummies[_dummies.Count-1].enemy.index = _dummies.Count-1;
                 break;
-            case ShooterType:
+            case VerticalShooterType:
+            case HorizontalShooterType:
                 var shooter = new Shooter() {enemy = enemy};
                 shooter.enemy.index = _shooters.Count;
                 shooter.cooldownTimer = shooter.shootCooldown;
@@ -443,7 +460,8 @@ public class EnemiesController : MonoBehaviour{
             enemy.justTakeHit = false;
             
             switch (enemy.type){
-                case ShooterType:
+                case HorizontalShooterType:
+                case VerticalShooterType:
                     float radius = 20;
                     float pushPower = 60;
                     (Collider[], int) collidersInExplosionRadius = CollidersInRadius(enemy.transform.position, radius, Layers.EnemyHurtBox | Layers.PlayerHurtBox | Layers.PlayerProjectile | Layers.EnemyProjectile);
@@ -749,7 +767,8 @@ public class EnemiesController : MonoBehaviour{
             case DummyType:
                 checkRadius = 1f;
                 break;
-            case ShooterType:
+            case HorizontalShooterType:
+            case VerticalShooterType:
                 checkRadius = 1f;
                 break;
         }

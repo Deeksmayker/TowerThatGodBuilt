@@ -5,29 +5,29 @@ using UnityEngine.UI;
 
 namespace Source.Features.SceneEditor.UI.SavePanel
 {
-    public class SavePanelController
+    public class LoadPanelViewController
     {
         public event Action Opened;
         public event Action Closed;
-        public event Action<string> SaveButtonClicked;
+        public event Action<string> LoadButtonClicked;
         
-        private readonly SavePanelView _view;
+        private readonly LoadPanelView _view;
         private readonly Button _openButton;
 
-        public SavePanelController(SavePanelView view)
+        public LoadPanelViewController(LoadPanelView view)
         {
             _view = view;
             _openButton = _view.GetShowButton();
             
-            var saveButton = _view.GetSaveButton();
+            var loadButton = _view.GetLoadButton();
             var closeButton = _view.GetCloseButton();
             
             _openButton.onClick.AddListener(OnShowButtonClicked);
-            saveButton.onClick.AddListener(OnSaveButtonClicked);
+            loadButton.onClick.AddListener(OnLoadButtonClicked);
             closeButton.onClick.AddListener(OnCloseButtonClicked);
         }
 
-        private void OnSaveButtonClicked()
+        private void OnLoadButtonClicked()
         {
             var fileName = _view.GetInputField().text;
 
@@ -37,7 +37,7 @@ namespace Source.Features.SceneEditor.UI.SavePanel
                 return;
             }
             
-            SaveButtonClicked?.Invoke(fileName);
+            LoadButtonClicked?.Invoke(fileName);
         }
 
         private void OnCloseButtonClicked()
@@ -55,7 +55,7 @@ namespace Source.Features.SceneEditor.UI.SavePanel
             _openButton.gameObject.SetActive(false);
             _view.Show();
             
-            EventSystem.current .SetSelectedGameObject(_view.GetInputField().gameObject, null);
+            EventSystem.current.SetSelectedGameObject(_view.GetInputField().gameObject, null);
             _view.GetInputField().OnPointerClick(new PointerEventData(EventSystem.current));
         }
     }
