@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Source.Features.SceneEditor.Data;
 using Source.Features.SceneEditor.Enums;
 using Source.Features.SceneEditor.Interfaces;
 using Source.Features.SceneEditor.Objects;
@@ -8,6 +9,7 @@ using Source.Features.SceneEditor.UI.ModePanel;
 using Source.Features.SceneEditor.UI.ObjectsPanel;
 using Source.Features.SceneEditor.UI.QuickPlay;
 using Source.Features.SceneEditor.UI.SavePanel;
+using Source.Features.SceneEditor.UI.WarningPanel;
 using UnityEngine;
 
 namespace Source.Features.SceneEditor.Controllers
@@ -15,6 +17,9 @@ namespace Source.Features.SceneEditor.Controllers
     // TODO: refactoring to Bootstrapper
     public class SceneEditorManager : MonoBehaviour, IChangeStateListener<EBuildingState>
     {
+        private const string NO_PLAYER_WARNING_TEXT = "There is no player spawn point on the level";
+        private const float NO_PLAYER_WARNING_TIME = 3f;
+        
         [SerializeField] private InputHandler _inputHandler;
 
         [SerializeField] private ObjectPrefabsConfig _objectPrefabsConfig;
@@ -30,6 +35,10 @@ namespace Source.Features.SceneEditor.Controllers
         
         [SerializeField] private InspectorView _inspectorView;
         [SerializeField] private ObjectsPanel _objectsPanel;
+
+        [SerializeField] private WarningView _warningView;
+
+        private WarningViewController _warningViewController;
         
         private InspectorViewController _inspectorViewController;
         
@@ -65,9 +74,13 @@ namespace Source.Features.SceneEditor.Controllers
 
             _inspectorViewController = new InspectorViewController(_inspectorView);
             
+            _warningViewController = new WarningViewController(_warningView);
+            
             InitializeBuilderStateController();
             InitializeInstrumentStateController();
             InitializeSelectController();
+            
+            Utils.Utils.ToggleCursor(true);
         }
 
         private void Start()
@@ -75,7 +88,16 @@ namespace Source.Features.SceneEditor.Controllers
             SceneLoader.Construct(_cubeFactory);
             
             OnAlphaPressed(0);
-            _cubes.Add(SpawnCube(transform));
+
+            if (CubesDataController.LevelExists(SceneEditorConstants.QUICK_PLAY_SCENE_NAME))
+            {
+                LoadScene(SceneEditorConstants.QUICK_PLAY_SCENE_NAME);
+                CubesDataController.Delete(SceneEditorConstants.QUICK_PLAY_SCENE_NAME);
+            }
+            else
+            {
+                _cubes.Add(SpawnCube(transform));
+            }
 
             _buildingStateController.AddListener(_buildingModeViewController);
             _instrumentController.AddListener(_instrumentModeViewController);
@@ -124,8 +146,19 @@ namespace Source.Features.SceneEditor.Controllers
         {
             var tempName = _cubes.GetHashCode().ToString();
             
+            // Backup
             SaveScene(tempName);
-            SceneLoader.LoadLevel(tempName);
+            
+            SaveScene(SceneEditorConstants.QUICK_PLAY_SCENE_NAME);
+
+            if (SceneLoader.IsValidLevel(SceneEditorConstants.QUICK_PLAY_SCENE_NAME))
+            {
+                SceneLoader.LoadLevel(SceneEditorConstants.QUICK_PLAY_SCENE_NAME);
+            }
+            else
+            {
+                _warningViewController.ShowErrorTextWithTime(NO_PLAYER_WARNING_TEXT, NO_PLAYER_WARNING_TIME);
+            }
         }
         
         private void OnPanelViewOpened()
@@ -197,6 +230,11 @@ namespace Source.Features.SceneEditor.Controllers
         
         private void OnDestroyMouseLeftButtonClicked(Cube cube)
         {
+            if (_cubes.Count <= 1)
+            {
+                _cubes.Add(SpawnCube(transform));
+            };
+            
             _selectController.RemoveSelectListener(cube);
             _cubes.Remove(cube);
             Destroy(cube.gameObject);
@@ -204,6 +242,12 @@ namespace Source.Features.SceneEditor.Controllers
 
         private void SaveScene(string sceneName)
         {
+            if (sceneName.Contains(" "))
+            {
+                
+                return;
+            }
+            
             SceneLoader.Save(_cubes.ToArray(), sceneName);
         }
 
