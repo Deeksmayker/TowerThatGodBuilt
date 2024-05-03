@@ -1,7 +1,9 @@
 ﻿using System;
+using System.IO;
+using Source.Features.SceneEditor.Data;
 using Source.Features.SceneEditor.ScriptableObjects;
 using UnityEngine;
-using Object = UnityEngine.Object;
+using UnityEngine.SceneManagement;
 
 namespace Source.Features.SceneEditor.Controllers
 {
@@ -14,6 +16,9 @@ namespace Source.Features.SceneEditor.Controllers
         [Header("Player Spawn Data")] 
         [SerializeField] private GameObject _playerPrefab;
         [SerializeField] private Transform _playerParentObject;
+
+        [Header("Buttons Data")] 
+        [SerializeField] private InputHandler _inputHandler;
         
         private PlayerSpawner _playerSpawner;
         private Transform _player;
@@ -22,13 +27,16 @@ namespace Source.Features.SceneEditor.Controllers
         {
             InitializePlayerSpawner();
             InitializeSceneLoader();
+            InitializeButtons();
         }
 
         private void OnDisable()
         {
             if (_player)
                 Destroy(_player.gameObject);
+            
             SceneLoader.PlayerSpawnerFound -= OnPlayerSpawnerFound;
+            _inputHandler.BackspaceButtonPressed -= OnBackspaceButtonPressed;
         }
 
         private void InitializePlayerSpawner()
@@ -48,25 +56,18 @@ namespace Source.Features.SceneEditor.Controllers
             var cubeFactory = new CubeFactory(_objectPrefabsConfig, _spawnedObjectsParent);
             SceneLoader.Construct(cubeFactory);
         }
-    }
 
-    public class PlayerSpawner
-    {
-        private readonly GameObject _prefab;
-        private readonly Transform _parent;
-
-        public PlayerSpawner(GameObject prefab, Transform parent)
+        private void InitializeButtons()
         {
-            _prefab = prefab;
-            _parent = parent;
+            _inputHandler.BackspaceButtonPressed += OnBackspaceButtonPressed;
         }
-        
-        public Transform SpawnPlayer(Transform spawnPoint)
+
+        private void OnBackspaceButtonPressed()
         {
-            var player = Object.Instantiate(_prefab, spawnPoint.position, spawnPoint.rotation);
-            player.transform.SetParent(_parent);
-            
-            return player.transform;
+            if (CubesDataController.LevelExists(SceneEditorConstants.QUICK_PLAY_SCENE_NAME))
+            {
+                SceneManager.LoadSceneAsync(SceneEditorConstants.SCENE_EDITOR_SCENE_NAME);
+            }
         }
     }
 }
