@@ -14,6 +14,8 @@ namespace Source.Features.SceneEditor.UI.SavePanel
         private readonly SavePanelView _view;
         private readonly Button _openButton;
 
+        private Color _defaultColor;
+
         public SavePanelViewController(SavePanelView view)
         {
             _view = view;
@@ -25,6 +27,8 @@ namespace Source.Features.SceneEditor.UI.SavePanel
             _openButton.onClick.AddListener(OnShowButtonClicked);
             saveButton.onClick.AddListener(OnSaveButtonClicked);
             closeButton.onClick.AddListener(OnCloseButtonClicked);
+            
+            _defaultColor = _view.GetInputField().textComponent.color;
         }
 
         private void OnSaveButtonClicked()
@@ -36,7 +40,17 @@ namespace Source.Features.SceneEditor.UI.SavePanel
                 Debug.LogError("File name is null or empty.");
                 return;
             }
+
+            if (fileName.Contains(" "))
+            {
+                _view.GetInputField().textComponent.color = Color.red;
+                _view.GetInputField().onValueChanged.AddListener(OnInputValueChanged);
+
+                Debug.LogError("Invalid file name.");
+                return;
+            }
             
+            OnCloseButtonClicked();
             SaveButtonClicked?.Invoke(fileName);
         }
 
@@ -57,6 +71,12 @@ namespace Source.Features.SceneEditor.UI.SavePanel
             
             EventSystem.current .SetSelectedGameObject(_view.GetInputField().gameObject, null);
             _view.GetInputField().OnPointerClick(new PointerEventData(EventSystem.current));
+        }
+        
+        private void OnInputValueChanged(string _)
+        {
+            _view.GetInputField().textComponent.color = _defaultColor;
+            _view.GetInputField().onValueChanged.RemoveListener(OnInputValueChanged);
         }
     }
 }

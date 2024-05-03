@@ -46,7 +46,9 @@ namespace Source.Features.SceneEditor.UI.Inspector.Components
 
         private void OnXRotationChanged(string value)
         {
-            if (string.IsNullOrEmpty(value)) return;
+            if (string.IsNullOrEmpty(value)
+                || value.Equals("-")
+                || value.Equals("+")) return;
             
             var xRotation = float.Parse(value);
             
@@ -58,7 +60,9 @@ namespace Source.Features.SceneEditor.UI.Inspector.Components
 
         private void OnYRotationChanged(string value)
         {
-            if (string.IsNullOrEmpty(value)) return;
+            if (string.IsNullOrEmpty(value)
+                || value.Equals("-")
+                || value.Equals("+")) return;
             
             var yRotation = float.Parse(value);
             
@@ -70,7 +74,9 @@ namespace Source.Features.SceneEditor.UI.Inspector.Components
 
         private void OnZRotationChanged(string value)
         {
-            if (string.IsNullOrEmpty(value)) return;
+            if (string.IsNullOrEmpty(value)
+                || value.Equals("-")
+                || value.Equals("+")) return;
             
             var zRotation = float.Parse(value);
             

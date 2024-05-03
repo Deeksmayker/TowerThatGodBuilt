@@ -17,7 +17,6 @@ namespace Source.Features.SceneEditor.Controllers
         public static event Action<Transform> BallSpawnerFound;
         public static event Action<EnemyType, Transform> EnemySpawnerFound;
         
-        private const string CONSTRUCTED_SCENE_LEVEL = "ConstructedSceneLevel";
         private static CubeFactory _cubeFactory; 
         
         public static void Construct(CubeFactory cubeFactory)
@@ -27,17 +26,22 @@ namespace Source.Features.SceneEditor.Controllers
 
         public static void LoadLevel(string sceneName)
         {
-            var cubesDataController = new CubesDataController();
-
-            if (cubesDataController.LevelExists(sceneName))
+            if (CubesDataController.LevelExists(sceneName))
             {
-                SceneManager.LoadSceneAsync(CONSTRUCTED_SCENE_LEVEL)
+                SceneManager.LoadSceneAsync(SceneEditorConstants.CONSTRUCTED_SCENE_LEVEL)
                     .completed += _ => BuildGameLevel(sceneName);
             }
             else
             {
                 Debug.LogError("Could not load level " + sceneName);
             }
+        }
+
+        public static bool IsValidLevel(string sceneName)
+        {
+            var cubesData = Load(sceneName);
+
+            return cubesData.Any(data => data.Type == ECubeType.Player);
         }
         
         public static Cube[] BuildLevel(string sceneName)
@@ -122,15 +126,12 @@ namespace Source.Features.SceneEditor.Controllers
         
         public static void Save(Cube[] cubes, string name)
         {
-            var cubesDataController = new CubesDataController();
-            
-            cubesDataController.Save(cubes, name);
+            CubesDataController.Save(cubes, name);
         }
 
         private static CubeData[] Load(string name)
         {
-            var cubesDataController = new CubesDataController();
-            var cubesData = cubesDataController.Load(name);
+            var cubesData = CubesDataController.Load(name);
 
             if (cubesData == null)
             {

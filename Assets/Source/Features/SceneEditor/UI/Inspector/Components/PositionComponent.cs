@@ -36,7 +36,9 @@ namespace Source.Features.SceneEditor.UI.Inspector.Components
 
         private void OnXPositionChanged(string value)
         {
-            if (string.IsNullOrEmpty(value)) return;
+            if (string.IsNullOrEmpty(value)
+                || value.Equals("-")
+                || value.Equals("+")) return;
             
             var xPosition = float.Parse(value);
             
@@ -48,7 +50,9 @@ namespace Source.Features.SceneEditor.UI.Inspector.Components
 
         private void OnYPositionChanged(string value)
         {
-            if (string.IsNullOrEmpty(value)) return;
+            if (string.IsNullOrEmpty(value)
+                || value.Equals("-")
+                || value.Equals("+")) return;
             
             var yPosition = float.Parse(value);
             
@@ -60,7 +64,9 @@ namespace Source.Features.SceneEditor.UI.Inspector.Components
 
         private void OnZPositionChanged(string value)
         {
-            if (string.IsNullOrEmpty(value)) return;
+            if (string.IsNullOrEmpty(value)
+                || value.Equals("-")
+                || value.Equals("+")) return;
             
             var zPosition = float.Parse(value);
             
