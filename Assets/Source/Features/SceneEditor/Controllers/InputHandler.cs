@@ -11,6 +11,7 @@ namespace Source.Features.SceneEditor.Controllers
         public event Action<int> AlphaButtonPressed;
         public event Action<EInstrumentState> InstrumentStateButtonPressed;
         public event Action<EBuildingState> BuildingStateButtonPressed;
+        public event Action BackspaceButtonPressed;
         
         private bool _isInputLocked;
 
@@ -21,6 +22,11 @@ namespace Source.Features.SceneEditor.Controllers
             CheckAlphaButtonPressed();
             CheckBuildingModeButtonPressed();
             CheckInstrumentButtonPressed();
+
+            if (Input.GetKeyDown(KeyCode.Backspace))
+            {
+                BackspaceButtonPressed?.Invoke();
+            }
         }
 
         public void LockInput()

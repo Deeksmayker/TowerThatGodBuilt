@@ -6,17 +6,15 @@ using UnityEngine;
 
 namespace Source.Features.SceneEditor.Controllers
 {
-    public class CubesDataController
+    public static class CubesDataController
     {
-        private const string GRID_DATA_DIRECTION_NAME = "LevelData";
-        private readonly string _cubesDataPath;
+        #if !UNITY_EDITOR
+        private static readonly string _cubesDataPath = Path.Combine(Application.dataPath, "LevelData");
+        #else
+        private static readonly string _cubesDataPath = Path.Combine(Application.persistentDataPath, "LevelData");
+        #endif
 
-        public CubesDataController()
-        {
-            _cubesDataPath = Path.Combine(Application.persistentDataPath, GRID_DATA_DIRECTION_NAME);
-        }
-
-        public void Save(Cube[] cubes, string name)
+        public static void Save(Cube[] cubes, string name)
         {
             var cubesData = GetCubeData(cubes);
             var dataJson = JsonConvert.SerializeObject(cubesData, Formatting.Indented);
@@ -29,7 +27,7 @@ namespace Source.Features.SceneEditor.Controllers
             File.WriteAllText(Path.Combine(_cubesDataPath, name + ".json"), dataJson);
         }
 
-        public CubeData[] Load(string name)
+        public static CubeData[] Load(string name)
         {
             if (!Directory.Exists(_cubesDataPath) || !File.Exists(Path.Combine(_cubesDataPath, name + ".json")))
             {
@@ -43,12 +41,23 @@ namespace Source.Features.SceneEditor.Controllers
             return cellsData;
         }
 
-        public bool LevelExists(string name)
+        public static void Delete(string name)
+        {
+            if (!Directory.Exists(_cubesDataPath) || !File.Exists(Path.Combine(_cubesDataPath, name + ".json")))
+            {
+                Debug.LogError("404: Not Found.");
+                return;
+            }
+
+            File.Delete(Path.Combine(_cubesDataPath, name + ".json"));
+        }
+
+        public static bool LevelExists(string name)
         {
             return Directory.Exists(_cubesDataPath) && File.Exists(Path.Combine(_cubesDataPath, name + ".json"));
         }
 
-        private CubeData[] GetCubeData(Cube[] cubes)
+        private static CubeData[] GetCubeData(Cube[] cubes)
         {
             var result = new CubeData[cubes.Length];
 
