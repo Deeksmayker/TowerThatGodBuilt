@@ -13,6 +13,8 @@ namespace Source.Features.SceneEditor.UI.SavePanel
         
         private readonly LoadPanelView _view;
         private readonly Button _openButton;
+        
+        private Color _defaultColor;
 
         public LoadPanelViewController(LoadPanelView view)
         {
@@ -25,6 +27,8 @@ namespace Source.Features.SceneEditor.UI.SavePanel
             _openButton.onClick.AddListener(OnShowButtonClicked);
             loadButton.onClick.AddListener(OnLoadButtonClicked);
             closeButton.onClick.AddListener(OnCloseButtonClicked);
+            
+            _defaultColor = _view.GetInputField().textComponent.color;
         }
 
         private void OnLoadButtonClicked()
@@ -36,7 +40,17 @@ namespace Source.Features.SceneEditor.UI.SavePanel
                 Debug.LogError("File name is null or empty.");
                 return;
             }
+
+            if (fileName.Contains(" "))
+            {
+                _view.GetInputField().textComponent.color = Color.red;
+                _view.GetInputField().onValueChanged.AddListener(OnInputValueChanged);
+
+                Debug.LogError("Invalid file name.");
+                return;
+            }
             
+            OnCloseButtonClicked();
             LoadButtonClicked?.Invoke(fileName);
         }
 
@@ -51,12 +65,18 @@ namespace Source.Features.SceneEditor.UI.SavePanel
         private void OnShowButtonClicked()
         {
             Opened?.Invoke();
-            
+
             _openButton.gameObject.SetActive(false);
             _view.Show();
-            
+
             EventSystem.current.SetSelectedGameObject(_view.GetInputField().gameObject, null);
             _view.GetInputField().OnPointerClick(new PointerEventData(EventSystem.current));
+        }
+        
+        private void OnInputValueChanged(string _)
+        {
+            _view.GetInputField().textComponent.color = _defaultColor;
+            _view.GetInputField().onValueChanged.RemoveListener(OnInputValueChanged);
         }
     }
 }
