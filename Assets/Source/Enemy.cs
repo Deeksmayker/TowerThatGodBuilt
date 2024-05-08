@@ -10,7 +10,7 @@ public class Enemy : MonoBehaviour{
     public EnemyType type;
     public ParticleSystem kickTrailParticles;
     public SphereCollider sphere;
-    public int index;
+    public int index = -1;
     public Vector3 velocity;
     public float timeInKickFlight;
     public float hitImmuneCountdown;

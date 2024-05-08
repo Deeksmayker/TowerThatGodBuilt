@@ -12,7 +12,7 @@ public class Rope : MonoBehaviour{
     [SerializeField] private float airFriction = 0.5f;
     [SerializeField] private float gravity = 1f;
     [SerializeField] private float iterationCount = 3;
-    [SerializeField] private int connectionPointsCount = 5;
+//    [SerializeField] private int connectionPointsCount = 5;
     [SerializeField] private int collisionSamples = 1;
     [SerializeField] private float multiplier = 1f;
 
@@ -192,25 +192,25 @@ public class Rope : MonoBehaviour{
         }
     }    
     
-    private void SetLineRendererPositions(){
-        Vector3 previousLineVec = Vector3.zero;
-        for (int i = 0; i < nodesCount - 1; i++){
-            _lr.SetPosition(i * connectionPointsCount, _nodes[i].transform.position);
+    // private void SetLineRendererPositions(){
+    //     Vector3 previousLineVec = Vector3.zero;
+    //     for (int i = 0; i < nodesCount - 1; i++){
+    //         _lr.SetPosition(i * connectionPointsCount, _nodes[i].transform.position);
             
-            if (i == 0){
-                previousLineVec = _nodes[1].transform.position - _nodes[0].transform.position;
-            }
+    //         if (i == 0){
+    //             previousLineVec = _nodes[1].transform.position - _nodes[0].transform.position;
+    //         }
             
-            Vector3 middlePos = _nodes[i].transform.position + previousLineVec * 0.5f;
-            for (int j = 1; j < connectionPointsCount - 1; j++){ 
-                _lr.SetPosition(i * connectionPointsCount + j, Bezie(_nodes[i].transform.position, middlePos, _nodes[i+1].transform.position, ((float)j) / connectionPointsCount));
-            }
-            if (i > 0){
-                previousLineVec = _nodes[i].transform.position - _nodes[i-1].transform.position;
-            }
-            _lr.SetPosition((i + 1) * connectionPointsCount - 1, _nodes[i+1].transform.position);
-        }
-    }
+    //         Vector3 middlePos = _nodes[i].transform.position + previousLineVec * 0.5f;
+    //         for (int j = 1; j < connectionPointsCount - 1; j++){ 
+    //             _lr.SetPosition(i * connectionPointsCount + j, Bezie(_nodes[i].transform.position, middlePos, _nodes[i+1].transform.position, ((float)j) / connectionPointsCount));
+    //         }
+    //         if (i > 0){
+    //             previousLineVec = _nodes[i].transform.position - _nodes[i-1].transform.position;
+    //         }
+    //         _lr.SetPosition((i + 1) * connectionPointsCount - 1, _nodes[i+1].transform.position);
+    //     }
+    // }
     
     public void DestroyRope(float time = 0){
         _nodes[0].canMove = true;
