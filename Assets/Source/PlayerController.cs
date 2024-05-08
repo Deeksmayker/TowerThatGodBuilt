@@ -627,8 +627,10 @@ public class PlayerController : MonoBehaviour{
     }  
     
     private void CalculatePlayerCollisions(ref Vector3 velocity, float delta){
-        var sphereCenter1 = transform.position - Vector3.up * _collider.height * 0.5f;
-        var sphereCenter2 = transform.position + Vector3.up * _collider.height * 0.5f;
+        Vector3 nextPosition = transform.position + velocity * delta;
+    
+        var sphereCenter1 = nextPosition - Vector3.up * _collider.height * 0.5f;
+        var sphereCenter2 = nextPosition + Vector3.up * _collider.height * 0.5f;
         
         bool foundGround = false;
         
@@ -637,20 +639,20 @@ public class PlayerController : MonoBehaviour{
         for (int i = 0; i < groundColliders.Item2; i++){
             Vector3 colPoint = groundColliders.Item1[i].ClosestPoint(transform.position);
             Vector3 vecToPlayer = (transform.position - colPoint);
-            Vector3 dirToPlayer = vecToPlayer.normalized;
+            Vector3 normal = vecToPlayer.normalized;
             
-            if (Vector3.Dot(velocity, dirToPlayer) >= 0){
+            if (Vector3.Dot(velocity, normal) >= 0){
                 continue;
             }
             
-            if (Vector3.Angle(dirToPlayer, transform.up) <= 30){
+            if (Vector3.Angle(normal, transform.up) <= 30){
                 foundGround = true;
                 if (!_grounded){
                     var landingSpeedProgress = -velocity.y / 75; 
                     PlayerCameraController.Instance.ShakeCameraLong(landingSpeedProgress);
                 }
             }
-            velocity -= dirToPlayer * Vector3.Dot(velocity, dirToPlayer);
+            velocity -= normal * Vector3.Dot(velocity, normal);
             // Vector3 playerBottomPoint = transform.position - transform.up * _collider.height * 0.5f;
             // playerBottomPoint.y -= _collider.radius;
             // transform.position += (colPoint - playerBottomPoint);
