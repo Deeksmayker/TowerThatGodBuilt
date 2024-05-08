@@ -31,6 +31,7 @@ public class Dummy{
     public bool  dodging;
 }
 
+[Serializable]
 public class Shooter{
     public Enemy enemy;
     public Dummy dummyDodgeComponent;
@@ -42,6 +43,7 @@ public class Shooter{
     public int   shootedCount;
 }
 
+[Serializable]
 public class Blocker{
     public Enemy enemy;
     public Vector3 pivotPosition;
@@ -60,6 +62,7 @@ public class Blocker{
     public bool blocking;
 }
 
+[Serializable]
 public class Ricoche{
     public Enemy enemy;
     public LineRenderer targetLine;
@@ -70,6 +73,7 @@ public class Ricoche{
     public float orbitingSpeed = 20;
 }
 
+[Serializable]
 public class WindGuy{
     public Enemy enemy;
     public WindArea windArea;
@@ -143,12 +147,12 @@ public class EnemiesController : MonoBehaviour{
         _targetColliders = new Collider[20];
         
     
-        var enemiesOnScene = FindObjectsOfType<Enemy>();
+        // var enemiesOnScene = FindObjectsOfType<Enemy>();
         
-        for (int i = 0; i < enemiesOnScene.Length; i++){
-            Enemy enemy = enemiesOnScene[i];
-            InitEnemy(ref enemy);
-        }
+        // for (int i = 0; i < enemiesOnScene.Length; i++){
+        //     Enemy enemy = enemiesOnScene[i];
+        //     InitEnemy(ref enemy);
+        // }
     }
     
     public void SpawnEnemy(EnemyType type, Vector3 position, Quaternion rotation){
@@ -530,6 +534,7 @@ public class EnemiesController : MonoBehaviour{
             }
             
             if (shooter.delayTimer <= 0){
+                if (shooter.enemy.index == 25) Debug.Log("spawn");
                 EnemyProjectile projectile = SpawnEnemyProjectile(shooterTransform.position + shooterTransform.up, vectorToPlayer * projectileStartSpeed);
                 shooter.shootedCount++;
                 if (shooter.shootedCount < shooter.burstShootCount){
@@ -601,6 +606,7 @@ public class EnemiesController : MonoBehaviour{
     
     private void DisableEnemyProjectile(ref EnemyProjectile projectile){
         projectile.lifeTime = 0;
+        projectile.slowingLifetime = 1.5f;
         projectile.gameObject.SetActive(false);
     }
     
@@ -609,11 +615,16 @@ public class EnemiesController : MonoBehaviour{
             return;
         }
     
-        var deltaVelocity = projectile.velocity * delta;
-        var hits = SphereCastAll(projectile.transform.position, projectile.sphere.radius, projectile.velocity.normalized, deltaVelocity.magnitude, Layers.PlayerHurtBox | Layers.Environment);
+        //var deltaVelocity = projectile.velocity * delta;
+        
+        Vector3 nextPosition = projectile.transform.position + projectile.velocity * delta;
+        
+        //var hits = SphereCastAll(projectile.transform.position, projectile.sphere.radius, projectile.velocity.normalized, deltaVelocity.magnitude, Layers.PlayerHurtBox | Layers.Environment);
+        
+        ColInfo[] hits = ColInfoInRadius(nextPosition, projectile.sphere.radius, Layers.PlayerHurtBox | Layers.Environment);
         
         for (int i = 0; i < hits.Length; i++){
-            var player = hits[i].transform.GetComponentInParent<PlayerController>();
+            var player = hits[i].col.transform.GetComponentInParent<PlayerController>();
             if (player){
                 player.ResetPosition();
             }
@@ -623,17 +634,15 @@ public class EnemiesController : MonoBehaviour{
     }
     
     private void HandleEnvCollisions(ref Enemy enemy){
-        (Collider[], int) collidersNearby = CollidersInRadius(enemy.transform.position, enemy.sphere.radius, Layers.Environment);
+        //(Collider[], int) collidersNearby = CollidersInRadius(enemy.transform.position, enemy.sphere.radius, Layers.Environment);
         
-        for (int i = 0; i < collidersNearby.Item2; i++){
-            Collider col = collidersNearby.Item1[i];
-            
-            Vector3 colPoint = col.ClosestPoint(enemy.transform.position);
-            Vector3 dirToEnemy = enemy.transform.position - colPoint;
-            if (dirToEnemy.sqrMagnitude <= EPSILON) dirToEnemy = enemy.transform.forward;
+        ColInfo[] cols = ColInfoInRadius(enemy.transform.position, enemy.sphere.radius, Layers.Environment);
+        
+        for (int i = 0; i < cols.Length; i++){
+            if (cols[i].vecToTarget.sqrMagnitude <= EPSILON) cols[i].vecToTarget = enemy.transform.forward;
             // enemy.transform.rotation = Quaternion.LookRotation(dirToEnemy);
             // enemy.transform.position += dirToEnemy;
-            enemy.velocity = dirToEnemy.normalized * (enemy.velocity.magnitude + 10);
+            enemy.velocity = cols[i].normal * (enemy.velocity.magnitude + 10);
         }
     }
 

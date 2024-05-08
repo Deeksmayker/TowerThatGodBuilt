@@ -105,6 +105,21 @@ namespace Source.Utils
         
             return null;
         }
+        
+        public static ColInfo[] ColInfoInRadius(Vector3 nextPosition, float radius, LayerMask layers){
+            (Collider[], int) colliders = CollidersInRadius(nextPosition, radius, layers);
+            ColInfo[] result = new ColInfo[colliders.Item2];
+            
+            for (int i = 0; i < colliders.Item2; i++){
+                result[i] = new ColInfo();
+                result[i].col = colliders.Item1[i];
+                result[i].point = colliders.Item1[i].ClosestPoint(nextPosition);
+                result[i].vecToTarget = (nextPosition - result[i].point);
+                result[i].normal = result[i].vecToTarget.normalized;
+            }
+            
+            return result;
+        }
     
         public static bool MoveToPosition(ref Transform targetTransform, ref float timer, float timeToMove, Vector3 startPosition, Vector3 endPosition, bool backwards, Func<float, float> easeFunction){
             float t = 0;
@@ -185,4 +200,11 @@ namespace Source.Utils
 
         }
     }
+}
+
+public class ColInfo{
+    public Collider col;
+    public Vector3 point;
+    public Vector3 vecToTarget;
+    public Vector3 normal;
 }
