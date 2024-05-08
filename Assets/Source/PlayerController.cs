@@ -186,15 +186,6 @@ public class PlayerController : MonoBehaviour{
         if (!showPlayerStats){
             _speedTextMesh.gameObject.SetActive(false);
         }
-        
-        PlayerBall[] ballsOnScene = FindObjectsOfType<PlayerBall>();
-        
-        for (int i = 0; i < ballsOnScene.Length; i++){
-            PlayerBall ball = ballsOnScene[i];
-            ball.sleeping = true;
-            InitBall(ref ball);
-            _balls.Add(ball);
-        }
     }
 
     private void OnEnable()
@@ -212,6 +203,16 @@ public class PlayerController : MonoBehaviour{
         _ballHitParticles  = Particles.Instance.GetParticles("BallHitParticles");
         
         _spawnPosition = transform.position;
+        
+        PlayerBall[] ballsOnScene = FindObjectsOfType<PlayerBall>();
+        _balls = new();
+        
+        for (int i = 0; i < ballsOnScene.Length; i++){
+            PlayerBall ball = ballsOnScene[i];
+            ball.sleeping = true;
+            InitBall(ref ball);
+            _balls.Add(ball);
+        }
     }
     
     private float _previousDelta;
@@ -629,7 +630,6 @@ public class PlayerController : MonoBehaviour{
         var sphereCenter1 = transform.position - Vector3.up * _collider.height * 0.5f;
         var sphereCenter2 = transform.position + Vector3.up * _collider.height * 0.5f;
         
-        var deltaVelocity = velocity * delta;
         bool foundGround = false;
         
         (Collider[], int) groundColliders = CollidersInCapsule(sphereCenter1, sphereCenter2, _collider.radius, Layers.Environment);
@@ -853,7 +853,7 @@ public class PlayerController : MonoBehaviour{
     
     private void CalculateBallCollisions(ref PlayerBall ball, float delta, bool imaginaryBall = false){
         //Layers. - gives us proper flag, but gameObject.layer gives us layer number from unity editor
-        var deltaVelocity = ball.velocity * delta;
+        Vector3 nextPosition = ball.transform.position + ball.velocity * delta;
         
         var hitableLayers = Layers.PlayerBallHitable;
         /*
@@ -861,20 +861,27 @@ public class PlayerController : MonoBehaviour{
             hitableLayers &= ~(int)Layers.PlayerProjectile;
         }
         */
-        RaycastHit[] enemyHits = SphereCastAll(ball.transform.position, ball.sphere.radius, ball.velocity.normalized, deltaVelocity.magnitude, Layers.EnemyHurtBox);
+//        RaycastHit[] enemyHits = SphereCastAll(ball.transform.position, ball.sphere.radius, ball.velocity.normalized, deltaVelocity.magnitude, Layers.EnemyHurtBox);
+        
+        (Collider[], int) enemyColliders = CollidersInRadius(nextPosition, ball.sphere.radius, Layers.EnemyHurtBox);
 
-        for (int i = 0; i < enemyHits.Length; i++){
-            if (enemyHits[i].transform == ball.transform) continue;
+        for (int i = 0; i < enemyColliders.Item2; i++){
+            Collider col = enemyColliders.Item1[i];
+        
+            if (col.transform == ball.transform) continue;
             
-            if (!imaginaryBall && enemyHits[i].transform.GetComponent<WinGate>()){
-                Win(enemyHits[i].point);
+            Vector3 colPoint = col.ClosestPoint(ball.transform.position);
+            Vector3 vecToBall = (ball.transform.position - colPoint);
+            Vector3 normal = vecToBall.normalized;
+            
+            if (!imaginaryBall && col.transform.GetComponent<WinGate>()){
+                Win(colPoint);
                 return;
             }
-
             
-            var enemy = enemyHits[i].collider.GetComponentInParent<Enemy>();
+            var enemy = col.GetComponentInParent<Enemy>();
             
-            if (!enemy || enemy.hitImmuneCountdown > 0 || Vector3.Dot(enemyHits[i].normal, ball.velocity) > 0) continue;
+            if (!enemy || enemy.hitImmuneCountdown > 0 || Vector3.Dot(normal, ball.velocity) > 0) continue;
 
             if (ball.velocity.sqrMagnitude > 25){
                 ball.bounceCount++;
@@ -882,11 +889,11 @@ public class PlayerController : MonoBehaviour{
                 //if (ball.bounceCount > 20) continue;
                 
                 if (!imaginaryBall){
-                    Particles.Instance.SpawnAndPlay(_ballHitParticles, enemyHits[i].point);
+                    Particles.Instance.SpawnAndPlay(_ballHitParticles, colPoint);
                 }
             }
 
-            bool hitBallLayer = ((1 << enemyHits[i].transform.gameObject.layer) & (int)Layers.PlayerProjectile) > 0;
+            bool hitBallLayer = ((1 << col.transform.gameObject.layer) & (int)Layers.PlayerProjectile) > 0;
             if (hitBallLayer){
             }
 
@@ -910,7 +917,7 @@ public class PlayerController : MonoBehaviour{
                             enemy.TakeKick(ball.velocity);
                             break;
                         default:
-                            enemy.TakeHit(enemyHits[i].collider);
+                            enemy.TakeHit(col);
                             break;
                     }
                 
@@ -947,29 +954,39 @@ public class PlayerController : MonoBehaviour{
                         } else{
                             ReflectToPlayer(ref ball, enemy);
                         }
-                        //ball.velocity = Vector3.Reflect(ball.velocity, enemyHits[i].normal) * 0.5f;
+                        //ball.velocity = Vector3.Reflect(ball.velocity, normal) * 0.5f;
                         break;
                 }
             }
         }
             
-        RaycastHit[] otherHits = SphereCastAll(ball.transform.position, 0.5f, ball.velocity.normalized, deltaVelocity.magnitude, Layers.Environment | Layers.EnemyProjectile);
+//        RaycastHit[] otherHits = SphereCastAll(ball.transform.position, 0.5f, ball.velocity.normalized, deltaVelocity.magnitude, Layers.Environment | Layers.EnemyProjectile);
         
-        for (int i = 0; i < otherHits.Length; i++){
-            EnemyProjectile enemyProjectile = otherHits[i].transform.GetComponentInParent<EnemyProjectile>();
+        nextPosition = ball.transform.position + ball.velocity * delta;
+        
+        (Collider[], int) otherColliders = CollidersInRadius(nextPosition, 0.5f, Layers.Environment | Layers.EnemyProjectile);
+        
+        for (int i = 0; i < otherColliders.Item2; i++){
+            Collider col = otherColliders.Item1[i];
+            
+            Vector3 colPoint = col.ClosestPoint(ball.transform.position);
+            Vector3 vecToBall = (ball.transform.position - colPoint);
+            Vector3 normal = vecToBall.normalized;
+        
+            EnemyProjectile enemyProjectile = col.GetComponentInParent<EnemyProjectile>();
             if (!imaginaryBall && ball.speed > 35){
-                Particles.Instance.SpawnAndPlay(_ballHitParticles, otherHits[i].point);
+                Particles.Instance.SpawnAndPlay(_ballHitParticles, colPoint);
             }
             
             if (enemyProjectile){
-                ball.velocity = Vector3.Reflect(ball.velocity, otherHits[i].normal);
+                ball.velocity = Vector3.Reflect(ball.velocity, normal);
                 ball.velocity.y = 20;
                 
-                enemyProjectile.velocity = Vector3.Reflect(enemyProjectile.velocity, -otherHits[i].normal);
+                enemyProjectile.velocity = Vector3.Reflect(enemyProjectile.velocity, -normal);
                 continue;
             }
             
-            Vector3 velocityReflectedVec = Vector3.Reflect(ball.velocity, otherHits[i].normal);
+            Vector3 velocityReflectedVec = Vector3.Reflect(ball.velocity, normal);
             float velocityMultiplier = 0.6f;
             if (velocityReflectedVec.y <= 5 && ball.speed <= 40){ 
                 velocityMultiplier = 0.95f;
@@ -1148,6 +1165,10 @@ public class PlayerController : MonoBehaviour{
     private PlayerBall SpawnPlayerBall(){
         PlayerBall newBall = null;
         for (int i = 0; i < _balls.Count; i++){
+            if (_balls[i] == null){
+                Debug.Log($"i: {i}, index: {_balls[i].index}");
+            }
+        
             if (!_balls[i].gameObject.activeSelf){
                 newBall = _balls[i];
                 newBall.gameObject.SetActive(true);
