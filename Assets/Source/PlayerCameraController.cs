@@ -19,12 +19,18 @@ public class PlayerCameraController : MonoBehaviour{
     [SerializeField] private float maxRoll, maxPitch;
     [SerializeField] private float rollChangeSpeed, pitchChangeSpeed;
     
+    [Header("Additional roll and pitch")]
+    [SerializeField] private float rollSense = 1;
+    [SerializeField] private float pitchSense = 1;
+    [SerializeField] private float recoverySpeed = 1;
+    
     [Header("Shake")]
     [SerializeField] private CameraShakers shakers;
     
     private float _currentSenseMultiplier = 1;
     
     private float _targetRoll, _targetPitch;
+    private float _additionalRoll, _additionalPitch;
     
     private PlayerController _player;
     
@@ -110,6 +116,12 @@ public class PlayerCameraController : MonoBehaviour{
         var xInputRotation =  Input.GetAxis("Mouse X") * sense * _currentSenseMultiplier;
         var yInputRotation = -Input.GetAxis("Mouse Y") * sense * _currentSenseMultiplier;
         
+        _additionalRoll -= xInputRotation * rollSense;
+        _additionalPitch += yInputRotation * pitchSense;
+        
+        _additionalRoll = Mathf.Clamp(_additionalRoll, -45f, 45f);
+        _additionalPitch = Mathf.Clamp(_additionalPitch, -25f, 25f);
+        
         xRotationTarget.localRotation *= Quaternion.Euler(yInputRotation, 0, 0);
         yRotationTarget.localRotation *= Quaternion.Euler(0, xInputRotation, 0);
         
@@ -120,10 +132,16 @@ public class PlayerCameraController : MonoBehaviour{
         _targetRoll  = -Input.GetAxisRaw("Horizontal") * maxRoll;
         _targetPitch = Input.GetAxisRaw("Vertical") * maxPitch;
         
+        _targetRoll += _additionalRoll;
+        _targetPitch += _additionalPitch;
+        
         _targetPitch = Mathf.Clamp(_targetPitch, -maxPitch, 0);
 
         rollTransform.localRotation  = Quaternion.Lerp(rollTransform.localRotation, Quaternion.Euler(new Vector3(0, 0, _targetRoll)), rollChangeSpeed * Time.deltaTime);
         pitchTransform.localRotation  = Quaternion.Lerp(pitchTransform.localRotation, Quaternion.Euler(new Vector3(_targetPitch, 0, 0)), pitchChangeSpeed * Time.deltaTime);
+        
+        _additionalRoll = Mathf.Lerp(_additionalRoll, 0, Time.deltaTime * recoverySpeed);
+        _additionalPitch = Mathf.Lerp(_additionalPitch, 0, Time.deltaTime * recoverySpeed);
     }
     
     private Quaternion ClampRotationAroundXAxis(Quaternion q)

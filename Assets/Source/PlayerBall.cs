@@ -19,4 +19,4 @@ public class PlayerBall : MonoBehaviour{
     public Vector3 velocityUp;
     public Vector3 velocityRight;
     public Vector3 angularVelocity;
-}
+}    
