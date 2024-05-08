@@ -317,7 +317,7 @@ PrefabInstance:
     - target: {fileID: 571635416026901791, guid: 12b185fbfdfe69143880fda5f29201da,
         type: 3}
       propertyPath: nodesCount
-      value: 10
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 571635416026901791, guid: 12b185fbfdfe69143880fda5f29201da,
         type: 3}
@@ -327,7 +327,12 @@ PrefabInstance:
     - target: {fileID: 571635416026901791, guid: 12b185fbfdfe69143880fda5f29201da,
         type: 3}
       propertyPath: targetDistance
-      value: 2
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 571635416026901791, guid: 12b185fbfdfe69143880fda5f29201da,
+        type: 3}
+      propertyPath: collisionSamples
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4449453477830190216, guid: 12b185fbfdfe69143880fda5f29201da,
         type: 3}
@@ -426,7 +431,7 @@ PrefabInstance:
     - target: {fileID: 571635416026901791, guid: 12b185fbfdfe69143880fda5f29201da,
         type: 3}
       propertyPath: nodesCount
-      value: 5
+      value: 4
       objectReference: {fileID: 0}
     - target: {fileID: 571635416026901791, guid: 12b185fbfdfe69143880fda5f29201da,
         type: 3}
@@ -436,7 +441,12 @@ PrefabInstance:
     - target: {fileID: 571635416026901791, guid: 12b185fbfdfe69143880fda5f29201da,
         type: 3}
       propertyPath: targetDistance
-      value: 2
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 571635416026901791, guid: 12b185fbfdfe69143880fda5f29201da,
+        type: 3}
+      propertyPath: collisionSamples
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4449453477830190216, guid: 12b185fbfdfe69143880fda5f29201da,
         type: 3}
@@ -545,7 +555,7 @@ PrefabInstance:
     - target: {fileID: 571635416026901791, guid: 12b185fbfdfe69143880fda5f29201da,
         type: 3}
       propertyPath: nodesCount
-      value: 8
+      value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 571635416026901791, guid: 12b185fbfdfe69143880fda5f29201da,
         type: 3}
@@ -555,7 +565,12 @@ PrefabInstance:
     - target: {fileID: 571635416026901791, guid: 12b185fbfdfe69143880fda5f29201da,
         type: 3}
       propertyPath: targetDistance
-      value: 5
+      value: 8
+      objectReference: {fileID: 0}
+    - target: {fileID: 571635416026901791, guid: 12b185fbfdfe69143880fda5f29201da,
+        type: 3}
+      propertyPath: collisionSamples
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4449453477830190216, guid: 12b185fbfdfe69143880fda5f29201da,
         type: 3}
@@ -679,7 +694,7 @@ PrefabInstance:
     - target: {fileID: 571635416026901791, guid: 12b185fbfdfe69143880fda5f29201da,
         type: 3}
       propertyPath: nodesCount
-      value: 8
+      value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 571635416026901791, guid: 12b185fbfdfe69143880fda5f29201da,
         type: 3}
@@ -689,7 +704,12 @@ PrefabInstance:
     - target: {fileID: 571635416026901791, guid: 12b185fbfdfe69143880fda5f29201da,
         type: 3}
       propertyPath: targetDistance
-      value: 5
+      value: 8
+      objectReference: {fileID: 0}
+    - target: {fileID: 571635416026901791, guid: 12b185fbfdfe69143880fda5f29201da,
+        type: 3}
+      propertyPath: collisionSamples
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4449453477830190216, guid: 12b185fbfdfe69143880fda5f29201da,
         type: 3}
@@ -808,7 +828,7 @@ PrefabInstance:
     - target: {fileID: 571635416026901791, guid: 12b185fbfdfe69143880fda5f29201da,
         type: 3}
       propertyPath: nodesCount
-      value: 5
+      value: 4
       objectReference: {fileID: 0}
     - target: {fileID: 571635416026901791, guid: 12b185fbfdfe69143880fda5f29201da,
         type: 3}
@@ -818,7 +838,12 @@ PrefabInstance:
     - target: {fileID: 571635416026901791, guid: 12b185fbfdfe69143880fda5f29201da,
         type: 3}
       propertyPath: targetDistance
-      value: 2
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 571635416026901791, guid: 12b185fbfdfe69143880fda5f29201da,
+        type: 3}
+      propertyPath: collisionSamples
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4449453477830190216, guid: 12b185fbfdfe69143880fda5f29201da,
         type: 3}

@@ -36,8 +36,8 @@ public class Shooter{
     public Enemy enemy;
     public Dummy dummyDodgeComponent;
     public float shootCooldown   = 5f;
-    public int   burstShootCount = 1;
-    public float shootDelay      = 0.02f;
+    public int   burstShootCount = 3;
+    public float shootDelay      = 0.1f;
     public float cooldownTimer;
     public float delayTimer;
     public int   shootedCount;
@@ -147,12 +147,14 @@ public class EnemiesController : MonoBehaviour{
         _targetColliders = new Collider[20];
         
     
-        // var enemiesOnScene = FindObjectsOfType<Enemy>();
+        var enemiesOnScene = FindObjectsOfType<Enemy>();
         
-        // for (int i = 0; i < enemiesOnScene.Length; i++){
-        //     Enemy enemy = enemiesOnScene[i];
-        //     InitEnemy(ref enemy);
-        // }
+        for (int i = 0; i < enemiesOnScene.Length; i++){
+            Enemy enemy = enemiesOnScene[i];
+            if (enemy.index < 0){
+                InitEnemy(ref enemy);
+            }
+        }
     }
     
     public void SpawnEnemy(EnemyType type, Vector3 position, Quaternion rotation){
@@ -183,6 +185,10 @@ public class EnemiesController : MonoBehaviour{
     }
     
     private void InitEnemy(ref Enemy enemy){
+        // if (enemy.index >= 0){
+        //     return;
+        // }
+    
         enemy.sphere = enemy.GetComponent<SphereCollider>();
         enemy.kickTrailParticles = Instantiate(Particles.Instance.GetParticles("KickTrailParticles"), enemy.transform);
     
@@ -534,7 +540,6 @@ public class EnemiesController : MonoBehaviour{
             }
             
             if (shooter.delayTimer <= 0){
-                if (shooter.enemy.index == 25) Debug.Log("spawn");
                 EnemyProjectile projectile = SpawnEnemyProjectile(shooterTransform.position + shooterTransform.up, vectorToPlayer * projectileStartSpeed);
                 shooter.shootedCount++;
                 if (shooter.shootedCount < shooter.burstShootCount){
@@ -582,31 +587,29 @@ public class EnemiesController : MonoBehaviour{
     }
     
     private EnemyProjectile SpawnEnemyProjectile(Vector3 position, Vector3 velocity){
-        EnemyProjectile newProjectile = null;
+        //EnemyProjectile newProjectile = null;
         for (int i = 0; i < _enemyProjectiles.Count; i++){
             if (!_enemyProjectiles[i].gameObject.activeSelf){
-                newProjectile = _enemyProjectiles[i];
-                newProjectile.gameObject.SetActive(true);
-                newProjectile.transform.position = position;
-                newProjectile.velocity = velocity;
-                newProjectile.lifeTime = 0;
+                _enemyProjectiles[i].gameObject.SetActive(true);
+                _enemyProjectiles[i].transform.position = position;
+                _enemyProjectiles[i].velocity = velocity;
+                _enemyProjectiles[i].lifeTime = 0;
+                return _enemyProjectiles[i];
             }
         }
         
-        if (!newProjectile){
-            newProjectile = Instantiate(_shooterProjectilePrefab, position, Quaternion.LookRotation(velocity));
-            newProjectile.velocity = velocity;
-            newProjectile.index = _enemyProjectiles.Count;
-            newProjectile.sphere = newProjectile.GetComponent<SphereCollider>();
-            _enemyProjectiles.Add(newProjectile);
-        }
+        EnemyProjectile newProjectile = Instantiate(_shooterProjectilePrefab, position, Quaternion.LookRotation(velocity));
+        newProjectile.velocity = velocity;
+        newProjectile.index = _enemyProjectiles.Count;
+        newProjectile.sphere = newProjectile.GetComponent<SphereCollider>();
+        _enemyProjectiles.Add(newProjectile);
         
         return newProjectile;
     }
     
     private void DisableEnemyProjectile(ref EnemyProjectile projectile){
         projectile.lifeTime = 0;
-        projectile.slowingLifetime = 1.5f;
+        //projectile.slowingLifetime = 1.5f;
         projectile.gameObject.SetActive(false);
     }
     
