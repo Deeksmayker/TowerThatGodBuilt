@@ -65,7 +65,7 @@ namespace Source.Utils
                 Vector3 vecToMe = (targetTransform.position - colPoint);
                 Vector3 dirToMe = vecToMe.normalized;
             
-                targetTransform.position += colPoint - (targetTransform.position - dirToMe * radius);
+                targetTransform.position += colPoint - (targetTransform.position - dirToMe * radius * 0.5f);
             }
         }
     

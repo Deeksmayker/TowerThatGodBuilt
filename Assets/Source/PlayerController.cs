@@ -686,9 +686,10 @@ public class PlayerController : MonoBehaviour{
         }
         
         HoldBallLogic(delta);
+        PredictAndDrawBallTrajectory();
         
         if (Input.GetMouseButton(1)){
-            PredictAndDrawBallTrajectory();
+//            PredictAndDrawBallTrajectory();
         } else{
             //_currentStartAngularVelocity = Vector3.Lerp(_currentStartAngularVelocity, Vector3.zero, delta * 4);
             angularVelocityDecreaseMultiplier = 2f;
@@ -1031,7 +1032,7 @@ public class PlayerController : MonoBehaviour{
         float snappingBallTime = 0.3f;
         
         if (Input.GetMouseButton(1) && !_catchedBallOnInput){
-            _ballInHold = BallInRange(4);
+            _ballInHold = BallInRange(2);
             if (_ballInHold){
                 _ballInHold.velocity = playerVelocity;
                 GameObject ballObject = _ballInHold.gameObject;
@@ -1052,7 +1053,7 @@ public class PlayerController : MonoBehaviour{
         if (Input.GetMouseButtonUp(1)){
             _catchedBallOnInput = false;
             //StopHoldingBall(true);
-            //StopHoldingBall(true);
+            StopHoldingBall(true);
         }
         
         if (_ballInHold){
@@ -1070,9 +1071,9 @@ public class PlayerController : MonoBehaviour{
             MoveSphereOutCollision(_ballInHold.transform, _ballInHold.sphere.radius, Layers.Environment);
             _ballInHold.velocity = playerVelocity;
             
-            if (_holdingBallTime >= maxHoldTime){
-                StopHoldingBall(true);
-            }
+            // if (_holdingBallTime >= maxHoldTime){
+            //     StopHoldingBall(true);
+            // }
         }
         /*
         return;
@@ -1117,27 +1118,28 @@ public class PlayerController : MonoBehaviour{
     }
     
     private void PredictAndDrawBallTrajectory(){
-        if (_player.haveScope){
+        if (_player.haveScope && Input.GetKey(KeyCode.Mouse1)){
             _currentStartAngularVelocity += new Vector3(Input.GetAxis("Mouse Y"), Input.GetAxis("Mouse X"), 0) * _player.angularVelocitySense;
             _currentStartAngularVelocity.x = Clamp(_currentStartAngularVelocity.x, -_player.maxAngularVelocity, _player.maxAngularVelocity);
             _currentStartAngularVelocity.y = Clamp(_currentStartAngularVelocity.y, -_player.maxAngularVelocity, _player.maxAngularVelocity);
         }
         
-        if (_player.haveScope){
-            var imaginaryBall = SpawnPlayerBall(BallStartPosition());
-            imaginaryBall.imaginary = true;
-            
-            PlayerBall ballInKickRange = BallInRange(1);
-            if (ballInKickRange){
-                imaginaryBall.transform.position = ballInKickRange.transform.position;
-                imaginaryBall.angularVelocity = ballInKickRange.angularVelocity;
-                imaginaryBall.velocity = ballInKickRange.velocity;
-            }
-            
+        // if (_player.haveScope){
+        var imaginaryBall = SpawnPlayerBall(BallStartPosition());
+        imaginaryBall.imaginary = true;
+        
+        PlayerBall ballInKickRange = _ballInHold ? _ballInHold : BallInRange(1);
+        if (ballInKickRange){
+            imaginaryBall.transform.position = ballInKickRange.transform.position;
+            imaginaryBall.angularVelocity = ballInKickRange.angularVelocity;
+            imaginaryBall.velocity = ballInKickRange.velocity;
+        }
+        
+        if (ballInKickRange || _player.haveScope && Input.GetKey(KeyCode.Mouse1)){
             SetKickVelocityToBall(ref imaginaryBall);
             //imaginaryBall.gameObject.name += "IMAGINE";
             
-            var iterationCount = 200;
+            var iterationCount = _player.haveScope ? 200 : 20;
             var step = 0.02f;
             
             _ballPredictionLineRenderer.positionCount = iterationCount;
@@ -1145,9 +1147,10 @@ public class PlayerController : MonoBehaviour{
                 _ballPredictionLineRenderer.SetPosition(i, imaginaryBall.transform.position);
                 UpdateBall(imaginaryBall, step, true);
             }
-            
-            DisableBall(ref imaginaryBall);
         }
+        
+        DisableBall(ref imaginaryBall);
+        //}
     }
     
     private void StopHoldingBall(bool inheritVelocity = false){
