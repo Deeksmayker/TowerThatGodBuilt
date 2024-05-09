@@ -205,13 +205,16 @@ public class PlayerController : MonoBehaviour{
         _spawnPosition = transform.position;
         
         PlayerBall[] ballsOnScene = FindObjectsOfType<PlayerBall>();
-        _balls = new();
         
         for (int i = 0; i < ballsOnScene.Length; i++){
             PlayerBall ball = ballsOnScene[i];
-            ball.sleeping = true;
+            //@HACK: Somebody duplicates balls
+            if (ball.initialized){
+                break;
+            }
+        
+            //ball.sleeping = true;
             InitBall(ref ball);
-            _balls.Add(ball);
         }
     }
     
@@ -344,7 +347,6 @@ public class PlayerController : MonoBehaviour{
             if (_currentStamina > 0 && _jumpChargeProgress < 1){
                 _jumpChargeProgress += _unscaledDelta / _player.timeToChargeMaxJump;
                 _currentStamina -= _unscaledDelta * _player.jumpChargeStaminaDrain;
-                //Debug.Log(_unscaledDelta);
                 _jumpBufferTimer = 0;
                 _currentFriction = _player.friction * 0.5f;
             } else{
@@ -560,7 +562,6 @@ public class PlayerController : MonoBehaviour{
     
     private void Jump(Vector3 wishDirection){
         playerVelocity.y += Lerp(_player.minJumpForce, _player.maxJumpForce, _jumpChargeProgress);
-        //Debug.Log(_jumpChargeProgress);
         playerVelocity += wishDirection * _player.jumpForwardBoost;
         
         PlayerCameraController.Instance.ShakeCameraLong(_jumpChargeProgress * 1f);
@@ -698,7 +699,7 @@ public class PlayerController : MonoBehaviour{
         }
     
         if (Input.GetMouseButton(1) && Input.GetMouseButtonDown(0) && _shootCooldownTimer <= 0 && _currentBallCount > 0 && !TargetInKickRange() && !_ballInHold){
-            PlayerBall newBall = SpawnPlayerBall();
+            PlayerBall newBall = SpawnPlayerBall(BallStartPosition());
             //newBall.index = _balls.Count;
             //_balls.Add(newBall);
             
@@ -781,8 +782,6 @@ public class PlayerController : MonoBehaviour{
                     ball.velocity += wind.PowerVector(ball.transform.position) * delta;
                 }
             }
-            
-            //Debug.Log(ball.transform.position);
         }
         
         if (!imaginaryBall){
@@ -1125,7 +1124,7 @@ public class PlayerController : MonoBehaviour{
         }
         
         if (_player.haveScope){
-            var imaginaryBall = SpawnPlayerBall();
+            var imaginaryBall = SpawnPlayerBall(BallStartPosition());
             imaginaryBall.imaginary = true;
             
             PlayerBall ballInKickRange = BallInRange(1);
@@ -1164,17 +1163,14 @@ public class PlayerController : MonoBehaviour{
         //_holdingBall = false;
     }
     
-    private PlayerBall SpawnPlayerBall(){
+    private PlayerBall SpawnPlayerBall(Vector3 spawnPosition){
         PlayerBall newBall = null;
-        for (int i = 0; i < _balls.Count; i++){
-            if (_balls[i] == null){
-                Debug.Log($"i: {i}, index: {_balls[i].index}");
-            }
         
+        for (int i = 0; i < _balls.Count; i++){
             if (!_balls[i].gameObject.activeSelf){
                 newBall = _balls[i];
                 newBall.gameObject.SetActive(true);
-                newBall.transform.position = BallStartPosition();
+                newBall.transform.position = spawnPosition;
                 newBall.imaginary = false;
                 newBall.chargedParticles.Stop();
                 break;
@@ -1182,10 +1178,8 @@ public class PlayerController : MonoBehaviour{
         }
         
         if (!newBall){
-            newBall = Instantiate(_playerBallPrefab, BallStartPosition(), Quaternion.identity);
+            newBall = Instantiate(_playerBallPrefab, spawnPosition, Quaternion.identity);
             InitBall(ref newBall);
-            
-            _balls.Add(newBall);
         }
         
         MoveSphereOutCollision(newBall.transform, 0.5f, Layers.Environment);
@@ -1194,8 +1188,14 @@ public class PlayerController : MonoBehaviour{
     }
     
     private void InitBall(ref PlayerBall ball){
+        if (ball.initialized){
+            return;
+        }
         ball.index = _balls.Count;
         ball.sphere = ball.GetComponent<SphereCollider>();
+        ball.initialized = true;
+        _balls.Add(ball);
+        //Debug.Log(_balls.Count);
     }
     
     private Vector3 BallStartPosition(){
@@ -1209,10 +1209,11 @@ public class PlayerController : MonoBehaviour{
     
     private void OnBallSpawnerFound(Transform spawnPoint)
     {
-        var ball = Instantiate(_playerBallPrefab, spawnPoint.position, spawnPoint.rotation);
-        InitBall(ref ball);
+        //var ball = Instantiate(_playerBallPrefab, spawnPoint.position, spawnPoint.rotation);
+        //InitBall(ref ball);
             
-        _balls.Add(ball);
+        //_balls.Add(ball);
+        SpawnPlayerBall(spawnPoint.position);
     }
     
     private void BulletTime(){

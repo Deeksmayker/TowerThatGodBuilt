@@ -3,6 +3,7 @@ using UnityEngine;
 public class PlayerBall : MonoBehaviour{
     public ParticleSystem chargedParticles;
     public int index = -1;
+    public bool initialized;
     public int bounceCount;
     public int groundBounceCount;
     public float lifeTime;

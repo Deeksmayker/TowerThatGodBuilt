@@ -6,6 +6,7 @@ using static UnityEngine.Physics;
 
 public class Rope : MonoBehaviour{
     [SerializeField] private Transform firstPos; 
+    [SerializeField] private Transform endPos; 
     [SerializeField] private int nodesCount = 30;
     [SerializeField] private float targetDistance = 1f;
     [SerializeField] private float strength = 1f;
@@ -66,6 +67,11 @@ public class Rope : MonoBehaviour{
             
             if (i == nodesCount - 1){
                 _nodes[i].neighbourIndexes = new int[]{i - 1};
+                if (endPos){
+                    _nodes[i].canMove = false;
+                    _nodes[i].transform.SetParent(endPos, true);
+                    _nodes[i].transform.position = endPos.position;
+                }
             } else{
                 _nodes[i].neighbourIndexes = new int[]{i - 1, i + 1};
             }

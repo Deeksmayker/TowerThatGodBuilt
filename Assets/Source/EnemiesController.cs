@@ -151,9 +151,9 @@ public class EnemiesController : MonoBehaviour{
         
         for (int i = 0; i < enemiesOnScene.Length; i++){
             Enemy enemy = enemiesOnScene[i];
-            if (enemy.index < 0){
-                InitEnemy(ref enemy);
-            }
+            //if (enemy.index < 0){
+            InitEnemy(ref enemy);
+            //}
         }
     }
     
@@ -188,6 +188,10 @@ public class EnemiesController : MonoBehaviour{
         // if (enemy.index >= 0){
         //     return;
         // }
+        
+        if (enemy.initialized){
+            return;
+        }
     
         enemy.sphere = enemy.GetComponent<SphereCollider>();
         enemy.kickTrailParticles = Instantiate(Particles.Instance.GetParticles("KickTrailParticles"), enemy.transform);
@@ -235,6 +239,7 @@ public class EnemiesController : MonoBehaviour{
                 break;
         }
         
+        enemy.initialized = true;
         _enemies.Add(enemy);
     }
     
@@ -577,7 +582,7 @@ public class EnemiesController : MonoBehaviour{
             
             if (projectile.lifeTime >= projectile.slowingLifetime){
                 float lifetimeOvershoot = projectile.lifeTime - projectile.slowingLifetime;
-                projectile.velocity *= 1f - delta * (lifetimeOvershoot * lifetimeOvershoot);
+                projectile.velocity *= Clamp01(1f - delta * (lifetimeOvershoot * lifetimeOvershoot));
                 
                 if (projectile.velocity.sqrMagnitude <= EPSILON){
                     DisableEnemyProjectile(ref projectile);

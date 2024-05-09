@@ -37,7 +37,7 @@ Transform:
   - {fileID: 8668366607553182047}
   - {fileID: 5087428644344286264}
   m_Father: {fileID: 0}
-  m_RootOrder: 5
+  m_RootOrder: 28
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &11836531934522828
 MonoBehaviour:
@@ -409,6 +409,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c35de42ddbc32b14c9b0ddf805d16af5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  followSpeed: 400
   cameraTarget: {fileID: 7707078164465611288}
   xRotationTarget: {fileID: 8879567825269163372}
   yRotationTarget: {fileID: 1105597203424874383}
@@ -420,6 +421,9 @@ MonoBehaviour:
   maxPitch: 2
   rollChangeSpeed: 3
   pitchChangeSpeed: 3
+  rollSense: 2
+  pitchSense: 1
+  recoverySpeed: 100
   shakers:
     baseShake:
       shakeTransform: {fileID: 0}
@@ -5886,18 +5890,18 @@ MonoBehaviour:
   directionTransform: {fileID: 1105597203424874383}
   playerClass: 0
   attackerSettings:
-    baseSpeed: 20
+    baseSpeed: 30
     sprintSpeed: 40
     sprintStaminaDrain: 30
     groundAcceleration: 15
     groundDeceleration: 5
     airAcceleration: 2
     airDeceleration: 5
-    friction: 50
+    friction: 100
     gravity: 40
-    minJumpForce: 20
-    maxJumpForce: 140
-    timeToChargeMaxJump: 3
+    minJumpForce: 40
+    maxJumpForce: 40
+    timeToChargeMaxJump: 0.1
     jumpChargeStaminaDrain: 30
     jumpForwardBoost: 10
     coyoteTime: 0.2
@@ -5906,7 +5910,11 @@ MonoBehaviour:
     staminaRecoveryRate: 5
     bulletTimeStaminaDrain: 10
     ballReloadTime: 5
-    maxBallCount: 0
+    maxBallCount: 5
+    hookPullDelay: 0.4
+    hookPullPower: 40
+    hookUpPower: 20
+    ballDetectRadius: 7
     kickHitBoxLength: 5
     kickHitBoxWidth: 5
     kickDuration: 0.2
@@ -5944,6 +5952,10 @@ MonoBehaviour:
     bulletTimeStaminaDrain: 10
     ballReloadTime: 5
     maxBallCount: 3
+    hookPullDelay: 0.4
+    hookPullPower: 40
+    hookUpPower: 20
+    ballDetectRadius: 7
     kickHitBoxLength: 5
     kickHitBoxWidth: 5
     kickDuration: 0.2
