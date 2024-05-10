@@ -4633,6 +4633,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   directionTransform: {fileID: 405827257}
   playerClass: 0
+  stepDistance: 1
+  stepCamPower: 10
   attackerSettings:
     baseSpeed: 30
     sprintSpeed: 40
@@ -6947,6 +6949,10 @@ MonoBehaviour:
   followSpeed: 400
   camDamping: 15
   camBounce: 0.9
+  camVelocityLoss: 5
+  stepCamDamping: 15
+  stepCamBounce: 0.9
+  stepCamVelocityLoss: 5
   cameraTarget: {fileID: 1323377275}
   xRotationTarget: {fileID: 487328578}
   yRotationTarget: {fileID: 405827257}
@@ -14128,13 +14134,8 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 50110239826155279, guid: 23acc2c794d0c5e44af26829017faeef,
         type: 3}
-      propertyPath: attackerSettings.airDeceleration
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 5055402695229694543, guid: 23acc2c794d0c5e44af26829017faeef,
-        type: 3}
-      propertyPath: m_Height
-      value: 3
+      propertyPath: stepCamPower
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 5358275784900890260, guid: 23acc2c794d0c5e44af26829017faeef,
         type: 3}
@@ -14203,18 +14204,8 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7512279133387268080, guid: 23acc2c794d0c5e44af26829017faeef,
         type: 3}
-      propertyPath: camBounce
-      value: 0.6
-      objectReference: {fileID: 0}
-    - target: {fileID: 7512279133387268080, guid: 23acc2c794d0c5e44af26829017faeef,
-        type: 3}
-      propertyPath: camDamping
+      propertyPath: stepCamDamping
       value: 5
-      objectReference: {fileID: 0}
-    - target: {fileID: 7707078164465611288, guid: 23acc2c794d0c5e44af26829017faeef,
-        type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0.928
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

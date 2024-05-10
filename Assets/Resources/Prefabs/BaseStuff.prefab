@@ -411,8 +411,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   followSpeed: 400
   camDamping: 5
-  camBounce: 0.4
+  camBounce: 0.6
   camVelocityLoss: 5
+  stepCamDamping: 5
+  stepCamBounce: 0.1
+  stepCamVelocityLoss: 5
   cameraTarget: {fileID: 7707078164465611288}
   xRotationTarget: {fileID: 8879567825269163372}
   yRotationTarget: {fileID: 1105597203424874383}
@@ -5892,6 +5895,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   directionTransform: {fileID: 1105597203424874383}
   playerClass: 0
+  stepDistance: 8
+  stepCamPower: 2
   attackerSettings:
     baseSpeed: 30
     sprintSpeed: 40
