@@ -33,6 +33,7 @@ public class Dummy{
 
 [Serializable]
 public class Shooter{
+    //shooter variation 1: horizontal dodge look at player, 2: vertical dodge look at player, 3: no dodge don't look at player
     public Enemy enemy;
     public Dummy dummyDodgeComponent;
     public float shootCooldown   = 5f;
@@ -518,7 +519,9 @@ public class EnemiesController : MonoBehaviour{
                 continue;
             }
             
-            UpdateDummy(ref shooter.dummyDodgeComponent, delta);
+            if (shooter.enemy.variation == 1 || shooter.enemy.variation == 2){
+                UpdateDummy(ref shooter.dummyDodgeComponent, delta);
+            }
             
             EnemyCountdowns(ref shooter.enemy, delta);
             
@@ -530,7 +533,7 @@ public class EnemiesController : MonoBehaviour{
             
             Transform shooterTransform = shooter.enemy.transform;
             
-            var vectorToPlayer = (_playerPosition - shooterTransform.position).normalized;
+            //var vectorToPlayer = (_playerPosition - shooterTransform.position).normalized;
             /*
             var horizontalVectorToPlayer = new Vector3(vectorToPlayer.x, 0, vectorToPlayer.z);
             shooter.enemy.transform.rotation = Quaternion.Slerp(shooterTransform.rotation, Quaternion.LookRotation(horizontalVectorToPlayer), delta * 3);
@@ -545,7 +548,7 @@ public class EnemiesController : MonoBehaviour{
             }
             
             if (shooter.delayTimer <= 0){
-                EnemyProjectile projectile = SpawnEnemyProjectile(shooterTransform.position + shooterTransform.up, vectorToPlayer * projectileStartSpeed);
+                EnemyProjectile projectile = SpawnEnemyProjectile(shooterTransform.position + shooterTransform.up, shooter.enemy.transform.forward * projectileStartSpeed);
                 shooter.shootedCount++;
                 if (shooter.shootedCount < shooter.burstShootCount){
                     shooter.delayTimer = shooter.shootDelay;
@@ -746,7 +749,7 @@ public class EnemiesController : MonoBehaviour{
         }
         
         if (!dummy.dodging && dummy.dodgeTimer <= 0){
-            dummyTransform.rotation = Quaternion.Slerp(dummyTransform.rotation, Quaternion.LookRotation((_playerPosition - dummyTransform.position).normalized), delta * 5);
+            dummyTransform.rotation = Quaternion.Slerp(dummyTransform.rotation, Quaternion.LookRotation((_playerPosition - dummyTransform.position).normalized), delta * 30);
 
         }
         

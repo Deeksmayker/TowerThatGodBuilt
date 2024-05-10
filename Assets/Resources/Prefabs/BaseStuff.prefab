@@ -410,6 +410,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   followSpeed: 400
+  camDamping: 5
+  camBounce: 0.4
+  camVelocityLoss: 5
   cameraTarget: {fileID: 7707078164465611288}
   xRotationTarget: {fileID: 8879567825269163372}
   yRotationTarget: {fileID: 1105597203424874383}
@@ -5872,7 +5875,7 @@ CapsuleCollider:
   m_Enabled: 1
   serializedVersion: 2
   m_Radius: 0.25
-  m_Height: 1.5
+  m_Height: 3
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!114 &50110239826155279
@@ -5896,7 +5899,7 @@ MonoBehaviour:
     groundAcceleration: 15
     groundDeceleration: 5
     airAcceleration: 2
-    airDeceleration: 5
+    airDeceleration: 1
     friction: 100
     gravity: 40
     minJumpForce: 40
@@ -5913,7 +5916,7 @@ MonoBehaviour:
     maxBallCount: 5
     hookPullDelay: 0.4
     hookPullPower: 40
-    hookUpPower: 20
+    hookUpPower: 40
     ballDetectRadius: 7
     kickHitBoxLength: 5
     kickHitBoxWidth: 5
@@ -6105,7 +6108,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4568337469088645458}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.504, z: 0}
+  m_LocalPosition: {x: 0, y: 0.928, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

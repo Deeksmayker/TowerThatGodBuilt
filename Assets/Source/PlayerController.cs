@@ -5,6 +5,7 @@ using Source.Features.SceneEditor.Controllers;
 using TMPro;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
+using Random = UnityEngine.Random;
 using static UnityEngine.Mathf;
 using static UnityEngine.Physics;
 using static Source.Utils.Utils;
@@ -343,16 +344,16 @@ public class PlayerController : MonoBehaviour{
 
     
     private void StaminaAbilities(float delta, Vector3 wishDirection){
-        if (Input.GetKey(KeyCode.Space)){   
-            if (_currentStamina > 0 && _jumpChargeProgress < 1){
-                _jumpChargeProgress += _unscaledDelta / _player.timeToChargeMaxJump;
-                _currentStamina -= _unscaledDelta * _player.jumpChargeStaminaDrain;
-                _jumpBufferTimer = 0;
-                _currentFriction = _player.friction * 0.5f;
-            } else{
-                _currentFriction = _player.friction;
-            }
-        } 
+        // if (Input.GetKey(KeyCode.Space)){   
+        //     if (_currentStamina > 0 && _jumpChargeProgress < 1){
+        //         _jumpChargeProgress += _unscaledDelta / _player.timeToChargeMaxJump;
+        //         _currentStamina -= _unscaledDelta * _player.jumpChargeStaminaDrain;
+        //         _jumpBufferTimer = 0;
+        //         _currentFriction = _player.friction * 0.5f;
+        //     } else{
+        //         _currentFriction = _player.friction;
+        //     }
+        // } 
         if (Input.GetKey(KeyCode.LeftShift)){
             if (_currentStamina > 0){
                 _currentSpeed = _player.sprintSpeed;
@@ -370,20 +371,20 @@ public class PlayerController : MonoBehaviour{
             }
         }
         
-        if (Input.GetKeyUp(KeyCode.Space)){
+        if (Input.GetKeyDown(KeyCode.Space)){
             if (IsGrounded() || _timeSinceGrounded <= _player.coyoteTime || _jumpBufferTimer > 0){
                 Jump(wishDirection);
             } else{
                 _jumpBufferTimer = _player.jumpBufferTime;
             }
-            _currentFriction = _player.friction;
+            //_currentFriction = _player.friction;
         }
         
         if (Input.GetKeyUp(KeyCode.LeftShift)){
             _currentSpeed = _player.baseSpeed;
         }
         
-        if (!Input.GetKey(KeyCode.Space) && !Input.GetKey(KeyCode.LeftShift) && !Input.GetKey(_bulletTimeKey)){
+        if (/*!Input.GetKey(KeyCode.Space) &&*/ !Input.GetKey(KeyCode.LeftShift) && !Input.GetKey(_bulletTimeKey)){
             _currentStamina = Clamp(_currentStamina + _player.staminaRecoveryRate * delta, 0, _player.maxStamina);
         }
         
@@ -560,11 +561,12 @@ public class PlayerController : MonoBehaviour{
         return false;
     }
     
-    private void Jump(Vector3 wishDirection){
+    private void Jump(Vector3 wishDirection, float multiplier = 1){
         playerVelocity.y += Lerp(_player.minJumpForce, _player.maxJumpForce, _jumpChargeProgress);
-        playerVelocity += wishDirection * _player.jumpForwardBoost;
+        playerVelocity += wishDirection * _player.jumpForwardBoost * multiplier;
         
-        PlayerCameraController.Instance.ShakeCameraLong(_jumpChargeProgress * 1f);
+        PlayerCameraController.Instance.ShakeCameraLong(0.1f);
+        PlayerCameraController.Instance.AddCamVelocity(-transform.up * 80);
         
         _jumpBufferTimer = 0;
         _jumpChargeProgress = 0;
@@ -651,6 +653,7 @@ public class PlayerController : MonoBehaviour{
                 if (!_grounded){
                     var landingSpeedProgress = -velocity.y / 75; 
                     PlayerCameraController.Instance.ShakeCameraLong(landingSpeedProgress);
+                    PlayerCameraController.Instance.AddCamVelocity(-transform.up * 30 * landingSpeedProgress + Random.onUnitSphere * 20 * landingSpeedProgress);
                 }
             }
             velocity -= normal * Vector3.Dot(velocity, normal);
@@ -695,7 +698,7 @@ public class PlayerController : MonoBehaviour{
             angularVelocityDecreaseMultiplier = 2f;
         }
         if (Input.GetMouseButtonUp(1)){
-            _ballPredictionLineRenderer.positionCount = 0;
+            //_ballPredictionLineRenderer.positionCount = 0;
             //StopHoldingBall(true);
         }
     
@@ -1147,6 +1150,8 @@ public class PlayerController : MonoBehaviour{
                 _ballPredictionLineRenderer.SetPosition(i, imaginaryBall.transform.position);
                 UpdateBall(imaginaryBall, step, true);
             }
+        } else{
+            _ballPredictionLineRenderer.positionCount = 0;
         }
         
         DisableBall(ref imaginaryBall);
@@ -1248,6 +1253,10 @@ public class PlayerController : MonoBehaviour{
         return _balls;
     }
     
+    public float TimeSinceGrounded(){
+        return _timeSinceGrounded;
+    }
+    
     private void OnDrawGizmosSelected(){
         Gizmos.color = Color.blue;
         
@@ -1283,6 +1292,10 @@ public class PlayerController : MonoBehaviour{
         
         if (Input.GetKeyDown(KeyCode.P)){
             GAME_DELTA_SCALE = GAME_DELTA_SCALE < 1 ? 1 : 0;
+        }
+        
+        if (Input.GetKeyDown(KeyCode.N)){
+            Jump(transform.up, 5);
         }
     }
 }

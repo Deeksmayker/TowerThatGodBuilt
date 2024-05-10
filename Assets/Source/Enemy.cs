@@ -21,6 +21,8 @@ public class Enemy : MonoBehaviour{
     public bool takedKick;
     public bool justTakeHit;
     
+    public int variation = 1;
+    
     [Header("TEMP")]
     public DodgeDirection dodgeDirection;
 
