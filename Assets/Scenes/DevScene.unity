@@ -2840,7 +2840,7 @@ PrefabInstance:
     - target: {fileID: 7582078771761990044, guid: 4aeacc321b779d04f972906b7946d35b,
         type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -3354,7 +3354,7 @@ PrefabInstance:
     - target: {fileID: 7582078771761990044, guid: c383881631f342042a8a024824b579c8,
         type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -6363,7 +6363,7 @@ PrefabInstance:
     - target: {fileID: 1044279421291561906, guid: a02e524ca686b1c48af7dfaa82461981,
         type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6856801465065180470, guid: a02e524ca686b1c48af7dfaa82461981,
         type: 3}
@@ -6945,6 +6945,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   followSpeed: 400
+  camDamping: 15
+  camBounce: 0.9
   cameraTarget: {fileID: 1323377275}
   xRotationTarget: {fileID: 487328578}
   yRotationTarget: {fileID: 405827257}
@@ -8899,7 +8901,7 @@ PrefabInstance:
     - target: {fileID: 1044279421291561906, guid: a02e524ca686b1c48af7dfaa82461981,
         type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6856801465065180470, guid: a02e524ca686b1c48af7dfaa82461981,
         type: 3}
@@ -10860,7 +10862,7 @@ PrefabInstance:
     - target: {fileID: 1044279421291561906, guid: a02e524ca686b1c48af7dfaa82461981,
         type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6856801465065180470, guid: a02e524ca686b1c48af7dfaa82461981,
         type: 3}
@@ -13479,7 +13481,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1876380716
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -14126,13 +14128,13 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 50110239826155279, guid: 23acc2c794d0c5e44af26829017faeef,
         type: 3}
-      propertyPath: attackerSettings.hookUpPower
-      value: 40
+      propertyPath: attackerSettings.airDeceleration
+      value: 1
       objectReference: {fileID: 0}
-    - target: {fileID: 50110239826155279, guid: 23acc2c794d0c5e44af26829017faeef,
+    - target: {fileID: 5055402695229694543, guid: 23acc2c794d0c5e44af26829017faeef,
         type: 3}
-      propertyPath: attackerSettings.jumpForwardBoost
-      value: 10
+      propertyPath: m_Height
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 5358275784900890260, guid: 23acc2c794d0c5e44af26829017faeef,
         type: 3}
@@ -14198,6 +14200,21 @@ PrefabInstance:
         type: 3}
       propertyPath: m_AnchorMax.y
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7512279133387268080, guid: 23acc2c794d0c5e44af26829017faeef,
+        type: 3}
+      propertyPath: camBounce
+      value: 0.6
+      objectReference: {fileID: 0}
+    - target: {fileID: 7512279133387268080, guid: 23acc2c794d0c5e44af26829017faeef,
+        type: 3}
+      propertyPath: camDamping
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 7707078164465611288, guid: 23acc2c794d0c5e44af26829017faeef,
+        type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.928
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -25321,7 +25338,7 @@ PrefabInstance:
     - target: {fileID: 2863323653047324311, guid: 98a48f1b50b1ac44381bde7945451121,
         type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5050027027131211290, guid: 98a48f1b50b1ac44381bde7945451121,
         type: 3}
@@ -25412,7 +25429,7 @@ PrefabInstance:
     - target: {fileID: 1044279421291561906, guid: a02e524ca686b1c48af7dfaa82461981,
         type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6856801465065180470, guid: a02e524ca686b1c48af7dfaa82461981,
         type: 3}
@@ -25545,7 +25562,7 @@ PrefabInstance:
     - target: {fileID: 9167095706484921016, guid: 1e54802ab288a2647a40aa50d5ac3f49,
         type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

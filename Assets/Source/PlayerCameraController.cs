@@ -2,11 +2,16 @@ using UnityEngine;
 using System;
 using Source.Utils;
 using static UnityEngine.Mathf;
+using static Source.Utils.Utils;
 
 public class PlayerCameraController : MonoBehaviour{
     public static PlayerCameraController Instance;
 
     [SerializeField] private float followSpeed = 60;
+    
+    [SerializeField] private float camDamping = 15f;
+    [SerializeField] private float camBounce = 0.9f;
+    [SerializeField] private float camVelocityLoss = 5f;
 
     [SerializeField] private Transform cameraTarget;
     [SerializeField] private Transform xRotationTarget;
@@ -28,6 +33,8 @@ public class PlayerCameraController : MonoBehaviour{
     [SerializeField] private CameraShakers shakers;
     
     private float _currentSenseMultiplier = 1;
+    
+    private Vector3 _camVelocity;
     
     private float _targetRoll, _targetPitch;
     private float _additionalRoll, _additionalPitch;
@@ -68,10 +75,38 @@ public class PlayerCameraController : MonoBehaviour{
         }
     }
     
+    private Vector3 _oldCamLocalPos;
+    
     private void Update(){
         Look();        
         PitchAndRoll();
         Shake();
+        
+        Transform camTransform = Camera.main.transform;
+        Vector3 previousCamLocalPos = camTransform.localPosition;
+        Vector3 nextLocalPos = camTransform.localPosition;
+        
+        nextLocalPos += _camVelocity * Time.deltaTime;
+        _camVelocity = Vector3.Lerp(_camVelocity, Vector3.zero, Time.deltaTime * camVelocityLoss);
+        
+        nextLocalPos = Vector3.Lerp(nextLocalPos, Vector3.zero, (1f - camBounce) * Time.deltaTime * camDamping);
+        
+        nextLocalPos = (1f + camBounce) * nextLocalPos - camBounce * _oldCamLocalPos;
+        
+        float downLimit = -2f;
+        if (!_player.IsGrounded()){
+            downLimit = Lerp(downLimit, downLimit * 2, Clamp01(_player.TimeSinceGrounded() / 0.5f));
+        }
+        
+        nextLocalPos.y = Clamp(nextLocalPos.y, downLimit, 2f);
+        
+        camTransform.localPosition = nextLocalPos;
+        
+        _oldCamLocalPos = previousCamLocalPos;
+    }
+    
+    public void AddCamVelocity(Vector3 velocity){
+        _camVelocity += velocity;
     }
     
     private void LateUpdate(){

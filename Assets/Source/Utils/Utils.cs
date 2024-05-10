@@ -56,16 +56,18 @@ namespace Source.Utils
         private static Collider[] _targetCollidersBig = new Collider[100];
     
         public static void MoveSphereOutCollision(Transform targetTransform, float radius, LayerMask layers){
-            (Collider[], int) collidersNearby = CollidersInRadius(targetTransform.position, radius, layers);
+            ColInfo[] colInfo = ColInfoInRadius(targetTransform.position, radius, layers);
         
-            for (int i = 0; i < collidersNearby.Item2; i++){
-                Collider col = collidersNearby.Item1[i];
-            
-                Vector3 colPoint = col.ClosestPoint(targetTransform.position);
-                Vector3 vecToMe = (targetTransform.position - colPoint);
-                Vector3 dirToMe = vecToMe.normalized;
-            
-                targetTransform.position += colPoint - (targetTransform.position - dirToMe * radius * 0.5f);
+            for (int i = 0; i < colInfo.Length; i++){
+                targetTransform.position += colInfo[i].point - (targetTransform.position - colInfo[i].normal * radius);
+            }
+        }
+        
+        public static void MoveSphereOutCollision(ref Vector3 targetPos, float radius, LayerMask layers){
+            ColInfo[] colInfo = ColInfoInRadius(targetPos, radius, layers);
+        
+            for (int i = 0; i < colInfo.Length; i++){
+                targetPos += colInfo[i].point - (targetPos - colInfo[i].normal * radius);
             }
         }
     

@@ -429,7 +429,7 @@ MonoBehaviour:
   _objectPrefabsConfig: {fileID: 11400000, guid: be369fb3036f36746a55907fa33b4fba,
     type: 2}
   _spawnedObjectsParent: {fileID: 980716224}
-  _playerPrefab: {fileID: 4663624903426863709, guid: 692c3975be201a74cb20fa527e86a9c3,
+  _playerPrefab: {fileID: 34331442482873081, guid: 23acc2c794d0c5e44af26829017faeef,
     type: 3}
   _playerParentObject: {fileID: 1449533390}
   _inputHandler: {fileID: 1390359009}
