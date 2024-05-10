@@ -12,6 +12,10 @@ public class PlayerCameraController : MonoBehaviour{
     [SerializeField] private float camDamping = 15f;
     [SerializeField] private float camBounce = 0.9f;
     [SerializeField] private float camVelocityLoss = 5f;
+    
+    [SerializeField] private float stepCamDamping = 15f;
+    [SerializeField] private float stepCamBounce = 0.9f;
+    [SerializeField] private float stepCamVelocityLoss = 5f;
 
     [SerializeField] private Transform cameraTarget;
     [SerializeField] private Transform xRotationTarget;
@@ -35,6 +39,7 @@ public class PlayerCameraController : MonoBehaviour{
     private float _currentSenseMultiplier = 1;
     
     private Vector3 _camVelocity;
+    private Vector3 _stepCamVelocity;
     
     private float _targetRoll, _targetPitch;
     private float _additionalRoll, _additionalPitch;
@@ -81,17 +86,27 @@ public class PlayerCameraController : MonoBehaviour{
         Look();        
         PitchAndRoll();
         Shake();
+    }
+    
+    private void LateUpdate(){
+        transform.position = Vector3.Lerp(transform.position, cameraTarget.position, followSpeed * Time.deltaTime);
         
+        UpdateCamLocalPosWithVelocity(ref _camVelocity, camVelocityLoss, camDamping, camBounce);
+        UpdateCamLocalPosWithVelocity(ref _stepCamVelocity, stepCamVelocityLoss, stepCamDamping, stepCamBounce);
+    }
+
+    
+    private void UpdateCamLocalPosWithVelocity(ref Vector3 velocity, float velocityLoss, float damping, float bounce){
         Transform camTransform = Camera.main.transform;
         Vector3 previousCamLocalPos = camTransform.localPosition;
         Vector3 nextLocalPos = camTransform.localPosition;
         
-        nextLocalPos += _camVelocity * Time.deltaTime;
-        _camVelocity = Vector3.Lerp(_camVelocity, Vector3.zero, Time.deltaTime * camVelocityLoss);
+        nextLocalPos += velocity * Time.deltaTime;
+        velocity = Vector3.Lerp(velocity, Vector3.zero, Time.deltaTime * velocityLoss);
         
-        nextLocalPos = Vector3.Lerp(nextLocalPos, Vector3.zero, (1f - camBounce) * Time.deltaTime * camDamping);
+        nextLocalPos = Vector3.Lerp(nextLocalPos, Vector3.zero, (1f - bounce) * Time.deltaTime * damping);
         
-        nextLocalPos = (1f + camBounce) * nextLocalPos - camBounce * _oldCamLocalPos;
+        nextLocalPos = (1f + bounce) * nextLocalPos - bounce * _oldCamLocalPos;
         
         float downLimit = -2f;
         if (!_player.IsGrounded()){
@@ -109,8 +124,8 @@ public class PlayerCameraController : MonoBehaviour{
         _camVelocity += velocity;
     }
     
-    private void LateUpdate(){
-        transform.position = Vector3.Lerp(transform.position, cameraTarget.position, followSpeed * Time.deltaTime);
+    public void AddStepCamVelocity(Vector3 velocity){
+        _stepCamVelocity += velocity;
     }
     
     private void Shake(){

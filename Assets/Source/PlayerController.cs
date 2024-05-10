@@ -71,8 +71,14 @@ public class PlayerController : MonoBehaviour{
     [SerializeField] private Transform directionTransform;
     public PlayerClass playerClass;
     
+    [SerializeField] private float stepDistance = 1f;
+    [SerializeField] private float stepCamPower = 10f;
+    
     [SerializeField] private PlayerSettings attackerSettings;
     [SerializeField] private PlayerSettings balancedSettings;
+    
+    private Vector3 _lastPosition;
+    private float _distanceWalked;
     
     private PlayerSettings _player;
     
@@ -108,7 +114,7 @@ public class PlayerController : MonoBehaviour{
     
     private bool _grounded;
     
-    private Vector3 _lastVelocity;
+    //private Vector3 _lastVelocity;
     public Vector3 playerVelocity;
     private float   _playerSpeed;
     private Vector3 _moveInput;
@@ -217,6 +223,8 @@ public class PlayerController : MonoBehaviour{
             //ball.sleeping = true;
             InitBall(ref ball);
         }
+        
+        _lastPosition = transform.position;
     }
     
     private float _previousDelta;
@@ -287,6 +295,10 @@ public class PlayerController : MonoBehaviour{
         
         transform.Translate(playerVelocity * delta);
         
+        if (IsGrounded()){
+            UpdateSteps();
+        }
+        
         if (transform.position.y < -30){
             transform.position = _spawnPosition;
         }
@@ -312,6 +324,23 @@ public class PlayerController : MonoBehaviour{
         }
         
         DebugStuff();
+        
+        _lastPosition = transform.position;
+    }
+    
+    private void UpdateSteps(){
+        _distanceWalked += (transform.position - _lastPosition).magnitude;
+	   _distanceWalked = Mathf.Clamp(_distanceWalked, 0, stepDistance * 2);
+	   if (_distanceWalked >= stepDistance){
+	       //walk step
+	       _distanceWalked -= stepDistance;
+	       //PlayerSound.Instance.PlaySound(_footstepClips[Random.Range(0, _footstepClips.Length)], 0.1f, Random.Range(1f, 1.5f));
+	       Vector3 randomCamSpeed = Random.onUnitSphere * stepCamPower;
+	       randomCamSpeed.z = 0;
+	       randomCamSpeed.x *= 0.5f;
+	       randomCamSpeed.y *= 0.1f;//Clamp(randomCamSpeed.y, -stepCamPower, stepCamPower * 0.5f);
+	       PlayerCameraController.Instance.AddStepCamVelocity(-transform.up * stepCamPower + randomCamSpeed);
+	   }
     }
     
     private void UpdateRopeMovement(float delta){
@@ -653,7 +682,7 @@ public class PlayerController : MonoBehaviour{
                 if (!_grounded){
                     var landingSpeedProgress = -velocity.y / 75; 
                     PlayerCameraController.Instance.ShakeCameraLong(landingSpeedProgress);
-                    PlayerCameraController.Instance.AddCamVelocity(-transform.up * 30 * landingSpeedProgress + Random.onUnitSphere * 20 * landingSpeedProgress);
+                    PlayerCameraController.Instance.AddCamVelocity(-transform.up * 30 * landingSpeedProgress + Random.insideUnitSphere * 10 * landingSpeedProgress);
                 }
             }
             velocity -= normal * Vector3.Dot(velocity, normal);
