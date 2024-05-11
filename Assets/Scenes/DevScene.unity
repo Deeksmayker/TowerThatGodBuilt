@@ -14132,11 +14132,6 @@ PrefabInstance:
       propertyPath: m_Name
       value: BaseStuff (2)
       objectReference: {fileID: 0}
-    - target: {fileID: 50110239826155279, guid: 23acc2c794d0c5e44af26829017faeef,
-        type: 3}
-      propertyPath: stepCamPower
-      value: 2
-      objectReference: {fileID: 0}
     - target: {fileID: 5358275784900890260, guid: 23acc2c794d0c5e44af26829017faeef,
         type: 3}
       propertyPath: m_RootOrder
@@ -14201,11 +14196,6 @@ PrefabInstance:
         type: 3}
       propertyPath: m_AnchorMax.y
       value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7512279133387268080, guid: 23acc2c794d0c5e44af26829017faeef,
-        type: 3}
-      propertyPath: stepCamDamping
-      value: 5
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

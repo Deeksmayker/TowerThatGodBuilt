@@ -53,22 +53,26 @@ public class PlayerCameraController : MonoBehaviour{
         }
         
         Instance = this;
-        
-        shakers.baseShake.shakeTransform = (new GameObject("BaseShakeTransform")).transform;
-        shakers.baseShake.shakeTransform.parent = Utils.GetCameraTransform().parent;
-        Utils.GetCameraTransform().parent = shakers.longShake.shakeTransform;
-        shakers.rapidShake.shakeTransform = (new GameObject("RapidShakeTransform")).transform;
-        shakers.rapidShake.shakeTransform.parent = shakers.baseShake.shakeTransform;
-        Utils.GetCameraTransform().parent = shakers.longShake.shakeTransform;
-        shakers.longShake.shakeTransform = (new GameObject("LongShakeTransform")).transform;
-        shakers.longShake.shakeTransform.parent = shakers.rapidShake.shakeTransform;
-        Utils.GetCameraTransform().parent = shakers.longShake.shakeTransform;
-        
-        _player = FindObjectOfType<PlayerController>();
     }
     
     private void Start(){
-        Utils.ToggleCursor(false);
+        ToggleCursor(false);
+        
+        shakers.baseShake.shakeTransform = (new GameObject("BaseShakeTransform")).transform;
+        shakers.baseShake.shakeTransform.parent = GetCameraTransform().parent;
+        shakers.baseShake.shakeTransform.localPosition = Vector3.zero;
+        GetCameraTransform().parent = shakers.longShake.shakeTransform;
+        shakers.rapidShake.shakeTransform = (new GameObject("RapidShakeTransform")).transform;
+        shakers.rapidShake.shakeTransform.parent = shakers.baseShake.shakeTransform;
+        shakers.rapidShake.shakeTransform.localPosition = Vector3.zero;
+        GetCameraTransform().parent = shakers.longShake.shakeTransform;
+        shakers.longShake.shakeTransform = (new GameObject("LongShakeTransform")).transform;
+        shakers.longShake.shakeTransform.parent = shakers.rapidShake.shakeTransform;
+        shakers.longShake.shakeTransform.localPosition = Vector3.zero;
+        GetCameraTransform().parent = shakers.longShake.shakeTransform;
+        
+        _player = FindObjectOfType<PlayerController>();
+
         
         switch (_player.playerClass){
             case PlayerClass.Attacker:

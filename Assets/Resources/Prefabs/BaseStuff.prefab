@@ -5913,7 +5913,7 @@ MonoBehaviour:
     jumpChargeStaminaDrain: 30
     jumpForwardBoost: 10
     coyoteTime: 0.2
-    jumpBufferTime: 0.3
+    jumpBufferTime: 0.05
     maxStamina: 100
     staminaRecoveryRate: 5
     bulletTimeStaminaDrain: 10
