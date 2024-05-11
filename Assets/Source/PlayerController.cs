@@ -94,6 +94,7 @@ public class PlayerController : MonoBehaviour{
     private float _jumpChargeProgress;
     private float _currentSpeed;
     private float _timeSinceGrounded;
+    private float _timeSinceJump;
     private float _jumpBufferTimer;
     
     private float _playerTimeScale = 1;
@@ -270,15 +271,13 @@ public class PlayerController : MonoBehaviour{
             _timeSinceGrounded = 0;
         
             GroundMove(delta, wishDirection);
-            
-            if (_jumpBufferTimer > 0){
-                Jump(wishDirection);
-            }
         } else{
             _timeSinceGrounded += delta;
         
             AirMove(delta, wishDirection);
         }
+        
+        _timeSinceJump += delta;
         
         var gravityMultiplierProgress = InverseLerp(0, _player.minJumpForce, playerVelocity.y);
         var gravityMultiplier         = Lerp(1, 2, gravityMultiplierProgress * gravityMultiplierProgress);
@@ -295,9 +294,7 @@ public class PlayerController : MonoBehaviour{
         
         transform.Translate(playerVelocity * delta);
         
-        if (IsGrounded()){
-            UpdateSteps();
-        }
+        UpdateSteps();
         
         if (transform.position.y < -30){
             transform.position = _spawnPosition;
@@ -329,6 +326,10 @@ public class PlayerController : MonoBehaviour{
     }
     
     private void UpdateSteps(){
+        if (!IsGrounded() || _moveInput.Equals(Vector3.zero)){
+            return;
+        }
+    
         _distanceWalked += (transform.position - _lastPosition).magnitude;
 	   _distanceWalked = Mathf.Clamp(_distanceWalked, 0, stepDistance * 2);
 	   if (_distanceWalked >= stepDistance){
@@ -401,12 +402,14 @@ public class PlayerController : MonoBehaviour{
         }
         
         if (Input.GetKeyDown(KeyCode.Space)){
-            if (IsGrounded() || _timeSinceGrounded <= _player.coyoteTime || _jumpBufferTimer > 0){
+            if (IsGrounded() || (_timeSinceGrounded <= _player.coyoteTime && _timeSinceJump > 1f)){
                 Jump(wishDirection);
             } else{
                 _jumpBufferTimer = _player.jumpBufferTime;
             }
             //_currentFriction = _player.friction;
+        } else if (IsGrounded() && _jumpBufferTimer > 0){
+            Jump(wishDirection);
         }
         
         if (Input.GetKeyUp(KeyCode.LeftShift)){
@@ -599,6 +602,7 @@ public class PlayerController : MonoBehaviour{
         
         _jumpBufferTimer = 0;
         _jumpChargeProgress = 0;
+        _timeSinceJump = 0;
     }
     
     private void GroundMove(float delta, Vector3 wishDirection){
@@ -666,18 +670,14 @@ public class PlayerController : MonoBehaviour{
         
         bool foundGround = false;
         
-        (Collider[], int) groundColliders = CollidersInCapsule(sphereCenter1, sphereCenter2, _collider.radius, Layers.Environment);
+        ColInfo[] groundColliders = ColInfoInCapsule(nextPosition, sphereCenter1, sphereCenter2, _collider.radius, Layers.Environment);
         
-        for (int i = 0; i < groundColliders.Item2; i++){
-            Vector3 colPoint = groundColliders.Item1[i].ClosestPoint(transform.position);
-            Vector3 vecToPlayer = (transform.position - colPoint);
-            Vector3 normal = vecToPlayer.normalized;
-            
-            if (Vector3.Dot(velocity, normal) >= 0){
+        for (int i = 0; i < groundColliders.Length; i++){
+            if (Vector3.Dot(velocity, groundColliders[i].normal) >= 0){
                 continue;
             }
             
-            if (Vector3.Angle(normal, transform.up) <= 30){
+            if (Vector3.Angle(groundColliders[i].normal, transform.up) <= 30){
                 foundGround = true;
                 if (!_grounded){
                     var landingSpeedProgress = -velocity.y / 75; 
@@ -685,10 +685,7 @@ public class PlayerController : MonoBehaviour{
                     PlayerCameraController.Instance.AddCamVelocity(-transform.up * 30 * landingSpeedProgress + Random.insideUnitSphere * 10 * landingSpeedProgress);
                 }
             }
-            velocity -= normal * Vector3.Dot(velocity, normal);
-            // Vector3 playerBottomPoint = transform.position - transform.up * _collider.height * 0.5f;
-            // playerBottomPoint.y -= _collider.radius;
-            // transform.position += (colPoint - playerBottomPoint);
+            velocity -= groundColliders[i].normal * Vector3.Dot(velocity, groundColliders[i].normal);
         }
         
         _grounded = foundGround;

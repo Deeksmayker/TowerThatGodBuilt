@@ -23,6 +23,7 @@ MonoBehaviour:
   - {fileID: 7424335476926240269, guid: 3980ed58fa098414f99e77320142f2bd, type: 3}
   - {fileID: 398151341341258282, guid: 736b5c06348091c4891fc6fd14539149, type: 3}
   - {fileID: 1131381030287236920, guid: 5d119bfc2c696324ab92b7aa494ddd2d, type: 3}
+  - {fileID: 1131381030287236920, guid: 5d119bfc2c696324ab92b7aa494ddd2d, type: 3}
   _buildingGhostCubePrefab: {fileID: 7783939639289534635, guid: ff46994bef5de83498da71411d5fd0f9,
     type: 3}
   _destroyingGhostCubePrefab: {fileID: 7783939639289534635, guid: 0ca176f1188e2ee42b55d279e2ef1c41,

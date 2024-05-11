@@ -122,6 +122,21 @@ namespace Source.Utils
             
             return result;
         }
+        
+        public static ColInfo[] ColInfoInCapsule(Vector3 nextPosition, Vector3 capsulePos1, Vector3 capsulePos2, float radius, LayerMask layers){
+            (Collider[], int) colliders = CollidersInCapsule(capsulePos1, capsulePos2, radius, layers);
+            ColInfo[] result = new ColInfo[colliders.Item2];
+            
+            for (int i = 0; i < colliders.Item2; i++){
+                result[i] = new ColInfo();
+                result[i].col = colliders.Item1[i];
+                result[i].point = colliders.Item1[i].ClosestPoint(nextPosition);
+                result[i].vecToTarget = (nextPosition - result[i].point);
+                result[i].normal = result[i].vecToTarget.normalized;
+            }
+            
+            return result;
+        }
     
         public static bool MoveToPosition(ref Transform targetTransform, ref float timer, float timeToMove, Vector3 startPosition, Vector3 endPosition, bool backwards, Func<float, float> easeFunction){
             float t = 0;
