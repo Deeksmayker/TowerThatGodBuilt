@@ -107,6 +107,7 @@ public class PlayerController : MonoBehaviour{
     private int   _currentBallCount;
     
     private bool _needToJump;
+    private bool _sprinting;
     
     private Rope _ropePrefab;
     
@@ -331,17 +332,18 @@ public class PlayerController : MonoBehaviour{
         }
     
         _distanceWalked += (transform.position - _lastPosition).magnitude;
-	   _distanceWalked = Mathf.Clamp(_distanceWalked, 0, stepDistance * 2);
-	   if (_distanceWalked >= stepDistance){
-	       //walk step
-	       _distanceWalked -= stepDistance;
-	       //PlayerSound.Instance.PlaySound(_footstepClips[Random.Range(0, _footstepClips.Length)], 0.1f, Random.Range(1f, 1.5f));
-	       Vector3 randomCamSpeed = Random.onUnitSphere * stepCamPower;
-	       randomCamSpeed.z = 0;
-	       randomCamSpeed.x *= 0.5f;
-	       randomCamSpeed.y *= 0.1f;//Clamp(randomCamSpeed.y, -stepCamPower, stepCamPower * 0.5f);
-	       PlayerCameraController.Instance.AddStepCamVelocity(-transform.up * stepCamPower + randomCamSpeed);
-	   }
+        _distanceWalked = Mathf.Clamp(_distanceWalked, 0, stepDistance * 2);
+        if (_distanceWalked >= stepDistance){
+            float stepPower = _sprinting ? stepCamPower * 2 : stepCamPower;
+            //walk step
+            _distanceWalked -= stepDistance;
+            //PlayerSound.Instance.PlaySound(_footstepClips[Random.Range(0, _footstepClips.Length)], 0.1f, Random.Range(1f, 1.5f));
+            Vector3 randomCamSpeed = Random.onUnitSphere * stepPower;
+            randomCamSpeed.z = 0;
+            randomCamSpeed.x *= 0.5f;
+            randomCamSpeed.y *= 0.1f;//Clamp(randomCamSpeed.y, -stepCamPower, stepCamPower * 0.5f);
+            PlayerCameraController.Instance.AddStepCamVelocity(-transform.up * stepPower + randomCamSpeed);
+        }
     }
     
     private void UpdateRopeMovement(float delta){
@@ -387,9 +389,11 @@ public class PlayerController : MonoBehaviour{
         if (Input.GetKey(KeyCode.LeftShift)){
             if (_currentStamina > 0){
                 _currentSpeed = _player.sprintSpeed;
+                _sprinting = true;
                 _currentStamina -= delta * _player.sprintStaminaDrain;
             } else {
                 _currentSpeed = _player.baseSpeed;
+                _sprinting = false;
             }
         }
         
@@ -414,6 +418,7 @@ public class PlayerController : MonoBehaviour{
         
         if (Input.GetKeyUp(KeyCode.LeftShift)){
             _currentSpeed = _player.baseSpeed;
+            _sprinting = false;
         }
         
         if (/*!Input.GetKey(KeyCode.Space) &&*/ !Input.GetKey(KeyCode.LeftShift) && !Input.GetKey(_bulletTimeKey)){

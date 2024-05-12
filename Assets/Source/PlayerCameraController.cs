@@ -112,7 +112,7 @@ public class PlayerCameraController : MonoBehaviour{
         
         nextLocalPos = (1f + bounce) * nextLocalPos - bounce * _oldCamLocalPos;
         
-        float downLimit = -2f;
+        float downLimit = -4f;
         if (!_player.IsGrounded()){
             downLimit = Lerp(downLimit, downLimit * 2, Clamp01(_player.TimeSinceGrounded() / 0.5f));
         }
