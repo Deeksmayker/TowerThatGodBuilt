@@ -17,7 +17,8 @@ public enum EnemyType{
     HorizontalShooterType,
     BlockerType,
     RicocheType,
-    WindGuyType
+    WindGuyType,
+    DefenderType
 }
 
 [Serializable] 
@@ -80,6 +81,11 @@ public class WindGuy{
     public WindArea windArea;
 }
 
+[Serializable] 
+public class Defender{
+    public Enemy enemy;
+}
+
 public class EnemiesController : MonoBehaviour{
     [Header("Shooter")]
     [SerializeField] private float projectileStartSpeed;
@@ -102,6 +108,7 @@ public class EnemiesController : MonoBehaviour{
     private Enemy _blockerPrefab;
     private Enemy _ricochePrefab;
     private Enemy _windGuyPrefab;
+    private Enemy _defenderPrefab;
     
     private ParticleSystem _baseDeadManParticles;
     
@@ -111,6 +118,7 @@ public class EnemiesController : MonoBehaviour{
     private List<Blocker>         _blockers         = new();
     private List<Ricoche>         _ricoches         = new();
     private List<WindGuy>         _windGuys         = new();
+    private List<Defender>        _defenders        = new();
     
     private List<Enemy> _enemies = new();
     
@@ -180,6 +188,9 @@ public class EnemiesController : MonoBehaviour{
             case WindGuyType:
                 enemy = Instantiate(_windGuyPrefab, position, rotation);
                 break;
+            default:
+                Debug.LogError("No enemy prefab of type: " + type);
+                break;
         }
         
         InitEnemy(ref enemy);
@@ -237,6 +248,14 @@ public class EnemiesController : MonoBehaviour{
                 windGuy.windArea.boxCollider.center = windGuy.enemy.transform.forward * windGuyLength * 0.5f;
                 windGuy.windArea.SetColliderSize(new Vector3(windGuyWidth, windGuyWidth, windGuyLength));
                 _windGuys.Add(windGuy);
+                break;
+            case DefenderType:
+                var defender = new Defender() {enemy = enemy}; 
+                defender.enemy.index = _defenders.Count;
+                _defenders.Add(defender);
+                break;
+            default:
+                Debug.Log("No initialization for enemy of type: " + enemy.type);
                 break;
         }
         

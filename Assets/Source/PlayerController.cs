@@ -670,8 +670,8 @@ public class PlayerController : MonoBehaviour{
     private void CalculatePlayerCollisions(ref Vector3 velocity, float delta){
         Vector3 nextPosition = transform.position + velocity * delta;
     
-        var sphereCenter1 = nextPosition - Vector3.up * _collider.height * 0.5f;
-        var sphereCenter2 = nextPosition + Vector3.up * _collider.height * 0.5f;
+        var sphereCenter1 = nextPosition - transform.up * _collider.height * 0.5f + _collider.radius * transform.up;
+        var sphereCenter2 = nextPosition + transform.up * _collider.height * 0.5f - _collider.radius * transform.up;
         
         bool foundGround = false;
         
@@ -1238,7 +1238,7 @@ public class PlayerController : MonoBehaviour{
     }
     
     private Vector3 BallStartPosition(){
-        return GetCameraTransform().position + GetCameraTransform().forward * 2 - GetCameraTransform().up * 1.1f;
+        return GetCameraTransform().position + GetCameraTransform().forward * 4 - GetCameraTransform().up * 2.5f;
     }
     
     private void SetKickVelocityToBall(ref PlayerBall ball){

@@ -5923,8 +5923,8 @@ MonoBehaviour:
     hookPullPower: 40
     hookUpPower: 40
     ballDetectRadius: 7
-    kickHitBoxLength: 5
-    kickHitBoxWidth: 5
+    kickHitBoxLength: 10
+    kickHitBoxWidth: 10
     kickDuration: 0.2
     kickCooldown: 0.3
     kickPower: 100
