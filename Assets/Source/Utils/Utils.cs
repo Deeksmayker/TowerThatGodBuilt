@@ -155,6 +155,13 @@ namespace Source.Utils
             
             return result;
         }
+        
+        public static ColInfo[] ColInfoInCapsule(Vector3 nextPosition, Transform targetTransform, CapsuleCollider capsule, LayerMask layers){
+            var sphereCenter1 = nextPosition - targetTransform.up * capsule.height * 0.5f + capsule.radius * targetTransform.up;
+            var sphereCenter2 = nextPosition + targetTransform.up * capsule.height * 0.5f - capsule.radius * targetTransform.up;
+
+            return ColInfoInCapsule(nextPosition, sphereCenter1, sphereCenter2, capsule.radius, layers);
+        }
     
         public static bool MoveToPosition(ref Transform targetTransform, ref float timer, float timeToMove, Vector3 startPosition, Vector3 endPosition, bool backwards, Func<float, float> easeFunction){
             float t = 0;
