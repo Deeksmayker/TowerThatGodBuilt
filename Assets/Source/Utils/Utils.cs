@@ -130,8 +130,26 @@ namespace Source.Utils
             for (int i = 0; i < colliders.Item2; i++){
                 result[i] = new ColInfo();
                 result[i].col = colliders.Item1[i];
-                result[i].point = colliders.Item1[i].ClosestPoint(nextPosition);
-                result[i].vecToTarget = (nextPosition - result[i].point);
+                
+                Vector3 closest = result[i].col.ClosestPoint(nextPosition);
+                Vector3 closestPos1 = result[i].col.ClosestPoint(capsulePos1);
+                Vector3 closestPos2 = result[i].col.ClosestPoint(capsulePos2);
+                
+                Vector3 vecToClosest = nextPosition - closest;
+                Vector3 vecToClosestPos1 = capsulePos1 - closestPos1;
+                Vector3 vecToClosestPos2 = capsulePos2 - closestPos2;
+                
+                if (vecToClosestPos1.sqrMagnitude < vecToClosest.sqrMagnitude){
+                    closest = closestPos1; 
+                    vecToClosest = vecToClosestPos1;
+                }
+                if (vecToClosestPos2.sqrMagnitude < vecToClosest.sqrMagnitude){
+                    closest = closestPos2; 
+                    vecToClosest = vecToClosestPos2;
+                }
+                
+                result[i].point = closest;
+                result[i].vecToTarget = vecToClosest;
                 result[i].normal = result[i].vecToTarget.normalized;
             }
             
