@@ -84,6 +84,15 @@ public class WindGuy{
 [Serializable] 
 public class Defender{
     public Enemy enemy;
+    public CapsuleCollider capsule;
+    public Vector3 velocity;
+    public float gravity = -20;
+    public bool grounded;
+    
+    public Transform parentTransform;
+    public float moveSpeed = 30f;
+    
+    public float restRadius = 10f;
 }
 
 public class EnemiesController : MonoBehaviour{
@@ -252,6 +261,15 @@ public class EnemiesController : MonoBehaviour{
             case DefenderType:
                 var defender = new Defender() {enemy = enemy}; 
                 defender.enemy.index = _defenders.Count;
+                
+                GameObject defenderParentObj = new GameObject("DefenderParent");
+                defenderParentObj.transform.position = defender.enemy.transform.position;
+                defenderParentObj.transform.rotation = defender.enemy.transform.rotation;
+                defender.parentTransform = defenderParentObj.transform;
+                defender.enemy.transform.SetParent(defender.parentTransform, true);
+                
+                defender.capsule = defender.enemy.GetComponent<CapsuleCollider>();
+                
                 _defenders.Add(defender);
                 break;
             default:
@@ -296,8 +314,54 @@ public class EnemiesController : MonoBehaviour{
         UpdateDummies(delta);
         UpdateBlockers(delta);
         UpdateWindGuys(delta);
+        UpdateDefenders(delta);
         
         UpdateDebug(delta);
+    }
+    
+    private void UpdateDefenders(float delta){
+        for (int i = 0; i < _defenders.Count; i++){
+            var defender = _defenders[i];
+            
+            if (!defender.enemy.gameObject.activeSelf){
+                continue;
+            }
+            
+            // MoveByVelocity(ref windGuy.enemy, delta);            
+            // FlyByKick(ref windGuy.enemy, delta);
+            EnemyCountdowns(ref defender.enemy, delta);
+            
+            if (EnemyHit(ref defender.enemy)){
+                continue;
+            }
+            
+            var defenderTransform = defender.enemy.transform;
+            
+            Vector3 vecToPlayer = _playerPosition - defenderTransform.position;
+            float distanceToPlayer = vecToPlayer.magnitude;
+            
+            defender.velocity += Vector3.up * defender.gravity * delta;
+            
+            Vector3 nextPosition = defenderTransform.position + defender.velocity * delta;
+            
+            ColInfo[] cols = ColInfoInCapsule(nextPosition, defenderTransform, defender.capsule, Layers.Environment);
+            
+            for (int j = 0; j < cols.Length; j++){
+                if (Vector3.Dot(defender.velocity, cols[j].normal) >= 0){
+                    continue;
+                }
+
+                defender.velocity -= cols[j].normal * Vector3.Dot(defender.velocity, cols[j].normal);
+            }
+            
+            Vector3 newLocalPosition = defender.parentTransform.InverseTransformPoint(_playerPosition);
+            newLocalPosition.z = Sin(Time.time * defender.moveSpeed * 0.1f) * defender.restRadius;
+            newLocalPosition.y = defenderTransform.localPosition.y;
+            
+            defenderTransform.localPosition = Vector3.MoveTowards(defenderTransform.localPosition, newLocalPosition, delta * defender.moveSpeed);
+            
+            defenderTransform.Translate(defender.velocity * delta, Space.World);
+        }        
     }
     
     private void UpdateWindGuys(float delta){
