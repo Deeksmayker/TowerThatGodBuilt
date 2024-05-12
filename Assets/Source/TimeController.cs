@@ -43,5 +43,6 @@ public class TimeController : MonoBehaviour{
     
     public void AddHitStop(float time){
         _hitStopCountdown += time;
+        Debug.Log(time);
     }
 }
