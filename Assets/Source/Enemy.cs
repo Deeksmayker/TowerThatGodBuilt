@@ -7,6 +7,8 @@ public enum DodgeDirection{
 }
 
 public class Enemy : MonoBehaviour{
+    public Rope leftLegRope;
+
     public EnemyType type;
     public ParticleSystem kickTrailParticles;
     public SphereCollider sphere;
