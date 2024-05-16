@@ -88,6 +88,7 @@ public class Defender{
     public Vector3 velocity;
     public float gravity = -20;
     public bool grounded;
+    public Vector3 leftLegPoint;
     
     public Transform parentTransform;
     public float moveSpeed = 30f;
@@ -340,6 +341,10 @@ public class EnemiesController : MonoBehaviour{
             Vector3 vecToPlayer = _playerPosition - defenderTransform.position;
             float distanceToPlayer = vecToPlayer.magnitude;
             
+            Vector3 horizontalVecToPlayer = vecToPlayer;
+            horizontalVecToPlayer.y = 0;
+            defenderTransform.rotation = Quaternion.Slerp(defenderTransform.rotation, Quaternion.LookRotation(horizontalVecToPlayer), delta * 20);
+            
             defender.velocity += Vector3.up * defender.gravity * delta;
             
             Vector3 nextPosition = defenderTransform.position + defender.velocity * delta;
@@ -354,11 +359,28 @@ public class EnemiesController : MonoBehaviour{
                 defender.velocity -= cols[j].normal * Vector3.Dot(defender.velocity, cols[j].normal);
             }
             
-            Vector3 newLocalPosition = defender.parentTransform.InverseTransformPoint(_playerPosition);
-            newLocalPosition.z = Sin(Time.time * defender.moveSpeed * 0.1f) * defender.restRadius;
-            newLocalPosition.y = defenderTransform.localPosition.y;
+            Vector3 targetLocalPosition = defender.parentTransform.InverseTransformPoint(_playerPosition);
+            targetLocalPosition.z = Sin(Time.time * defender.moveSpeed * 0.1f) * defender.restRadius;
+            targetLocalPosition.y = defenderTransform.localPosition.y;
             
-            defenderTransform.localPosition = Vector3.MoveTowards(defenderTransform.localPosition, newLocalPosition, delta * defender.moveSpeed);
+            // float stepDistance = 4f;
+            
+            // if (Raycast(defenderTransform.position, -defenderTransform.up - defenderTransform.right * 1.2f, out var legHit, 20, Layers.Environment)){
+            //     if (Vector3.Distance(defender.leftLegPoint, legHit.point) > stepDistance){
+            //         defender.enemy.leftLegRope.SetEndPos(legHit.point);
+            //         defender.leftLegPoint = legHit.point;
+            //     }
+            // }
+            
+            Vector3 newLocalPosition = Vector3.MoveTowards(defenderTransform.localPosition, targetLocalPosition, delta * defender.moveSpeed);
+            Vector3 newWorldPosition = defender.parentTransform.TransformPoint(newLocalPosition);
+            
+            if (!Raycast(newWorldPosition, -defenderTransform.up, out var hit, 50, Layers.Environment)){
+                newLocalPosition = defenderTransform.localPosition;
+            }
+            
+            defenderTransform.localPosition = newLocalPosition;
+
             
             defenderTransform.Translate(defender.velocity * delta, Space.World);
         }        

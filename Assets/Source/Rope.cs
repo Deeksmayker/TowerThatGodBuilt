@@ -80,6 +80,18 @@ public class Rope : MonoBehaviour{
         //SetLineRendererPositions();
     }
     
+    public void SetEndPos(Vector3 pos){
+        //endPos = targetTransform;
+        if (pos == Vector3.zero){
+            _nodes[_nodes.Length - 1].canMove = true;
+            //_nodes[_nodes.Length - 1].transform.SetParent(_myRopeHander, true);
+            return;
+        }
+        _nodes[_nodes.Length - 1].canMove = false;
+        //_nodes[_nodes.Length - 1].transform.SetParent(endPos, true);
+        _nodes[_nodes.Length - 1].transform.position = pos;
+    }
+    
     private void OnEnable(){
         _myRopeHandler.SetActive(true);
     }
