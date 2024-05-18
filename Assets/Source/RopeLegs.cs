@@ -9,56 +9,80 @@ public class RopeLegs : MonoBehaviour{
     [SerializeField] private float moveTime = 0.5f;
     [SerializeField] private Rope[] ropes;
     
-    private Leg[] _legs;
+    public Leg[] legs;
     
     private void Awake(){
-        _legs = new Leg[ropes.Length];
-        for (int i = 0; i < _legs.Length; i++){
-            _legs[i] = new Leg();
-            _legs[i].rope = ropes[i];
+        legs = new Leg[ropes.Length];
+        for (int i = 0; i < legs.Length; i++){
+            legs[i] = new Leg();
+            legs[i].rope = ropes[i];
         }
     }
     
     private void Update(){
         for (int i = 0; i < ropes.Length; i++){
-            if (_legs[i].moving){
-                _legs[i].moveT += Time.deltaTime / moveTime;
-                _legs[i].rope.SetEndPos(Vector3.Lerp(_legs[i].startMovePoint, _legs[i].targetPoint, EaseInOutQuad(_legs[i].moveT)));
-                if (_legs[i].moveT >= 1){
-                    _legs[i].moveT = 0;
-                    _legs[i].moving = false;
-                    _legs[i].lastMoveTimer = 0;
+            if (legs[i].moving){
+                legs[i].moveT += Time.deltaTime / moveTime;
+                legs[i].rope.SetEndPos(Vector3.Lerp(legs[i].startMovePoint, legs[i].targetMovePoint, EaseInOutQuad(legs[i].moveT)));
+                if (legs[i].moveT >= 1){
+                    legs[i].moveT = 0;
+                    legs[i].moving = false;
+                    legs[i].lastMoveTimer = 0;
+                    legs[i].standPoint = legs[i].targetMovePoint;
+                    legs[i].connected = true;
                 } else{
                     continue;
                 }
             } else{
-                _legs[i].lastMoveTimer += Time.deltaTime;
+                legs[i].lastMoveTimer += Time.deltaTime;
             }
         
-            if (Raycast(_legs[i].rope.transform.position, _legs[i].rope.transform.forward, out var hit, legLength, Layers.Environment)){
-                if (_legs[i].lastMoveTimer > 0.1f
-                    && Vector3.Distance(hit.point, _legs[i].targetPoint) > stepDistance
-                    && !_legs[(i + 1) % ropes.Length].moving
-                    && !_legs[(Clamp(i - 1, 0, ropes.Length)) % ropes.Length].moving){
-                    //_legs[i].rope.SetEndPos(hit.point);
-                    _legs[i].startMovePoint = _legs[i].rope.EndPos();
-                    _legs[i].targetPoint = hit.point;
-                    //_legs[i].targetPoint = hit.point;
-                    //_legs[i].lastMoveTimer = 0;
-                    _legs[i].moving = true;
-                    //_lastMovedIndex = i;
+            if (Hit(legs[i].rope.transform, out var hit)){
+                if (legs[i].lastMoveTimer > 0.1f
+                                                && Vector3.Distance(hit.point, legs[i].targetMovePoint) > stepDistance
+                                                && !legs[(i + 1) % ropes.Length].moving
+                                                && !legs[(i - 1 + ropes.Length) % ropes.Length].moving){
+                    legs[i].startMovePoint = legs[i].rope.EndPos();
+                    legs[i].targetMovePoint = hit.point;
+                    legs[i].normal = hit.normal;
+                    legs[i].moving = true;
                     break;
                 }
+            } else if (Vector3.Distance(legs[i].standPoint, legs[i].rope.transform.position + legs[i].rope.transform.forward * legLength) > legLength){
+                legs[i].connected = false;
+                legs[i].rope.SetEndPos(Vector3.zero);
             }
         }
+    }
+    
+    private bool Hit(Transform startTransform, out RaycastHit hit){
+        if (Raycast(startTransform.position, startTransform.forward, out hit, legLength, Layers.Environment)){
+            return true;
+        } 
+        // if (Raycast(startTransform.position, startTransform.right, out hit, legLength, Layers.Environment)){
+        //     return true;
+        // } 
+        // if (Raycast(startTransform.position, -startTransform.right, out hit, legLength, Layers.Environment)){
+        //     return true;
+        // } 
+        if (Raycast(startTransform.position, startTransform.forward - startTransform.right, out hit, legLength, Layers.Environment)){
+            return true;
+        } 
+        if (Raycast(startTransform.position, startTransform.forward + startTransform.right, out hit, legLength, Layers.Environment)){
+            return true;
+        } 
+        return false;
     }
 }
 
 public class Leg{
     public Rope rope;
     public Vector3 startMovePoint;
-    public Vector3 targetPoint;
+    public Vector3 targetMovePoint;
+    public Vector3 standPoint;
+    public Vector3 normal;
     public bool moving;
+    public bool connected;
     public float moveT;
     public float lastMoveTimer;
 }

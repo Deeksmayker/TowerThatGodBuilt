@@ -86,9 +86,9 @@ public class Defender{
     public Enemy enemy;
     public CapsuleCollider capsule;
     public Vector3 velocity;
-    public float gravity = -20;
+    public float gravity = -60;
     public bool grounded;
-    public Vector3 leftLegPoint;
+    public Leg[] legs;
     
     public Transform parentTransform;
     public float moveSpeed = 30f;
@@ -271,6 +271,8 @@ public class EnemiesController : MonoBehaviour{
                 
                 defender.capsule = defender.enemy.GetComponent<CapsuleCollider>();
                 
+                defender.legs = defender.enemy.GetComponent<RopeLegs>().legs;
+                
                 _defenders.Add(defender);
                 break;
             default:
@@ -328,6 +330,24 @@ public class EnemiesController : MonoBehaviour{
                 continue;
             }
             
+            Vector3 lowest = Vector3.one * 100000000;
+            Vector3 highest = -Vector3.one * 10000000;
+            int groundedCount = 0;
+            
+            for (int l = 0; l < defender.legs.Length; l++){
+                if (defender.legs[l].standPoint.y >= highest.y){
+                    highest = defender.legs[l].standPoint;
+                }
+                if (defender.legs[l].standPoint.y < lowest.y){
+                    lowest = defender.legs[l].standPoint;
+                }
+                if (!defender.legs[l].moving && defender.legs[l].connected){
+                    groundedCount++;
+                }
+            }
+            
+            Vector3 vecToHighest = highest - lowest;
+            
             // MoveByVelocity(ref windGuy.enemy, delta);            
             // FlyByKick(ref windGuy.enemy, delta);
             EnemyCountdowns(ref defender.enemy, delta);
@@ -338,13 +358,75 @@ public class EnemiesController : MonoBehaviour{
             
             var defenderTransform = defender.enemy.transform;
             
+            float groundOffset = 9f;
+            float upForceMultiplier = 1f;
+            
+            if (Raycast(defenderTransform.position, -defenderTransform.up, out var groundHit, groundOffset * 1.5f, Layers.Environment)){
+                float distanceToGround = Vector3.Distance(groundHit.point, defenderTransform.position);
+                float t = distanceToGround / groundOffset;
+                upForceMultiplier = Mathf.Lerp(1.4f, 0, t * t);
+            }
+            
+            
+            float upForcePerGroundedLeg = 20;
+            defender.velocity += Vector3.up * upForcePerGroundedLeg * groundedCount * delta * upForceMultiplier;
+
+            
             Vector3 vecToPlayer = _playerPosition - defenderTransform.position;
             float distanceToPlayer = vecToPlayer.magnitude;
             
             Vector3 horizontalVecToPlayer = vecToPlayer;
             horizontalVecToPlayer.y = 0;
-            defenderTransform.rotation = Quaternion.Slerp(defenderTransform.rotation, Quaternion.LookRotation(horizontalVecToPlayer), delta * 20);
             
+            Vector3 cross = Vector3.Cross(horizontalVecToPlayer.normalized, vecToHighest.normalized);
+            if (cross.y < 0){
+                cross *= -1;
+            }
+            
+            defenderTransform.rotation = Quaternion.Slerp(defenderTransform.rotation, Quaternion.LookRotation(horizontalVecToPlayer, cross), delta * 5);
+            
+            Vector3 targetLocalPosition = defender.parentTransform.InverseTransformPoint(_playerPosition);
+            //targetLocalPosition.z = Sin(Time.time * defender.moveSpeed * 0.1f) * defender.restRadius;
+            targetLocalPosition.z = 0;
+            targetLocalPosition.y = defenderTransform.localPosition.y;
+            
+            Vector3 targetPosition = defender.parentTransform.TransformPoint(targetLocalPosition);
+            
+            Vector3 vecToTarget = targetPosition - defenderTransform.position;
+            float distanceToTarget = vecToTarget.magnitude;
+            Vector3 dirToTarget = vecToTarget / distanceToTarget;
+            
+            float acceleration = 100f;
+            float deceleration = 100f;
+            float targetSpeed = 100f;
+            
+            float defenderSpeed = defender.velocity.magnitude;
+            
+            float dot = Vector3.Dot(defender.velocity, dirToTarget);
+            if (dot > 0){
+                float stoppingDistance = (defenderSpeed * defenderSpeed) / (deceleration * 2);
+                if (distanceToTarget <= stoppingDistance || defenderSpeed > targetSpeed){
+                    defender.velocity += deceleration * delta * -dirToTarget;
+                } else{
+                    defender.velocity += acceleration * delta * dirToTarget;
+                }
+            } else{
+                defender.velocity += acceleration * delta * dirToTarget;
+            }
+            
+            float damping = 1f;
+            defender.velocity.x *= 1f - delta * damping;
+            defender.velocity.z *= 1f - delta * damping;
+            
+            // Vector3 newLocalPosition = Vector3.MoveTowards(defenderTransform.localPosition, targetLocalPosition, delta * defender.moveSpeed);
+            // Vector3 newWorldPosition = defender.parentTransform.TransformPoint(newLocalPosition);
+            
+            // if (!Raycast(newWorldPosition, -defenderTransform.up, out var hit, 50, Layers.Environment)){
+            //     newLocalPosition = defenderTransform.localPosition;
+            // }
+            
+            // defenderTransform.localPosition = newLocalPosition;
+
             defender.velocity += Vector3.up * defender.gravity * delta;
             
             Vector3 nextPosition = defenderTransform.position + defender.velocity * delta;
@@ -356,31 +438,8 @@ public class EnemiesController : MonoBehaviour{
                     continue;
                 }
 
-                defender.velocity -= cols[j].normal * Vector3.Dot(defender.velocity, cols[j].normal);
+                defender.velocity -= cols[j].normal * Vector3.Dot(defender.velocity, cols[j].normal) * 1.5f;
             }
-            
-            Vector3 targetLocalPosition = defender.parentTransform.InverseTransformPoint(_playerPosition);
-            targetLocalPosition.z = Sin(Time.time * defender.moveSpeed * 0.1f) * defender.restRadius;
-            targetLocalPosition.y = defenderTransform.localPosition.y;
-            
-            // float stepDistance = 4f;
-            
-            // if (Raycast(defenderTransform.position, -defenderTransform.up - defenderTransform.right * 1.2f, out var legHit, 20, Layers.Environment)){
-            //     if (Vector3.Distance(defender.leftLegPoint, legHit.point) > stepDistance){
-            //         defender.enemy.leftLegRope.SetEndPos(legHit.point);
-            //         defender.leftLegPoint = legHit.point;
-            //     }
-            // }
-            
-            Vector3 newLocalPosition = Vector3.MoveTowards(defenderTransform.localPosition, targetLocalPosition, delta * defender.moveSpeed);
-            Vector3 newWorldPosition = defender.parentTransform.TransformPoint(newLocalPosition);
-            
-            if (!Raycast(newWorldPosition, -defenderTransform.up, out var hit, 50, Layers.Environment)){
-                newLocalPosition = defenderTransform.localPosition;
-            }
-            
-            defenderTransform.localPosition = newLocalPosition;
-
             
             defenderTransform.Translate(defender.velocity * delta, Space.World);
         }        
