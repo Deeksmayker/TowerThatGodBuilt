@@ -1330,7 +1330,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 188585421}
   m_LocalRotation: {x: 0, y: -0.7071068, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: 5.16, y: 27.4, z: -2.808021}
+  m_LocalPosition: {x: 5.16, y: 31.8, z: -2.808021}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -1397,9 +1397,9 @@ CapsuleCollider:
   m_Enabled: 1
   serializedVersion: 2
   m_Radius: 4
-  m_Height: 13
+  m_Height: 13.55
   m_Direction: 1
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Center: {x: 0, y: 4.4, z: 0}
 --- !u!114 &188585428
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1413,15 +1413,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   stepDistance: 5
-  legLength: 20
+  legLength: 15
   moveTime: 0.1
   ropes:
+  - {fileID: 504717594}
   - {fileID: 1425729141}
   - {fileID: 373491959}
-  - {fileID: 785004411}
   - {fileID: 491638281}
+  - {fileID: 785004411}
   - {fileID: 1803668335}
-  - {fileID: 504717594}
 --- !u!1001 &188673027
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2465,6 +2465,11 @@ PrefabInstance:
         type: 3}
       propertyPath: connectionPointsCount
       value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 4449453477830190216, guid: 12b185fbfdfe69143880fda5f29201da,
+        type: 3}
+      propertyPath: m_Parameters.numCornerVertices
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4449453477830190216, guid: 12b185fbfdfe69143880fda5f29201da,
         type: 3}
@@ -3985,6 +3990,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4449453477830190216, guid: 12b185fbfdfe69143880fda5f29201da,
         type: 3}
+      propertyPath: m_Parameters.numCornerVertices
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4449453477830190216, guid: 12b185fbfdfe69143880fda5f29201da,
+        type: 3}
       propertyPath: m_Parameters.widthCurve.m_Curve.Array.data[0].value
       value: 0.5625
       objectReference: {fileID: 0}
@@ -4123,6 +4133,11 @@ PrefabInstance:
         type: 3}
       propertyPath: connectionPointsCount
       value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 4449453477830190216, guid: 12b185fbfdfe69143880fda5f29201da,
+        type: 3}
+      propertyPath: m_Parameters.numCornerVertices
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4449453477830190216, guid: 12b185fbfdfe69143880fda5f29201da,
         type: 3}
@@ -6780,6 +6795,11 @@ PrefabInstance:
         type: 3}
       propertyPath: connectionPointsCount
       value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 4449453477830190216, guid: 12b185fbfdfe69143880fda5f29201da,
+        type: 3}
+      propertyPath: m_Parameters.numCornerVertices
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4449453477830190216, guid: 12b185fbfdfe69143880fda5f29201da,
         type: 3}
@@ -11923,6 +11943,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4449453477830190216, guid: 12b185fbfdfe69143880fda5f29201da,
         type: 3}
+      propertyPath: m_Parameters.numCornerVertices
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4449453477830190216, guid: 12b185fbfdfe69143880fda5f29201da,
+        type: 3}
       propertyPath: m_Parameters.widthCurve.m_Curve.Array.data[0].value
       value: 0.5625
       objectReference: {fileID: 0}
@@ -12448,7 +12473,7 @@ GameObject:
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 2147483647
+  m_StaticEditorFlags: 0
   m_IsActive: 1
 --- !u!65 &1463368410
 BoxCollider:
@@ -12529,8 +12554,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1463368409}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 39.732212, y: -90.44615, z: -88.95809}
-  m_LocalScale: {x: 5, y: 50.82, z: 5}
+  m_LocalPosition: {x: 58.9, y: -86.5, z: -130.8}
+  m_LocalScale: {x: 37.229, y: 50.82, z: 5}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 877713570}
@@ -15478,6 +15503,11 @@ PrefabInstance:
         type: 3}
       propertyPath: connectionPointsCount
       value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 4449453477830190216, guid: 12b185fbfdfe69143880fda5f29201da,
+        type: 3}
+      propertyPath: m_Parameters.numCornerVertices
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4449453477830190216, guid: 12b185fbfdfe69143880fda5f29201da,
         type: 3}
