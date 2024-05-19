@@ -86,6 +86,9 @@ public class Rope : MonoBehaviour{
         _endPos = pos;
         if (pos == Vector3.zero){
             _nodes[_nodes.Length - 1].canMove = true;
+            _nodes[_nodes.Length - 1].transform.position = _nodes[_nodes.Length - 1].transform.position;
+            //_nodes[_nodes.Length - 1].velocity = Vector3.zero;
+            SetVelocityToNodes(Vector3.zero);
             //_nodes[_nodes.Length - 1].transform.SetParent(_myRopeHander, true);
             return;
         }
@@ -94,8 +97,14 @@ public class Rope : MonoBehaviour{
         _nodes[_nodes.Length - 1].transform.position = pos;
     }
     
+    public void SetVelocityToNodes(Vector3 value){
+        for (int i = 0; i < _nodes.Length; i++){
+            _nodes[i].velocity = value;
+        }
+    }
+    
     public Vector3 EndPos(){
-        return _endPos;
+        return _nodes[_nodes.Length - 1].transform.position;
     }
     
     private void OnEnable(){
@@ -111,6 +120,14 @@ public class Rope : MonoBehaviour{
     private void ApplyGravity(ref RopeNode node){
         var gravityValue = node.stopOnCollision ? gravity * 0.25f : gravity;
         node.forces += Vector3.down * gravityValue * node.mass;
+    }
+    
+    public void SetGravity(float value){
+        gravity = value;
+    }
+    
+    public void SetStrength(float value){
+        strength = value;
     }
     
     private void ApplyAirFriction(ref RopeNode node){
@@ -174,6 +191,16 @@ public class Rope : MonoBehaviour{
     
     
     private void FixedUpdate(){
+        UpdateAll(Time.fixedDeltaTime);
+    }    
+    
+    // private float _previousDelta;
+    // private float _unscaledDelta;
+    // private void Update(){
+    //     Utils.MakeGoodFrameUpdate(UpdateAll, ref _previousDelta, ref _unscaledDelta);
+    // }
+    
+    private void UpdateAll(float delta){
         for (int i = 0; i < nodesCount; i++){
             RopeNode node = _nodes[i];
             
@@ -181,7 +208,7 @@ public class Rope : MonoBehaviour{
             
             ApplyGravity(ref node);
             ApplyAirFriction(ref node);
-            UpdatePosition(ref node, Time.fixedDeltaTime);
+            UpdatePosition(ref node, delta);
             //CalculateNodeCollisions(ref node);
         }
         
@@ -200,7 +227,7 @@ public class Rope : MonoBehaviour{
         for (int i = 0; i < nodesCount; i++){
             RopeNode node = _nodes[i];
             
-            UpdateDerivative(ref node, Time.fixedDeltaTime);
+            UpdateDerivative(ref node, delta);
             
             node.framePreviousPos = node.transform.position;
             
@@ -209,12 +236,12 @@ public class Rope : MonoBehaviour{
         
         //SetLineRendererPositions();
         
-        _lifetime += Time.fixedDeltaTime;
+        _lifetime += delta;
         if (_lifetime >= 5 && _nodes[0].stopOnCollision){
             DestroyRope();
             return;
         }
-    }    
+    }
     
     // private void SetLineRendererPositions(){
     //     Vector3 previousLineVec = Vector3.zero;

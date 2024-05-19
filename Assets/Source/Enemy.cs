@@ -15,6 +15,7 @@ public class Enemy : MonoBehaviour{
     public int index = -1;
     public bool initialized;
     public Vector3 velocity;
+    public Vector3 angularVelocity;
     public float timeInKickFlight;
     public float hitImmuneCountdown;
     public float kickImmuneCountdown;

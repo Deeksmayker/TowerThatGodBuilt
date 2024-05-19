@@ -85,7 +85,6 @@ public class WindGuy{
 public class Defender{
     public Enemy enemy;
     public CapsuleCollider capsule;
-    public Vector3 velocity;
     public float gravity = 60;
     public bool grounded;
     public Leg[] legs;
@@ -341,7 +340,11 @@ public class EnemiesController : MonoBehaviour{
             
             var defenderTransform = defender.enemy.transform;
             
-            float groundOffset = 9f;
+            float minGroundOffset = 5f;
+            float maxGroundOffset = 14f;
+            
+            float offsetT = Clamp01((_playerPosition.y - defenderTransform.position.y) / (maxGroundOffset - minGroundOffset));
+            float groundOffset = Lerp(minGroundOffset, maxGroundOffset, offsetT);
             float upForceMultiplier = 1f;
             
             Vector3 lowest = Vector3.one * 100000000;
@@ -360,99 +363,106 @@ public class EnemiesController : MonoBehaviour{
                 }
             }
             
+            groundOffset += highest.y - lowest.y;
+            
             Vector3 vecToHighest = highest - lowest;
             
-            float upForcePerGrounded = 40;
+            float legCount = 6;
+            float compensation = 1.2f;
+            float upForcePerGrounded = (defender.gravity / (legCount - 2)) * compensation;
+            
+            float targetVerticalSpeed = groundedCount * upForcePerGrounded;
+            //float targetVerticalSpeed = 80;
+            
+            bool grounded = false;
             
             if (groundedCount > 2 && Raycast(defenderTransform.position, Vector3.down, out var groundHit, groundOffset * 1.5f, Layers.Environment)){
-                //Ground gravity compensation
+                //Ground gravity targetVerticalSpeed
                 float heightDifference = groundHit.point.y + groundOffset - defenderTransform.position.y;
-                float stoppingDistance = defender.velocity.y * defender.velocity.y / (defender.gravity * 2);
-                Debug.Log(stoppingDistance);
-                if (Abs(heightDifference) <= stoppingDistance || defender.velocity.y > upForcePerGrounded * groundedCount){
-                    Debug.Log("stopping");
-                    defender.velocity += Vector3.down * defender.gravity * delta * Sign(heightDifference);
+                float sign = Sign(heightDifference);
+                float verticalDot = defender.enemy.velocity.y * sign;
+                float stoppingDistance = defender.enemy.velocity.y * defender.enemy.velocity.y / (targetVerticalSpeed * 2);
+                
+                if (verticalDot > 0){
+                    if (heightDifference <= stoppingDistance || defender.enemy.velocity.y > targetVerticalSpeed){
+                        defender.enemy.velocity.y += targetVerticalSpeed * delta * -sign;
+                    } else{
+                        defender.enemy.velocity.y += targetVerticalSpeed * delta;
+                    }
                 } else{
-                    Debug.Log("accelerating up");
-                    defender.velocity += Vector3.up * upForcePerGrounded * groundedCount * delta;
+                    defender.enemy.velocity.y += targetVerticalSpeed * delta * sign;
                 }
+                
+                grounded = true;
             } else{
-                defender.velocity += Vector3.down * defender.gravity * delta;
+                //defender.enemy.velocity.y += defender.gravity * delta * -1;
             }
+            defender.enemy.velocity.y += defender.gravity * delta * -1;
             
-            //defender.velocity += Vector3.up * upForcePerGrounded * groundedCount * delta * upForceMultiplier;
+            
+            //defender.enemy.velocity += Vector3.up * upForcePerGrounded * groundedCount * delta * upForceMultiplier;
 
-            
-            Vector3 vecToPlayer = _playerPosition - defenderTransform.position;
-            float distanceToPlayer = vecToPlayer.magnitude;
-            
-            Vector3 horizontalVecToPlayer = vecToPlayer;
-            horizontalVecToPlayer.y = 0;
-            
-            Vector3 cross = Vector3.Cross(horizontalVecToPlayer.normalized, vecToHighest.normalized);
-            if (cross.y < 0){
-                cross *= -1;
-            }
-            
-            defenderTransform.rotation = Quaternion.Slerp(defenderTransform.rotation, Quaternion.LookRotation(horizontalVecToPlayer, cross), delta * 5);
-            
-            Vector3 targetLocalPosition = defender.parentTransform.InverseTransformPoint(_playerPosition);
-            //targetLocalPosition.z = Sin(Time.time * defender.moveSpeed * 0.1f) * defender.restRadius;
-            targetLocalPosition.z = 0;
-            targetLocalPosition.y = defenderTransform.localPosition.y;
-            
-            Vector3 targetPosition = defender.parentTransform.TransformPoint(targetLocalPosition);
-            
-            Vector3 vecToTarget = targetPosition - defenderTransform.position;
-            float distanceToTarget = vecToTarget.magnitude;
-            Vector3 dirToTarget = vecToTarget / distanceToTarget;
-            
-            float acceleration = 100f;
-            float deceleration = 100f;
-            float targetSpeed = 100f;
-            
-            float defenderSpeed = defender.velocity.magnitude;
-            
-            float dot = Vector3.Dot(defender.velocity, dirToTarget);
-            if (dot > 0){
-                float stoppingDistance = (defenderSpeed * defenderSpeed) / (deceleration * 2);
-                if (distanceToTarget <= stoppingDistance || defenderSpeed > targetSpeed){
-                    defender.velocity += deceleration * delta * -dirToTarget;
+            if (grounded){
+                Vector3 vecToPlayer = _playerPosition - defenderTransform.position;
+                float distanceToPlayer = vecToPlayer.magnitude;
+                
+                Vector3 horizontalVecToPlayer = vecToPlayer;
+                horizontalVecToPlayer.y = 0;
+                
+                Vector3 cross = Vector3.Cross(horizontalVecToPlayer.normalized, vecToHighest.normalized);
+                if (cross.y < 0){
+                    cross *= -1;
+                }
+                
+                defenderTransform.rotation = Quaternion.Slerp(defenderTransform.rotation, Quaternion.LookRotation(horizontalVecToPlayer, cross), delta * 5);
+                
+                Vector3 targetLocalPosition = defender.parentTransform.InverseTransformPoint(_playerPosition);
+                //targetLocalPosition.z = Sin(Time.time * defender.moveSpeed * 0.1f) * defender.restRadius;
+                targetLocalPosition.z = 0;
+                targetLocalPosition.y = defenderTransform.localPosition.y;
+                
+                Vector3 targetPosition = defender.parentTransform.TransformPoint(targetLocalPosition);
+                
+                Vector3 vecToTarget = targetPosition - defenderTransform.position;
+                float distanceToTarget = vecToTarget.magnitude;
+                Vector3 dirToTarget = vecToTarget / distanceToTarget;
+                
+                float acceleration = 100f;
+                float deceleration = 100f;
+                float targetSpeed = 100f;
+                
+                float defenderSpeed = defender.enemy.velocity.magnitude;
+                
+                float dot = Vector3.Dot(defender.enemy.velocity, dirToTarget);
+                if (dot > 0){
+                    float stoppingDistance = (defenderSpeed * defenderSpeed) / (deceleration * 2);
+                    if (distanceToTarget <= stoppingDistance || defenderSpeed > targetSpeed){
+                        defender.enemy.velocity += deceleration * delta * -dirToTarget;
+                    } else{
+                        defender.enemy.velocity += acceleration * delta * dirToTarget;
+                    }
                 } else{
-                    defender.velocity += acceleration * delta * dirToTarget;
+                    defender.enemy.velocity += acceleration * delta * dirToTarget;
                 }
-            } else{
-                defender.velocity += acceleration * delta * dirToTarget;
+                
+                float damping = 1f;
+                defender.enemy.velocity.x *= 1f - delta * damping;
+                defender.enemy.velocity.z *= 1f - delta * damping;
             }
             
-            float damping = 1f;
-            defender.velocity.x *= 1f - delta * damping;
-            defender.velocity.z *= 1f - delta * damping;
-            
-            // Vector3 newLocalPosition = Vector3.MoveTowards(defenderTransform.localPosition, targetLocalPosition, delta * defender.moveSpeed);
-            // Vector3 newWorldPosition = defender.parentTransform.TransformPoint(newLocalPosition);
-            
-            // if (!Raycast(newWorldPosition, -defenderTransform.up, out var hit, 50, Layers.Environment)){
-            //     newLocalPosition = defenderTransform.localPosition;
-            // }
-            
-            // defenderTransform.localPosition = newLocalPosition;
-
-            //defender.velocity += Vector3.up * defender.gravity * delta;
-            
-            Vector3 nextPosition = defenderTransform.position + defender.velocity * delta;
+            Vector3 nextPosition = defenderTransform.position + defender.enemy.velocity * delta;
             
             ColInfo[] cols = ColInfoInCapsule(nextPosition, defenderTransform, defender.capsule, Layers.Environment);
             
             for (int j = 0; j < cols.Length; j++){
-                if (Vector3.Dot(defender.velocity, cols[j].normal) >= 0){
+                if (Vector3.Dot(defender.enemy.velocity, cols[j].normal) >= 0){
                     continue;
                 }
 
-                defender.velocity -= cols[j].normal * Vector3.Dot(defender.velocity, cols[j].normal) * 1.5f;
+                defender.enemy.velocity -= cols[j].normal * Vector3.Dot(defender.enemy.velocity, cols[j].normal) * 1.1f;
             }
             
-            defenderTransform.Translate(defender.velocity * delta, Space.World);
+            defenderTransform.Translate(defender.enemy.velocity * delta, Space.World);
         }        
     }
     

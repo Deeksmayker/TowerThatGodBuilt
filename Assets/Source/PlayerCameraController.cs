@@ -101,7 +101,8 @@ public class PlayerCameraController : MonoBehaviour{
 
     
     private void UpdateCamLocalPosWithVelocity(ref Vector3 velocity, float velocityLoss, float damping, float bounce){
-        Transform camTransform = Camera.main.transform;
+        //Transform camTransform = Camera.main.transform;
+        Transform camTransform = yRotationTarget;
         Vector3 previousCamLocalPos = camTransform.localPosition;
         Vector3 nextLocalPos = camTransform.localPosition;
         
