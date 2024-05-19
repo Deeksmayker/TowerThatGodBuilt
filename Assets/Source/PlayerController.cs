@@ -238,28 +238,13 @@ public class PlayerController : MonoBehaviour{
         
             return;
         }
-    
-        float fullDelta = Time.deltaTime * GAME_DELTA_SCALE;
-        _unscaledDelta = Time.unscaledDeltaTime * GAME_DELTA_SCALE;
-        fullDelta += _previousDelta;
-        _previousDelta = 0;
-        
-        if (fullDelta > MIN_FRAME_DELTA){
-            float delta = MIN_FRAME_DELTA * Time.timeScale * GAME_DELTA_SCALE;
-            while (fullDelta > MIN_FRAME_DELTA){
-                UpdateAll(delta);
-                fullDelta -= MIN_FRAME_DELTA;
-                _unscaledDelta = 0;
-            }
-            _previousDelta = fullDelta;
-        } else{
-            UpdateAll(fullDelta);
-        }
+           
+        MakeGoodFrameUpdate(UpdateAll, ref _previousDelta, ref _unscaledDelta);
     }
     
     private void UpdateAll(float delta){
         //var delta = delta * _playerTimeScale;
-    
+        
         _moveInput = new Vector3(Input.GetAxisRaw("Horizontal"), 0, Input.GetAxisRaw("Vertical"));
         
         var wishDirection = new Vector3(_moveInput.x, 0, _moveInput.z);
@@ -1305,6 +1290,19 @@ public class PlayerController : MonoBehaviour{
     }
     
     private void DebugStuff(){
+        if (Input.GetKey(KeyCode.Keypad5)){
+            TimeController.Instance.SetTargetTimeScale(5);
+        }
+        if (Input.GetKeyUp(KeyCode.Keypad5)){
+            TimeController.Instance.SetTargetTimeScale(1);
+        }
+        if (Input.GetKey(KeyCode.Keypad2)){
+            TimeController.Instance.SetTargetTimeScale(2);
+        }
+        if (Input.GetKeyUp(KeyCode.Keypad2)){
+            TimeController.Instance.SetTargetTimeScale(1);
+        }
+        //No other keys
         if (Input.GetKeyDown(KeyCode.L)){
             PlayerCameraController.Instance.ShakeCameraLong(1);
         }
@@ -1325,7 +1323,7 @@ public class PlayerController : MonoBehaviour{
             GAME_DELTA_SCALE = GAME_DELTA_SCALE < 1 ? 1 : 0;
         }
         
-        if (Input.GetKeyDown(KeyCode.N)){
+        if (Input.GetKeyDown(KeyCode.H)){
             Jump(transform.up, 5);
         }
     }

@@ -46,6 +46,9 @@ public class RopeLegs : MonoBehaviour{
                     legs[i].targetMovePoint = hit.point;
                     legs[i].normal = hit.normal;
                     legs[i].moving = true;
+                    
+                    legs[i].grounded = Vector3.Angle(hit.normal, Vector3.up) <= 30;
+                    
                     break;
                 }
             } else if (Vector3.Distance(legs[i].standPoint, legs[i].rope.transform.position + legs[i].rope.transform.forward * legLength) > legLength){
@@ -83,6 +86,7 @@ public class Leg{
     public Vector3 normal;
     public bool moving;
     public bool connected;
+    public bool grounded;
     public float moveT;
     public float lastMoveTimer;
 }

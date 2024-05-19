@@ -86,7 +86,7 @@ public class Defender{
     public Enemy enemy;
     public CapsuleCollider capsule;
     public Vector3 velocity;
-    public float gravity = -60;
+    public float gravity = 60;
     public bool grounded;
     public Leg[] legs;
     
@@ -285,28 +285,30 @@ public class EnemiesController : MonoBehaviour{
     }
     
     private float _previousDelta;
+    private float _unscaledDelta;
     private void Update(){
         if (GAME_DELTA_SCALE <= 0){
             return;
         }
     
-        float fullDelta = Time.deltaTime * GAME_DELTA_SCALE;
-        //_unscaledDelta = Time.unscaledDeltaTime * GAME_DELTA_SCALE;
-        fullDelta += _previousDelta;
-        _previousDelta = 0;
+//         float fullDelta = Time.deltaTime * GAME_DELTA_SCALE;
+//         //_unscaledDelta = Time.unscaledDeltaTime * GAME_DELTA_SCALE;
+//         fullDelta += _previousDelta;
+//         _previousDelta = 0;
         
-        if (fullDelta > MIN_FRAME_DELTA){
-            float delta = MIN_FRAME_DELTA * Time.timeScale * GAME_DELTA_SCALE;
-            while (fullDelta > MIN_FRAME_DELTA){
-                UpdateAll(delta);
-                fullDelta -= MIN_FRAME_DELTA;
-//                _unscaledDelta = 0;
-            }
-            _previousDelta = fullDelta;
-        } else{
-            UpdateAll(fullDelta);
-        }
+//         if (fullDelta > MIN_FRAME_DELTA){
+//             float delta = MIN_FRAME_DELTA * Time.timeScale * GAME_DELTA_SCALE;
+//             while (fullDelta > MIN_FRAME_DELTA){
+//                 UpdateAll(delta);
+//                 fullDelta -= MIN_FRAME_DELTA;
+// //                _unscaledDelta = 0;
+//             }
+//             _previousDelta = fullDelta;
+//         } else{
+//             UpdateAll(fullDelta);
+//         }
 
+        MakeGoodFrameUpdate(UpdateAll, ref _previousDelta, ref _unscaledDelta);
     }
     
     private void UpdateAll(float delta){
@@ -329,25 +331,6 @@ public class EnemiesController : MonoBehaviour{
             if (!defender.enemy.gameObject.activeSelf){
                 continue;
             }
-            
-            Vector3 lowest = Vector3.one * 100000000;
-            Vector3 highest = -Vector3.one * 10000000;
-            int groundedCount = 0;
-            
-            for (int l = 0; l < defender.legs.Length; l++){
-                if (defender.legs[l].standPoint.y >= highest.y){
-                    highest = defender.legs[l].standPoint;
-                }
-                if (defender.legs[l].standPoint.y < lowest.y){
-                    lowest = defender.legs[l].standPoint;
-                }
-                if (!defender.legs[l].moving && defender.legs[l].connected){
-                    groundedCount++;
-                }
-            }
-            
-            Vector3 vecToHighest = highest - lowest;
-            
             // MoveByVelocity(ref windGuy.enemy, delta);            
             // FlyByKick(ref windGuy.enemy, delta);
             EnemyCountdowns(ref defender.enemy, delta);
@@ -361,15 +344,43 @@ public class EnemiesController : MonoBehaviour{
             float groundOffset = 9f;
             float upForceMultiplier = 1f;
             
-            if (Raycast(defenderTransform.position, -defenderTransform.up, out var groundHit, groundOffset * 1.5f, Layers.Environment)){
-                float distanceToGround = Vector3.Distance(groundHit.point, defenderTransform.position);
-                float t = distanceToGround / groundOffset;
-                upForceMultiplier = Mathf.Lerp(1.4f, 0, t * t);
+            Vector3 lowest = Vector3.one * 100000000;
+            Vector3 highest = -Vector3.one * 10000000;
+            int groundedCount = 0;
+            
+            for (int l = 0; l < defender.legs.Length; l++){
+                if (defender.legs[l].standPoint.y >= highest.y){
+                    highest = defender.legs[l].standPoint;
+                }
+                if (defender.legs[l].standPoint.y < lowest.y){
+                    lowest = defender.legs[l].standPoint;
+                }
+                if (!defender.legs[l].moving && defender.legs[l].connected && defender.legs[l].grounded){
+                    groundedCount++;
+                }
             }
             
+            Vector3 vecToHighest = highest - lowest;
             
-            float upForcePerGroundedLeg = 20;
-            defender.velocity += Vector3.up * upForcePerGroundedLeg * groundedCount * delta * upForceMultiplier;
+            float upForcePerGrounded = 40;
+            
+            if (groundedCount > 2 && Raycast(defenderTransform.position, Vector3.down, out var groundHit, groundOffset * 1.5f, Layers.Environment)){
+                //Ground gravity compensation
+                float heightDifference = groundHit.point.y + groundOffset - defenderTransform.position.y;
+                float stoppingDistance = defender.velocity.y * defender.velocity.y / (defender.gravity * 2);
+                Debug.Log(stoppingDistance);
+                if (Abs(heightDifference) <= stoppingDistance || defender.velocity.y > upForcePerGrounded * groundedCount){
+                    Debug.Log("stopping");
+                    defender.velocity += Vector3.down * defender.gravity * delta * Sign(heightDifference);
+                } else{
+                    Debug.Log("accelerating up");
+                    defender.velocity += Vector3.up * upForcePerGrounded * groundedCount * delta;
+                }
+            } else{
+                defender.velocity += Vector3.down * defender.gravity * delta;
+            }
+            
+            //defender.velocity += Vector3.up * upForcePerGrounded * groundedCount * delta * upForceMultiplier;
 
             
             Vector3 vecToPlayer = _playerPosition - defenderTransform.position;
@@ -427,7 +438,7 @@ public class EnemiesController : MonoBehaviour{
             
             // defenderTransform.localPosition = newLocalPosition;
 
-            defender.velocity += Vector3.up * defender.gravity * delta;
+            //defender.velocity += Vector3.up * defender.gravity * delta;
             
             Vector3 nextPosition = defenderTransform.position + defender.velocity * delta;
             
