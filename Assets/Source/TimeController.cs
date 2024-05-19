@@ -6,6 +6,8 @@ public class TimeController : MonoBehaviour{
 
     private float _hitStopCountdown;
     
+    private float _targetTimeScale = 1f;
+    
     private bool _slowingDown;
     
     private void Awake(){
@@ -15,7 +17,7 @@ public class TimeController : MonoBehaviour{
         }
         
         Instance = this;
-        Time.timeScale = 1;
+        Time.timeScale = _targetTimeScale;
     }
     
     private void Update(){
@@ -30,7 +32,7 @@ public class TimeController : MonoBehaviour{
             
             if (_hitStopCountdown > 0) Time.timeScale = 0;
             else {
-                Time.timeScale = 1;
+                Time.timeScale = _targetTimeScale;
                 _hitStopCountdown = 0;
             }
             
@@ -44,5 +46,10 @@ public class TimeController : MonoBehaviour{
     public void AddHitStop(float time){
         _hitStopCountdown += time;
         _hitStopCountdown = Clamp(_hitStopCountdown, 0, 0.1f);
+    }
+    
+    public void SetTargetTimeScale(float value){
+        _targetTimeScale = value;
+        Time.timeScale = _targetTimeScale;
     }
 }

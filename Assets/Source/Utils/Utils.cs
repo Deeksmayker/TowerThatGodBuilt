@@ -28,6 +28,25 @@ namespace Source.Utils
         public static Transform GetCameraTransform(){
             return Camera.main.transform;
         }
+        
+        public static void MakeGoodFrameUpdate(Action<float> update, ref float previousDelta, ref float unscaledDelta){
+            float fullDelta = Time.deltaTime * GAME_DELTA_SCALE;
+            unscaledDelta = Time.unscaledDeltaTime * GAME_DELTA_SCALE;
+            fullDelta += previousDelta;
+            previousDelta = 0;
+            
+            if (fullDelta > MIN_FRAME_DELTA){
+                float delta = MIN_FRAME_DELTA * GAME_DELTA_SCALE;
+                while (fullDelta > MIN_FRAME_DELTA){
+                    update(delta);
+                    fullDelta -= delta;
+                    unscaledDelta = 0;
+                }
+                previousDelta = fullDelta;
+            } else{
+                update(fullDelta);
+            }
+        }
     
         public static Collider ClosestCollider(Vector3 distanceToWhom, (Collider[], int) colliders, GameObject excludedObject = null){
             var minDistance = 1000000000f;
