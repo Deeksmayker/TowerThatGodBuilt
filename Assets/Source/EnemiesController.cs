@@ -453,6 +453,13 @@ public class EnemiesController : MonoBehaviour{
                 float damping = 1f;
                 defender.enemy.velocity.x *= 1f - delta * damping;
                 defender.enemy.velocity.z *= 1f - delta * damping;
+                
+                Vector3 nextVelocityPosition = defenderTransform.position + defender.enemy.velocity * delta;
+            
+                if (!Raycast(nextVelocityPosition, Vector3.down, 20f, Layers.Environment)){
+                    defender.enemy.velocity.x *= -1;
+                    defender.enemy.velocity.z *= -1;
+                }
             }
             
             Vector3 nextPosition = defenderTransform.position + defender.enemy.velocity * delta;
