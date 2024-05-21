@@ -243,7 +243,8 @@ public class PlayerController : MonoBehaviour{
         
             return;
         }
-           
+           // _unscaledDelta = Time.unscaledDeltaTime;
+           // UpdateAll(Time.deltaTime);
         MakeGoodFrameUpdate(UpdateAll, ref _previousDelta, ref _unscaledDelta);
     }
     
@@ -662,13 +663,12 @@ public class PlayerController : MonoBehaviour{
     
     private void CalculatePlayerCollisions(ref Vector3 velocity, float delta){
         Vector3 nextPosition = transform.position + velocity * delta;
-    
-        var sphereCenter1 = nextPosition - transform.up * _collider.height * 0.5f + _collider.radius * transform.up;
-        var sphereCenter2 = nextPosition + transform.up * _collider.height * 0.5f - _collider.radius * transform.up;
+        // var sphereCenter1 = nextPosition - transform.up * _collider.height * 0.5f + _collider.radius * transform.up;
+        // var sphereCenter2 = nextPosition + transform.up * _collider.height * 0.5f - _collider.radius * transform.up;
         
         bool foundGround = false;
         
-        ColInfo[] groundColliders = ColInfoInCapsule(nextPosition, sphereCenter1, sphereCenter2, _collider.radius, Layers.Environment);
+        ColInfo[] groundColliders = ColInfoInCapsule(nextPosition, transform, _collider, velocity, Layers.Environment);
         
         for (int i = 0; i < groundColliders.Length; i++){
             if (Vector3.Dot(velocity, groundColliders[i].normal) >= 0){
