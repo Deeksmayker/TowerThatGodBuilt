@@ -136,9 +136,10 @@ public class EnemiesController : MonoBehaviour{
         //_dummyPrefab = GetPrefab("Dummy").GetComponent<EnemyProjectile>();
         _horizontalShooterPrefab = GetPrefab("HorizontalDummyShooter").GetComponent<Enemy>();
         _verticalShooterPrefab = GetPrefab("VerticalDummyShooter").GetComponent<Enemy>();
-        _blockerPrefab = GetPrefab("Blocker").GetComponent<Enemy>();
-        _ricochePrefab = GetPrefab("Ricoche").GetComponent<Enemy>();
-        _windGuyPrefab = GetPrefab("WindGuy").GetComponent<Enemy>();
+        _blockerPrefab  = GetPrefab("Blocker").GetComponent<Enemy>();
+        _ricochePrefab  = GetPrefab("Ricoche").GetComponent<Enemy>();
+        _windGuyPrefab  = GetPrefab("WindGuy").GetComponent<Enemy>();
+        _defenderPrefab = GetPrefab("Defender").GetComponent<Enemy>();
     }
 
     private void OnEnable()
@@ -196,6 +197,9 @@ public class EnemiesController : MonoBehaviour{
                 break;
             case WindGuyType:
                 enemy = Instantiate(_windGuyPrefab, position, rotation);
+                break;
+            case DefenderType:
+                enemy = Instantiate(_defenderPrefab, position, rotation);
                 break;
             default:
                 Debug.LogError("No enemy prefab of type: " + type);
@@ -388,7 +392,6 @@ public class EnemiesController : MonoBehaviour{
                 
                 if (verticalDot > 0){
                     if (Abs(heightDifference) <= stoppingDistance || Abs(defender.enemy.velocity.y) > targetVerticalSpeed){
-                        Debug.Log(targetVerticalSpeed);
                         defender.enemy.velocity.y += targetVerticalSpeed * delta * -sign;
                     } else{
                         defender.enemy.velocity.y += targetVerticalSpeed * delta * sign;
