@@ -180,17 +180,22 @@ public class PlayerController : MonoBehaviour{
         _currentSpeed    = _player.baseSpeed;
         _currentFriction = _player.friction;
         
-        _staminaSlider       = GameObject.FindWithTag("StaminaSlider").GetComponent<Slider>();
-        _ballCounterTextMesh = GameObject.FindWithTag("BallCounter").GetComponent<TextMeshProUGUI>();
+        GameObject staminaObject = GameObject.FindWithTag("StaminaSlider");
+        if (staminaObject){
+            _staminaSlider       = staminaObject.GetComponent<Slider>();
+        }
+        _ballCounterTextMesh = GameObject.FindWithTag("BallCounter")?.GetComponent<TextMeshProUGUI>();
+        
         
         _kickModelParticle = GameObject.FindWithTag("KickLeg").GetComponent<ParticleSystem>();
         
         _imaginaryBallAreas = new Collider[10];
         
         _currentBallCount = _player.maxBallCount;
-        _ballCounterTextMesh.text = _currentBallCount.ToString();
-        
-        _speedTextMesh = GameObject.FindWithTag("SpeedText").GetComponent<TextMeshProUGUI>();
+        if (_ballCounterTextMesh){
+            _ballCounterTextMesh.text = _currentBallCount.ToString();
+        }
+        _speedTextMesh = GameObject.FindWithTag("SpeedText")?.GetComponent<TextMeshProUGUI>();
         
         if (!showPlayerStats){
             _speedTextMesh.gameObject.SetActive(false);
@@ -299,7 +304,9 @@ public class PlayerController : MonoBehaviour{
         
         if (showPlayerStats){
             var horizontalSpeed = (new Vector3(playerVelocity.x, 0, playerVelocity.z)).magnitude;
-            _speedTextMesh.text = "Horizontal: " + horizontalSpeed;
+            if (_speedTextMesh){
+                _speedTextMesh.text = "Horizontal: " + horizontalSpeed;
+            }
         }
         
         if (!_holdingBall){
@@ -488,8 +495,9 @@ public class PlayerController : MonoBehaviour{
             }
         }
         
-        _staminaSlider.value = _currentStamina / _player.maxStamina;
-
+        if (_staminaSlider){
+             _staminaSlider.value = _currentStamina / _player.maxStamina;
+        }
     }
     
     private void UpdateKick(float delta){
@@ -902,7 +910,7 @@ public class PlayerController : MonoBehaviour{
             
             var enemy = col.GetComponentInParent<Enemy>();
             
-            if (!enemy || enemy.hitImmuneCountdown > 0 || Vector3.Dot(normal, ball.velocity) > 0) continue;
+            if (!enemy || enemy.hitImmuneCountdown > 0 || ball.speed < 10 || Vector3.Dot(normal, ball.velocity) > 0) continue;
 
             if (ball.velocity.sqrMagnitude > 25){
                 ball.bounceCount++;
