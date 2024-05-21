@@ -103,6 +103,13 @@ namespace Source.Utils
     
             return (_targetColliders, count);
         }
+        
+        public static (Collider[], int) CollidersInCapsuleBig(Vector3 position1, Vector3 position2, float radius, LayerMask layers){
+            ClearArray(_targetCollidersBig);
+            int count = OverlapCapsuleNonAlloc(position1, position2, radius, _targetCollidersBig, layers);
+    
+            return (_targetCollidersBig, count);
+        }
     
         public static (Collider[], int) CollidersInBoxBig(Vector3 center, Vector3 size, Quaternion rotation, LayerMask layers){
             ClearArray(_targetCollidersBig);
@@ -142,7 +149,7 @@ namespace Source.Utils
             return result;
         }
         
-        public static ColInfo[] ColInfoInCapsule(Vector3 nextPosition, Vector3 capsulePos1, Vector3 capsulePos2, float radius, LayerMask layers){
+        public static ColInfo[] ColInfoInCapsule(Vector3 nextPosition, Vector3 capsulePos1, Vector3 capsulePos2, float radius, Vector3 velocity, LayerMask layers){
             (Collider[], int) colliders = CollidersInCapsule(capsulePos1, capsulePos2, radius, layers);
             ColInfo[] result = new ColInfo[colliders.Item2];
             
@@ -158,11 +165,27 @@ namespace Source.Utils
                 Vector3 vecToClosestPos1 = capsulePos1 - closestPos1;
                 Vector3 vecToClosestPos2 = capsulePos2 - closestPos2;
                 
-                if (vecToClosestPos1.sqrMagnitude < vecToClosest.sqrMagnitude){
+                // if (vecToClosestPos1.normalized.Equals(Vector3.down)){;
+                //     Debug.Log("that's right");
+                //     capsulePos1 = capsulePos2;
+                //     vecToClosestPos1 = vecToClosestPos2;   
+                //     closestPos1 = closestPos2;
+                // }
+                
+                // if (vecToClosest.normalized.Equals(Vector3.down)){
+                //     Debug.Log("FSD");
+                // }
+                
+                if (Vector3.Dot(velocity, vecToClosest) >= 0){
+                    closest = closestPos2;
+                    vecToClosest = vecToClosestPos2;
+                }
+                
+                if (Vector3.Dot(velocity, vecToClosestPos1) < 0 && vecToClosestPos1.sqrMagnitude < vecToClosest.sqrMagnitude){
                     closest = closestPos1; 
                     vecToClosest = vecToClosestPos1;
                 }
-                if (vecToClosestPos2.sqrMagnitude < vecToClosest.sqrMagnitude){
+                if (Vector3.Dot(velocity, vecToClosestPos2) < 0 && vecToClosestPos2.sqrMagnitude < vecToClosest.sqrMagnitude){
                     closest = closestPos2; 
                     vecToClosest = vecToClosestPos2;
                 }
@@ -175,11 +198,11 @@ namespace Source.Utils
             return result;
         }
         
-        public static ColInfo[] ColInfoInCapsule(Vector3 nextPosition, Transform targetTransform, CapsuleCollider capsule, LayerMask layers){
+        public static ColInfo[] ColInfoInCapsule(Vector3 nextPosition, Transform targetTransform, CapsuleCollider capsule, Vector3 velocity, LayerMask layers){
             var sphereCenter1 = nextPosition - targetTransform.up * capsule.height * 0.5f + capsule.radius * targetTransform.up + capsule.center;
             var sphereCenter2 = nextPosition + targetTransform.up * capsule.height * 0.5f - capsule.radius * targetTransform.up + capsule.center;
 
-            return ColInfoInCapsule(nextPosition, sphereCenter1, sphereCenter2, capsule.radius, layers);
+            return ColInfoInCapsule(nextPosition, sphereCenter1, sphereCenter2, capsule.radius, velocity, layers);
         }
     
         public static bool MoveToPosition(ref Transform targetTransform, ref float timer, float timeToMove, Vector3 startPosition, Vector3 endPosition, bool backwards, Func<float, float> easeFunction){

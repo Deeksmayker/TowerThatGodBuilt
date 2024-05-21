@@ -464,7 +464,7 @@ public class EnemiesController : MonoBehaviour{
             
             Vector3 nextPosition = defenderTransform.position + defender.enemy.velocity * delta;
             
-            ColInfo[] cols = ColInfoInCapsule(nextPosition, defenderTransform, defender.capsule, Layers.Environment);
+            ColInfo[] cols = ColInfoInCapsule(nextPosition, defenderTransform, defender.capsule, defender.enemy.velocity, Layers.Environment);
             
             for (int j = 0; j < cols.Length; j++){
                 if (Vector3.Dot(defender.enemy.velocity, cols[j].normal) >= 0){
