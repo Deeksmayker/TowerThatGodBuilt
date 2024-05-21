@@ -85,7 +85,7 @@ public class WindGuy{
 public class Defender{
     public Enemy enemy;
     public CapsuleCollider capsule;
-    public float gravity = 60;
+    public float gravity = 100;
     public bool grounded;
     public Leg[] legs;
     
@@ -363,9 +363,10 @@ public class EnemiesController : MonoBehaviour{
                 }
             }
             
-            groundOffset += highest.y - lowest.y;
+            //groundOffset += highest.y - lowest.y;
             
             Vector3 vecToHighest = highest - lowest;
+            //groundOffset += highest.y - lowest.y;
             
             float legCount = 6;
             float compensation = 1.2f;
@@ -376,18 +377,21 @@ public class EnemiesController : MonoBehaviour{
             
             bool grounded = false;
             
-            if (groundedCount > 2 && Raycast(defenderTransform.position, Vector3.down, out var groundHit, groundOffset * 1.5f, Layers.Environment)){
+            defender.enemy.velocity.y += defender.gravity * delta * -1;
+
+            if (groundedCount > 2){// && Raycast(defenderTransform.position, Vector3.down, out var groundHit, groundOffset * 1.5f, Layers.Environment)){
                 //Ground gravity targetVerticalSpeed
-                float heightDifference = groundHit.point.y + groundOffset - defenderTransform.position.y;
+                float heightDifference = highest.y + groundOffset - defenderTransform.position.y;
                 float sign = Sign(heightDifference);
                 float verticalDot = defender.enemy.velocity.y * sign;
                 float stoppingDistance = defender.enemy.velocity.y * defender.enemy.velocity.y / (targetVerticalSpeed * 2);
                 
                 if (verticalDot > 0){
-                    if (heightDifference <= stoppingDistance || defender.enemy.velocity.y > targetVerticalSpeed){
+                    if (Abs(heightDifference) <= stoppingDistance || Abs(defender.enemy.velocity.y) > targetVerticalSpeed){
+                        Debug.Log(targetVerticalSpeed);
                         defender.enemy.velocity.y += targetVerticalSpeed * delta * -sign;
                     } else{
-                        defender.enemy.velocity.y += targetVerticalSpeed * delta;
+                        defender.enemy.velocity.y += targetVerticalSpeed * delta * sign;
                     }
                 } else{
                     defender.enemy.velocity.y += targetVerticalSpeed * delta * sign;
@@ -397,8 +401,6 @@ public class EnemiesController : MonoBehaviour{
             } else{
                 //defender.enemy.velocity.y += defender.gravity * delta * -1;
             }
-            defender.enemy.velocity.y += defender.gravity * delta * -1;
-            
             
             //defender.enemy.velocity += Vector3.up * upForcePerGrounded * groundedCount * delta * upForceMultiplier;
 
