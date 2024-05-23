@@ -556,7 +556,7 @@ public class PlayerController : MonoBehaviour{
                 
                 var enemy = targets[i].GetComponentInParent<Enemy>();
                 if (enemy){
-                    enemy.TakeKick(GetCameraTransform().forward * _player.kickPower);
+                    enemy.TakeKick(GetCameraTransform().forward * _player.kickPower, targets[i].ClosestPoint(KickCenter()));
                     PlayerCameraController.Instance.ShakeCameraBase(0.8f);
                     TimeController.Instance.AddHitStop(0.1f);
                 }
@@ -574,8 +574,12 @@ public class PlayerController : MonoBehaviour{
     
     }
     
+    public Vector3 KickCenter(){
+        return transform.position + GetCameraTransform().forward * _player.kickHitBoxLength * 0.5f;
+    }
+    
     private Collider[] GetKickTargetsInRange(float mult = 1){
-        var kickHitBoxCenter = transform.position + GetCameraTransform().forward * _player.kickHitBoxLength * 0.5f * mult;
+        var kickHitBoxCenter = KickCenter() * mult;
         Collider[] targets = OverlapBox(kickHitBoxCenter, new Vector3(_player.kickHitBoxWidth * mult, _player.kickHitBoxWidth * mult, _player.kickHitBoxLength * mult) * 0.5f, GetCameraTransform().rotation, Layers.PlayerKickHitable);
         
         return targets;
@@ -694,7 +698,9 @@ public class PlayerController : MonoBehaviour{
             _ballReloadCountdown -= delta;
             if (_ballReloadCountdown <= 0){
                 _currentBallCount++;
-                _ballCounterTextMesh.text = _currentBallCount.ToString();
+                if (_ballCounterTextMesh){
+                    _ballCounterTextMesh.text = _currentBallCount.ToString();
+                }
                 
                 if (_currentBallCount < _player.maxBallCount){
                     _ballReloadCountdown = _player.ballReloadTime;
@@ -732,7 +738,9 @@ public class PlayerController : MonoBehaviour{
             //_balls.Add(newBall);
             
             _currentBallCount--;
-            _ballCounterTextMesh.text = _currentBallCount.ToString();
+            if (_ballCounterTextMesh){
+                _ballCounterTextMesh.text = _currentBallCount.ToString();
+            }
             if (_ballReloadCountdown <= 0){
                 _ballReloadCountdown = _player.ballReloadTime;
             }
@@ -940,10 +948,13 @@ public class PlayerController : MonoBehaviour{
 
                     switch (enemy.type){
                         case BlockerType:
-                            enemy.TakeKick(ball.velocity);
+                            enemy.TakeKick(ball.velocity, col.ClosestPoint(ball.transform.position));
                             break;
                         case WindGuyType:
-                            enemy.TakeKick(ball.velocity);
+                            enemy.TakeKick(ball.velocity, col.ClosestPoint(ball.transform.position));
+                            break;
+                        case DefenderType:
+                            enemy.TakeKick(ball.velocity, col.ClosestPoint(ball.transform.position));
                             break;
                         default:
                             enemy.TakeHit(col);

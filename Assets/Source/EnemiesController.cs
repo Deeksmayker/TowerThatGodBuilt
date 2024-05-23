@@ -415,11 +415,16 @@ public class EnemiesController : MonoBehaviour{
                 horizontalVecToPlayer.y = 0;
                 
                 Vector3 cross = Vector3.Cross(horizontalVecToPlayer.normalized, vecToHighest.normalized);
+                //cross.y = Clamp(cross.y, 0.8f, 1f);
                 if (cross.y < 0){
                     cross *= -1;
                 }
                 
+                Quaternion targetRotation = Quaternion.LookRotation(horizontalVecToPlayer, cross);
+                
                 //defenderTransform.rotation = Quaternion.Slerp(defenderTransform.rotation, Quaternion.LookRotation(horizontalVecToPlayer, cross), delta * 5);
+                
+                defenderTransform.rotation = Quaternion.RotateTowards(defenderTransform.rotation, targetRotation, delta * 50);
                 
                 Vector3 targetLocalPosition = defender.parentTransform.InverseTransformPoint(_playerPosition);
                 //targetLocalPosition.z = Sin(Time.time * defender.moveSpeed * 0.1f) * defender.restRadius;
@@ -462,6 +467,9 @@ public class EnemiesController : MonoBehaviour{
                 }
             }
             
+            defenderTransform.Rotate(defender.enemy.angularVelocity * delta);
+            defender.enemy.angularVelocity *= 1f - delta * 2f;
+            
             Vector3 nextPosition = defenderTransform.position + defender.enemy.velocity * delta;
             
             ColInfo[] cols = ColInfoInCapsule(nextPosition, defenderTransform, defender.capsule, defender.enemy.velocity, Layers.Environment);
@@ -472,6 +480,7 @@ public class EnemiesController : MonoBehaviour{
                 }
 
                 defender.enemy.velocity -= cols[j].normal * Vector3.Dot(defender.enemy.velocity, cols[j].normal) * 1.1f;
+                defender.enemy.angularVelocity.x *= -1f;
             }
             
             defenderTransform.Translate(defender.enemy.velocity * delta, Space.World);
@@ -689,7 +698,7 @@ public class EnemiesController : MonoBehaviour{
                         Vector3 vecToOther = otherCollider.transform.position - enemy.transform.position;
                         
                         if (otherEnemy){
-                            otherEnemy.TakeKick(vecToOther.normalized * Sqrt(Clamp01(1f - vecToOther.sqrMagnitude / (radius * radius))) * pushPower);
+                            otherEnemy.TakeKick(vecToOther.normalized * Sqrt(Clamp01(1f - vecToOther.sqrMagnitude / (radius * radius))) * pushPower, enemy.transform.position);
                         }
                     }
                     PlayerCameraController.Instance.ShakeCameraBase(0.3f);
@@ -877,7 +886,7 @@ public class EnemiesController : MonoBehaviour{
             if (otherEnemy){
                 enemy.TakeHit();
                 otherEnemy.TakeHit();
-                otherEnemy.TakeKick(enemy.velocity * 2);
+                otherEnemy.TakeKick(enemy.velocity * 2, enemy.transform.position);
             } else if (collidersNearby.Item1[i].TryGetComponent<WinGate>(out var winGate)){
                 _player.Win(enemy.transform.position); 
                 enemy.TakeHit();
