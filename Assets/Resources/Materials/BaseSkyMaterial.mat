@@ -118,7 +118,7 @@ Material:
     - _Glossiness: 0
     - _GlossyReflections: 0
     - _Metallic: 0
-    - _NadirBlendPower: 1
+    - _NadirBlendPower: 1.23
     - _Noise1Scale: 13.45
     - _Noise2Scale: 1
     - _Noise3Scale: 1
@@ -132,13 +132,14 @@ Material:
     - _SpecularHighlights: 1
     - _SrcBlend: 1
     - _SrcBlendAlpha: 1
+    - _SunBlendPower: 200
     - _Surface: 0
     - _VoronoiDensity: 1
     - _VoronoiOffsetSpeed: 0.1
     - _VoronoiPower: 2
     - _WorkflowMode: 1
     - _ZWrite: 1
-    - _ZenithBlendPower: 2.15
+    - _ZenithBlendPower: 2.49
     m_Colors:
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
     - _CloudColor: {r: 0.8490566, g: 0.8490566, b: 0.8490566, a: 1}
@@ -147,8 +148,8 @@ Material:
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _DarkColor: {r: 0, g: 0, b: 0, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
-    - _HorizonColor: {r: 0.9607843, g: 0.54097134, b: 0.37647057, a: 0.8156863}
-    - _NadirColor: {r: 0.9056604, g: 0.7345881, b: 0.6536134, a: 0.7647059}
+    - _HorizonColor: {r: 0.2627451, g: 0.5713809, b: 0.9137255, a: 0.8156863}
+    - _NadirColor: {r: 0.6792453, g: 0.6792453, b: 0.6792453, a: 0.7647059}
     - _Noise1Speed: {r: 0.05, g: 0.05, b: 0, a: 0}
     - _Noise1Tiling: {r: 2, g: 2, b: 0, a: 0}
     - _Noise2Speed: {r: 0.01, g: -0.05, b: 0, a: 0}
@@ -159,5 +160,5 @@ Material:
     - _SunColor: {r: 36.638237, g: 13.579188, b: 4.6661906, a: 1}
     - _VoronoiSpeed: {r: 0.01, g: 0.01, b: 0, a: 0}
     - _VoronoiTiling: {r: 1, g: 1, b: 0, a: 0}
-    - _ZenithColor: {r: 0.079832695, g: 0.16765672, b: 0.4339623, a: 1}
+    - _ZenithColor: {r: 1.827451, g: 0.8627451, b: 0.5254902, a: 0.8156863}
   m_BuildTextureStacks: []
