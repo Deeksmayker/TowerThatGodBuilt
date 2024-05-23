@@ -419,7 +419,7 @@ public class EnemiesController : MonoBehaviour{
                     cross *= -1;
                 }
                 
-                defenderTransform.rotation = Quaternion.Slerp(defenderTransform.rotation, Quaternion.LookRotation(horizontalVecToPlayer, cross), delta * 5);
+                //defenderTransform.rotation = Quaternion.Slerp(defenderTransform.rotation, Quaternion.LookRotation(horizontalVecToPlayer, cross), delta * 5);
                 
                 Vector3 targetLocalPosition = defender.parentTransform.InverseTransformPoint(_playerPosition);
                 //targetLocalPosition.z = Sin(Time.time * defender.moveSpeed * 0.1f) * defender.restRadius;
@@ -456,7 +456,7 @@ public class EnemiesController : MonoBehaviour{
                 
                 Vector3 nextVelocityPosition = defenderTransform.position + defender.enemy.velocity * delta;
             
-                if (!Raycast(nextVelocityPosition, Vector3.down, 20f, Layers.Environment)){
+                if (!Raycast(nextVelocityPosition + Vector3.up * 5, Vector3.down, 50f, Layers.Environment)){
                     defender.enemy.velocity.x *= -1;
                     defender.enemy.velocity.z *= -1;
                 }
