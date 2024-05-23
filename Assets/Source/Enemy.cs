@@ -1,5 +1,6 @@
 using Source.Utils;
 using UnityEngine;
+using static UnityEngine.Mathf;
 
 public enum DodgeDirection{
     Horizontal,
@@ -36,7 +37,7 @@ public class Enemy : MonoBehaviour{
         effectsCooldown = 0.1f;
     }
     
-    public void TakeKick(Vector3 powerVector){
+    public void TakeKick(Vector3 powerVector, Vector3 impactPoint){
         if (kickImmuneCountdown > 0){
             return;
         }
@@ -50,8 +51,16 @@ public class Enemy : MonoBehaviour{
         
         takedKick = true;
         timeInKickFlight = 0;
-        transform.rotation = Quaternion.LookRotation(powerVector);
+        //transform.rotation = Quaternion.LookRotation(powerVector);
         velocity += powerVector / weight;
+        
+        float impactPower = powerVector.magnitude;
+        Vector3 vecToImpactPoint = impactPoint - (transform.position + transform.up);
+        vecToImpactPoint = new Vector3(Clamp(vecToImpactPoint.x, -5f, 5f), Clamp(vecToImpactPoint.y, -5f, 5f), Clamp(vecToImpactPoint.z, -5f, 5f));
+        
+        angularVelocity.x -= vecToImpactPoint.y * impactPower / weight;
+        angularVelocity.y += vecToImpactPoint.x * impactPower / weight;
+        
         kickTrailParticles.Play();
     }
 }

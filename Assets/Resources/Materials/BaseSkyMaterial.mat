@@ -118,7 +118,7 @@ Material:
     - _Glossiness: 0
     - _GlossyReflections: 0
     - _Metallic: 0
-    - _NadirBlendPower: 1.23
+    - _NadirBlendPower: 1.14
     - _Noise1Scale: 13.45
     - _Noise2Scale: 1
     - _Noise3Scale: 1
@@ -139,7 +139,7 @@ Material:
     - _VoronoiPower: 2
     - _WorkflowMode: 1
     - _ZWrite: 1
-    - _ZenithBlendPower: 2.49
+    - _ZenithBlendPower: 1.55
     m_Colors:
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
     - _CloudColor: {r: 0.8490566, g: 0.8490566, b: 0.8490566, a: 1}
