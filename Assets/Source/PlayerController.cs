@@ -361,7 +361,7 @@ public class PlayerController : MonoBehaviour{
         if (foundOne){
             playerVelocity.x *= 1f - ropeDamping * delta;
             playerVelocity.z *= 1f - ropeDamping * delta;
-            playerVelocity.y = MoveTowards(playerVelocity.y, ropeTargetSpeed, ropeAcceleration * delta);
+            playerVelocity.y = MoveTowards(playerVelocity.y, _player.gravity * 0.5f, _player.gravity * 2 * delta);
         }
         if (CheckSphere(transform.position, ropeCheckRadius, Layers.Rope)){
         }

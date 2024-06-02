@@ -46,14 +46,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   firstPos: {fileID: 7046607964763393496}
+  endPos: {fileID: 0}
   nodesCount: 25
-  targetDistance: 2
+  targetDistance: 3
   strength: 1
   airFriction: 0.5
   gravity: 150
   iterationCount: 5
-  connectionPointsCount: 3
   collisionSamples: 3
+  multiplier: 1
 --- !u!120 &4449453477830190216
 LineRenderer:
   serializedVersion: 2

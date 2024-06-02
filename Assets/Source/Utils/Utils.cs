@@ -204,6 +204,12 @@ namespace Source.Utils
 
             return ColInfoInCapsule(nextPosition, sphereCenter1, sphereCenter2, capsule.radius, velocity, layers);
         }
+        
+        public static void CapsuleSphereCenters(CapsuleCollider capsule, out Vector3 pos1, out Vector3 pos2){
+            Transform targetTransform = capsule.transform;
+            pos1 = targetTransform.position - targetTransform.up * capsule.height * 0.5f + capsule.radius * targetTransform.up + capsule.center;
+            pos2 = targetTransform.position + targetTransform.up * capsule.height * 0.5f - capsule.radius * targetTransform.up + capsule.center;
+        }
     
         public static bool MoveToPosition(ref Transform targetTransform, ref float timer, float timeToMove, Vector3 startPosition, Vector3 endPosition, bool backwards, Func<float, float> easeFunction){
             float t = 0;

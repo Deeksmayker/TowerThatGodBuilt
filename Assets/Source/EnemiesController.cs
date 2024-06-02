@@ -338,11 +338,16 @@ public class EnemiesController : MonoBehaviour{
             // FlyByKick(ref windGuy.enemy, delta);
             EnemyCountdowns(ref defender.enemy, delta);
             
-            if (EnemyHit(ref defender.enemy)){
-                continue;
-            }
+            // if (EnemyHit(ref defender.enemy)){
+            //     continue;
+            // }
             
             var defenderTransform = defender.enemy.transform;
+            
+            if (defenderTransform.transform.position.y < -1000){
+                defender.enemy.gameObject.SetActive(false);
+                return;
+            }
             
             float minGroundOffset = 5f;
             float maxGroundOffset = 14f;
@@ -462,8 +467,9 @@ public class EnemiesController : MonoBehaviour{
                 Vector3 nextVelocityPosition = defenderTransform.position + defender.enemy.velocity * delta;
             
                 if (!Raycast(nextVelocityPosition + Vector3.up * 5, Vector3.down, 50f, Layers.Environment)){
-                    defender.enemy.velocity.x *= -1;
-                    defender.enemy.velocity.z *= -1;
+                    defender.enemy.velocity.x *= -1.1f;
+                    defender.enemy.velocity.z *= -1.1f;
+                    defender.enemy.velocity.y = Abs(defender.enemy.velocity.y);
                 }
             }
             
@@ -478,13 +484,27 @@ public class EnemiesController : MonoBehaviour{
                 if (Vector3.Dot(defender.enemy.velocity, cols[j].normal) >= 0){
                     continue;
                 }
-
+                
                 defender.enemy.velocity -= cols[j].normal * Vector3.Dot(defender.enemy.velocity, cols[j].normal) * 1.1f;
                 defender.enemy.angularVelocity.x *= -1f;
             }
             
             defenderTransform.Translate(defender.enemy.velocity * delta, Space.World);
+            
+            float punchPower = 100f;
+            
+            CapsuleSphereCenters(defender.capsule, out Vector3 capsulePos1, out Vector3 capsulePos2);
+            if (grounded && CheckCapsule(capsulePos1, capsulePos2, defender.capsule.radius * 2, Layers.PlayerHurtBox)){
+                PunchPlayer(defenderTransform.position, punchPower);            
+            }
         }        
+    }
+    
+    private void PunchPlayer(Vector3 puncherPos, float power){
+        Vector3 dirToPlayer = (_playerPosition - puncherPos).normalized;
+        _player.playerVelocity = dirToPlayer * power;
+        PlayerCameraController.Instance.ShakeCameraLong(1f);
+        PlayerCameraController.Instance.ShakeCameraBase(1f);
     }
     
     private void UpdateWindGuys(float delta){

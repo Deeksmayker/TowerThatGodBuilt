@@ -37,7 +37,7 @@ Transform:
   - {fileID: 8668366607553182047}
   - {fileID: 5087428644344286264}
   m_Father: {fileID: 0}
-  m_RootOrder: 0
+  m_RootOrder: 28
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &11836531934522828
 MonoBehaviour:
@@ -5906,9 +5906,9 @@ MonoBehaviour:
     airAcceleration: 2
     airDeceleration: 1
     friction: 100
-    gravity: 40
-    minJumpForce: 40
-    maxJumpForce: 40
+    gravity: 80
+    minJumpForce: 60
+    maxJumpForce: 60
     timeToChargeMaxJump: 0.1
     jumpChargeStaminaDrain: 30
     jumpForwardBoost: 0
@@ -5921,7 +5921,7 @@ MonoBehaviour:
     maxBallCount: 5
     hookPullDelay: 0.4
     hookPullPower: 40
-    hookUpPower: 40
+    hookUpPower: 60
     ballDetectRadius: 7
     kickHitBoxLength: 10
     kickHitBoxWidth: 10
