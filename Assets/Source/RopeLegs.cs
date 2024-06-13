@@ -18,6 +18,7 @@ public class RopeLegs : MonoBehaviour{
     [SerializeField] private float disconnectedStrength = 0.1f;
     
     [SerializeField] private Rope[] ropes;
+    [SerializeField] private IKLegs[] ikLegs;
     
     public Leg[] legs;
     
@@ -57,6 +58,7 @@ public class RopeLegs : MonoBehaviour{
                 float currentMoveT = legs[i].moveT <= 0.5f ? legs[i].moveT * 2f : (legs[i].moveT - 0.5f) * 2f;
                 currentEndPos.y = Lerp(startHeight, targetHeight, currentMoveT); 
                 legs[i].rope.SetEndPos(currentEndPos);
+                ikLegs[i].targetPoint.position = currentEndPos;
                 if (legs[i].moveT >= 1){
                     legs[i].moveT = 0;
                     legs[i].moving = false;
@@ -89,6 +91,7 @@ public class RopeLegs : MonoBehaviour{
             } else if (Vector3.Distance(legs[i].standPoint, legs[i].rope.transform.position + legs[i].rope.transform.forward * legLength) > legLength){
                 legs[i].connected = false;
                 legs[i].rope.SetEndPos(Vector3.zero);
+                ikLegs[i].targetPoint.position = Vector3.zero;
                 legs[i].rope.SetGravity(disconnectedGravity);
                 legs[i].rope.SetStrength(disconnectedStrength);
             }
