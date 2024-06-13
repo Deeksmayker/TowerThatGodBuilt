@@ -1004,7 +1004,6 @@ public class EnemiesController : MonoBehaviour{
         }
         
         return null;
-        //return CheckSphere(checkPosition, checkRadius, Layers.PlayerProjectile);
     }
     
     private void KillPlayerIfNearby(Enemy enemy){

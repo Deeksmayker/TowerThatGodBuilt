@@ -636,6 +636,8 @@ public class PlayerController : MonoBehaviour{
         var acceleration = directionDotVelocity < 0f ? _player.airDeceleration : _player.airAcceleration;
 
         Accelerate(delta, wishDirection, wishSpeed, acceleration);
+        
+        _playerSpeed = playerVelocity.magnitude;
     }
     
     private void Accelerate(float delta, Vector3 targetDirection, float wishSpeed, float acceleration){
@@ -659,8 +661,7 @@ public class PlayerController : MonoBehaviour{
     private void ApplyFriction(float delta){
         Vector3 frictionForce = _currentFriction * -playerVelocity.normalized * delta;
         
-        var playerSpeed = _playerSpeed;
-        frictionForce = Vector3.ClampMagnitude(frictionForce, playerSpeed);
+        frictionForce = Vector3.ClampMagnitude(frictionForce, _playerSpeed);
         
         playerVelocity += frictionForce;
     }  
@@ -1280,7 +1281,10 @@ public class PlayerController : MonoBehaviour{
         return _grounded;
     }
     
-    public void ResetPosition(){
+    public void ResetPosition(bool falling = false){
+        if (!falling){
+            return;
+        }
         transform.position = _spawnPosition;
     }
     

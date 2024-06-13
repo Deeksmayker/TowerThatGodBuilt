@@ -98,7 +98,6 @@ public class PlayerCameraController : MonoBehaviour{
         UpdateCamLocalPosWithVelocity(ref _camVelocity, camVelocityLoss, camDamping, camBounce);
         UpdateCamLocalPosWithVelocity(ref _stepCamVelocity, stepCamVelocityLoss, stepCamDamping, stepCamBounce);
     }
-
     
     private void UpdateCamLocalPosWithVelocity(ref Vector3 velocity, float velocityLoss, float damping, float bounce){
         //Transform camTransform = Camera.main.transform;
