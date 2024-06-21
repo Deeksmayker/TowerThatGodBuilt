@@ -2,29 +2,52 @@ using UnityEngine;
 using static Source.Utils.Utils;
 
 public class IKLegs : MonoBehaviour{
+    public bool updateByMyself;
     public int positionsCount = 3;
     public int iterationCount = 1;
     public float jointLength = 1f;
     public Limb limbPrefab;
+    public Limb lastLimbPrefab;
     public Transform targetPoint;
-    public Transform startPoint;
-    public Limb startLimb;
     
     public bool threeD = true;
+    private Transform startPoint;
     
+    private float sumLength;
+    
+    private float[] _jointLengths;
+    
+    private static Transform s_LimbContainer;
+    //public Limb startLimb;
     
     private Limb[] _limbs;
     private LineRenderer _lr;
     
     private void Start(){
         //_lr = GetComponent<LineRenderer>();
+        
+        startPoint = transform;
+        
+        if (!s_LimbContainer){
+            s_LimbContainer = (new GameObject("Global Limb Container")).transform;
+        }
     
         _limbs = new Limb[positionsCount + 1];
-        _limbs[0] = startLimb;
+        _jointLengths = new float[_limbs.Length];
+        _limbs[0] = gameObject.AddComponent<Limb>();
+        _limbs[0].start = transform;
+        _limbs[0].end = transform;
         //_limbs[_limbs.Length-1] = targetPoint;
         for (int i = 1; i < _limbs.Length; i++){
-            _limbs[i] = Instantiate(limbPrefab, transform);//, Quaternion.identity);
+            Limb prefabToSpawn = limbPrefab;
+            if (i == _limbs.Length - 1 && lastLimbPrefab){
+                prefabToSpawn = lastLimbPrefab;
+            }
+            _limbs[i] = Instantiate(prefabToSpawn, s_LimbContainer);//, Quaternion.identity);
             _limbs[i].index = i;
+            
+            _jointLengths[i] = (_limbs[i].transform.position - _limbs[i].start.transform.position).magnitude;
+            sumLength += _jointLengths[i];
         }
         //startPoint = transform.position;
         //_lr.positionCount = positionsCount + 1;
@@ -35,21 +58,27 @@ public class IKLegs : MonoBehaviour{
     }
     
     private void Update(){
-        Vector3 startToTarget = targetPoint.position - startPoint.position;
+        if (!updateByMyself){
+            return;
+        }
+              
+        UpdateIK(targetPoint.position);
+    }
+    
+    public void UpdateIK(Vector3 target){
+        Vector3 startToTarget = target - _limbs[0].transform.position;
         
-        if (startToTarget.magnitude > positionsCount * jointLength){
-            for (int i = 1; i < _limbs.Length; i++){
-                //_lr.SetPosition(i, startPoint.position + i * startToTarget.normalized * jointLength);
-                _limbs[i].transform.position = startPoint.position + (i) * startToTarget.normalized * jointLength;
-                _limbs[i].transform.rotation = Quaternion.LookRotation(startToTarget);
-            }
+        if (startToTarget.magnitude > sumLength){
+            StretchInDirection(startToTarget);
             
             return;
         }
         
+        StretchInDirection(target + Vector3.up * 10 - _limbs[0].transform.position);
+        
         for (int iteration = 0; iteration < iterationCount; iteration++){
             Limb lastLimb = _limbs[_limbs.Length-1];
-            lastLimb.transform.position = targetPoint.position;
+            lastLimb.transform.position = target;
             Vector3 previousToMe1 = lastLimb.end.position - _limbs[_limbs.Length-2].end.position;
             if (previousToMe1.sqrMagnitude > EPSILON){
                 lastLimb.transform.rotation = Quaternion.LookRotation(previousToMe1);
@@ -63,7 +92,7 @@ public class IKLegs : MonoBehaviour{
                 }
             }
             
-            _limbs[1].transform.position = _limbs[0].end.position + (_limbs[2].start.position - _limbs[1].start.position).normalized * jointLength;
+            _limbs[1].transform.position = _limbs[0].end.position + (_limbs[2].start.position - _limbs[1].start.position).normalized * _jointLengths[1];
             Vector3 vecToSecond1 = _limbs[2].start.position - _limbs[1].start.position;
             if (vecToSecond1.sqrMagnitude > EPSILON){
                 _limbs[1].transform.rotation = Quaternion.LookRotation(vecToSecond1);
@@ -71,12 +100,20 @@ public class IKLegs : MonoBehaviour{
 
             
             for (int i = 1; i < _limbs.Length - 1; i++){
-                _limbs[i].transform.position = _limbs[i-1].end.position + _limbs[i].transform.forward * jointLength;
+                _limbs[i].transform.position = _limbs[i-1].end.position + _limbs[i].transform.forward * _jointLengths[i];
                 Vector3 vecToNext = _limbs[i+1].start.position - _limbs[i].start.position;
                 if (vecToNext.sqrMagnitude > EPSILON){
                     _limbs[i].transform.rotation = Quaternion.LookRotation(vecToNext);
                 }
             }
+        }
+    }
+    
+    public void StretchInDirection(Vector3 direction){
+        for (int i = 1; i < _limbs.Length; i++){
+            ////_lr.SetPosition(i, startPoint.position + i * startToTarget.normalized * jointLength);
+            _limbs[i].transform.position = _limbs[0].transform.position + (i) * direction.normalized * jointLength;
+            _limbs[i].transform.rotation = Quaternion.LookRotation(direction);
         }
     }
     

@@ -25,7 +25,7 @@ namespace Source.Utils
             return prefab;
         }
     
-        public static Transform GetCameraTransform(){
+        public static Transform CameraTransform(){
             return Camera.main.transform;
         }
         
@@ -196,6 +196,15 @@ namespace Source.Utils
             }
             
             return result;
+        }
+        
+        public static bool CapsuleCollided(Transform targetTransform, CapsuleCollider capsule, LayerMask layers){
+            var sphereCenter1 = targetTransform.position - targetTransform.up * capsule.height * 0.5f + capsule.radius * targetTransform.up + capsule.center;
+            var sphereCenter2 = targetTransform.position + targetTransform.up * capsule.height * 0.5f - capsule.radius * targetTransform.up + capsule.center;
+            
+            Debug.Log(targetTransform.up);
+            
+            return CheckCapsule(sphereCenter1, sphereCenter2, capsule.radius, layers);
         }
         
         public static ColInfo[] ColInfoInCapsule(Vector3 nextPosition, Transform targetTransform, CapsuleCollider capsule, Vector3 velocity, LayerMask layers){

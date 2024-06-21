@@ -58,8 +58,8 @@ public class Enemy : MonoBehaviour{
         Vector3 vecToImpactPoint = impactPoint - (transform.position + transform.up);
         vecToImpactPoint = new Vector3(Clamp(vecToImpactPoint.x, -5f, 5f), Clamp(vecToImpactPoint.y, -5f, 5f), Clamp(vecToImpactPoint.z, -5f, 5f));
         
-        angularVelocity.x -= vecToImpactPoint.y * impactPower / weight;
-        angularVelocity.y += vecToImpactPoint.x * impactPower / weight;
+        angularVelocity.x -= vecToImpactPoint.y * impactPower / (weight * 2);
+        angularVelocity.y += vecToImpactPoint.x * impactPower / (weight * 2);
         
         kickTrailParticles.Play();
     }

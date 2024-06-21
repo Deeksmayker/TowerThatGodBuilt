@@ -4,58 +4,14 @@ using static UnityEngine.Physics;
 using static UnityEngine.Mathf;
 using static Source.Utils.Utils;
 
-public class RopeLegs : MonoBehaviour{
-    [SerializeField] private float stepDistance = 5;
-    [SerializeField] private float legLength = 20;
-    [SerializeField] private float checkRadius = 25f;
-    [SerializeField] private float moveTime = 0.5f;
-    [SerializeField] private float stepHeight = 1f;
+
+public static class ProceduralAnimation{
+    private static float _previousDelta;
+    private static float _unscaledDelta;
     
-    [SerializeField] private float connectedGravity = -5000f;
-    [SerializeField] private float disconnectedGravity = -50f;
-    
-    [SerializeField] private float connectedStrength = 1.6f;
-    [SerializeField] private float disconnectedStrength = 0.1f;
-    
-    [SerializeField] private Rope[] ropes;
-    [SerializeField] private IKLegs[] ikLegs;
-    
-    public Leg[] legs;
-    
-    private void Awake(){
-        legs = new Leg[ropes.Length + ikLegs.Length];
-        for (int i = 0; i < ropes.Length; i++){
-            legs[i] = new Leg();
-            legs[i].baseTransform = ropes[i].transform;
-            legs[i].right = legs[i].baseTransform.localPosition.x > 0;
-            legs[i].ropeVisual = true;
-        }
-        
-        for (int i = ropes.Length; i < legs.Length; i++){
-            legs[i] = new Leg();
-            legs[i].baseTransform = ikLegs[i - ropes.Length].transform;
-            legs[i].right = legs[i].baseTransform.localPosition.x > 0;
-            legs[i].ikVisual = true;
-        }
-        
-        for (int i = 0; i < ropes.Length; i++){
-            ropes[i].SetGravity(disconnectedGravity);
-            ropes[i].SetStrength(disconnectedStrength);
-        }
-        
-        _lastPosition = transform.position;
-    }
-    
-    private float _previousDelta;
-    private float _unscaledDelta;
-    
-    private Vector3 _lastPosition;
-    private void Update(){
-        MakeGoodFrameUpdate(UpdateAll, ref _previousDelta, ref _unscaledDelta);
-    }
-    
-    private void UpdateAll(float delta){
-        Vector3 velocity = transform.position - _lastPosition;
+    private static Vector3 _lastPosition;
+
+    private static void UpdateLeg(float delta, Leg1[] legs, ref Transform targetTransform, Vector3 velocity, float legLength, float checkRadius, float stepDistance, float stepHeight, float moveTime){
         for (int i = 0; i < legs.Length; i++){
             if (legs[i].moving){
                 legs[i].moveT += delta / moveTime;
@@ -69,11 +25,11 @@ public class RopeLegs : MonoBehaviour{
                 float currentMoveT = legs[i].moveT <= 0.5f ? legs[i].moveT * 2f : (legs[i].moveT - 0.5f) * 2f;
                 currentEndPos.y = Lerp(startHeight, targetHeight, currentMoveT); 
                 
-                if (legs[i].ropeVisual){
-                    ropes[i].SetEndPos(currentEndPos);
-                } else if (legs[i].ikVisual){
-                    //ikLegs[i - ropes.Length].targetPoint.position = currentEndPos;
-                }
+                // if (legs[i].ropeVisual){
+                //     ropes[i].SetEndPos(currentEndPos);
+                // } else if (legs[i].ikVisual){
+                //     //ikLegs[i - ropes.Length].targetPoint.position = currentEndPos;
+                // }
                 
                 legs[i].currentTargetPoint = currentEndPos;
                 if (legs[i].moveT >= 1){
@@ -82,10 +38,10 @@ public class RopeLegs : MonoBehaviour{
                     legs[i].lastMoveTimer = 0;
                     legs[i].standPoint = legs[i].targetMovePoint;
                     legs[i].connected = true;
-                    if (legs[i].ropeVisual){
-                        ropes[i].SetGravity(connectedGravity);
-                        ropes[i].SetStrength(connectedStrength);
-                    }
+                    // if (legs[i].ropeVisual){
+                    //     ropes[i].SetGravity(connectedGravity);
+                    //     ropes[i].SetStrength(connectedStrength);
+                    // }
                 } else{
                     continue;
                 }
@@ -93,7 +49,7 @@ public class RopeLegs : MonoBehaviour{
                 legs[i].lastMoveTimer += delta;
             }
         
-            if (Hit(legs[i], out ColInfo colInfo, velocity)){
+            if (Hit(targetTransform, legs[i], out ColInfo colInfo, velocity, legLength, checkRadius )){
                 if (legs[i].lastMoveTimer > 0.1f
                                                 && Vector3.Distance(colInfo.point, legs[i].targetMovePoint) > stepDistance
                                                 && !legs[(i + 1) % legs.Length].moving
@@ -113,11 +69,11 @@ public class RopeLegs : MonoBehaviour{
                 
                 //ikLegs[i].targetPoint.position = Vector3.zero;
                 
-                if (legs[i].ropeVisual){
-                    ropes[i].SetEndPos(Vector3.zero);
-                    ropes[i].SetGravity(disconnectedGravity);
-                    ropes[i].SetStrength(disconnectedStrength);
-                }
+                // if (legs[i].ropeVisual){
+                //     ropes[i].SetEndPos(Vector3.zero);
+                //     ropes[i].SetGravity(disconnectedGravity);
+                //     ropes[i].SetStrength(disconnectedStrength);
+                // }
                 
                 legs[i].currentTargetPoint = Vector3.zero;
             }
@@ -125,14 +81,14 @@ public class RopeLegs : MonoBehaviour{
             //ikLegs[i - ropes.Length].UpdateIK(legs[i].currentTargetPoint);
         }        
         
-        for (int i = 0; i < ikLegs.Length; i++){
-            ikLegs[i].UpdateIK(legs[i + ropes.Length].currentTargetPoint);
-        }
+        // for (int i = 0; i < ikLegs.Length; i++){
+        //     ikLegs[i].UpdateIK(legs[i + ropes.Length].currentTargetPoint);
+        // }
         
-        _lastPosition = transform.position;
+        //_lastPosition = transform.position;
     }
     
-    private bool Hit(Leg leg, out ColInfo colInfo, Vector3 velocity){
+    private static bool Hit(Transform targetTransform, Leg1 leg, out ColInfo colInfo, Vector3 velocity, float legLength, float checkRadius){
         Vector3 velocityAddDirection = velocity*7;
         
         if (Raycast(leg.baseTransform.position, leg.baseTransform.forward + velocityAddDirection, out var hit1, legLength, Layers.Environment)){
@@ -145,7 +101,7 @@ public class RopeLegs : MonoBehaviour{
         
         float startOffset = leg.right ? 8 : -8;
         
-        Vector3 rightVector = transform.right;
+        Vector3 rightVector = targetTransform.right;
         rightVector += leg.baseTransform.forward;
         rightVector.y = 0;
         rightVector = rightVector.normalized;
@@ -173,29 +129,12 @@ public class RopeLegs : MonoBehaviour{
         
         colInfo = null;
         
-        
-        //velocityAddDirection.y = 0;
-        // if (Raycast(startTransform.position + Vector3.up, startTransform.forward + velocityAddDirection, out hit, legLength, Layers.Environment)){
-        //     return true;
-        // } 
-        // // if (Raycast(startTransform.position + Vector3.up, startTransform.right, out hit, legLength, Layers.Environment)){
-        // //     return true;
-        // // } 
-        // // if (Raycast(startTransform.position + Vector3.up, -startTransform.right, out hit, legLength, Layers.Environment)){
-        // //     return true;
-        // // } 
-        // if (Raycast(startTransform.position + Vector3.up, startTransform.forward - startTransform.right + velocityAddDirection, out hit, legLength, Layers.Environment)){
-        //     return true;
-        // } 
-        // if (Raycast(startTransform.position + Vector3.up, startTransform.forward + startTransform.right + velocityAddDirection, out hit, legLength, Layers.Environment)){
-        //     return true;
-        // } 
         return false;
     }
 }
 
 [Serializable]
-public class Leg{
+public class Leg1{
     //public Rope rope;
     public Transform baseTransform;
     public Vector3 startMovePoint;

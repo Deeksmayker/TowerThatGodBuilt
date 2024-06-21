@@ -473,9 +473,6 @@ public class EnemiesController : MonoBehaviour{
                 }
             }
             
-            defenderTransform.Rotate(defender.enemy.angularVelocity * delta);
-            defender.enemy.angularVelocity *= 1f - delta * 2f;
-            
             Vector3 nextPosition = defenderTransform.position + defender.enemy.velocity * delta;
             
             ColInfo[] cols = ColInfoInCapsule(nextPosition, defenderTransform, defender.capsule, defender.enemy.velocity, Layers.Environment);
@@ -486,10 +483,17 @@ public class EnemiesController : MonoBehaviour{
                 }
                 
                 defender.enemy.velocity -= cols[j].normal * Vector3.Dot(defender.enemy.velocity, cols[j].normal) * 1.1f;
-                defender.enemy.angularVelocity.x *= -1f;
+                //defender.enemy.angularVelocity.x *= -1f;
             }
             
             defenderTransform.Translate(defender.enemy.velocity * delta, Space.World);
+            
+            defenderTransform.Rotate(defender.enemy.angularVelocity * delta);
+            defender.enemy.angularVelocity *= 1f - delta * 2f;
+            
+            if (CheckSphere(defenderTransform.position + defenderTransform.up * defender.capsule.height, defender.capsule.radius, Layers.Environment)){
+                defender.enemy.angularVelocity *= -1f;                
+            }
             
             float punchPower = 100f;
             

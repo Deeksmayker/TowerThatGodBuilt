@@ -172,8 +172,8 @@ MonoBehaviour:
     m_OverrideState: 1
     m_Value: {r: 1, g: 1, b: 1, a: 1}
   highQualityFiltering:
-    m_OverrideState: 0
-    m_Value: 0
+    m_OverrideState: 1
+    m_Value: 1
   downscale:
     m_OverrideState: 1
     m_Value: 0
@@ -186,7 +186,7 @@ MonoBehaviour:
     dimension: 1
   dirtIntensity:
     m_OverrideState: 0
-    m_Value: 2.93
+    m_Value: 4.13
 --- !u!114 &8254158536596195322
 MonoBehaviour:
   m_ObjectHideFlags: 3

@@ -421,37 +421,37 @@ public class PlayerController : MonoBehaviour{
         //Rope logics
         if (Input.GetKeyDown(KeyCode.C)){
             Rope rope = Instantiate(_ropePrefab, BallStartPosition(), Quaternion.identity);
-            rope.SetVelocityToFirstNode(GetCameraTransform().forward * _player.maxBallSpeed + playerVelocity * 0.5f);
+            rope.SetVelocityToFirstNode(CameraTransform().forward * _player.maxBallSpeed + playerVelocity * 0.5f);
         }
         if (_hookTimer <= 0){
             PlayerBall ballInHookRange = null;
             _hookTargetPoint = Vector3.zero;
             bool foundGroundPoint = false;
-            if (SphereCast(GetCameraTransform().position, _player.ballDetectRadius, GetCameraTransform().forward, out var hit, 100, Layers.PlayerProjectile)){
+            if (SphereCast(CameraTransform().position, _player.ballDetectRadius, CameraTransform().forward, out var hit, 100, Layers.PlayerProjectile)){
                 if (hit.transform.TryGetComponent<PlayerBall>(out var playerBall)){
                     ballInHookRange = playerBall;
                     _scopeObject.transform.position = hit.point;
                     _hookTargetPoint = hit.point;
                 }
-            } else if (Raycast(GetCameraTransform().position, GetCameraTransform().forward, out var hit1, 300, Layers.Environment)){
+            } else if (Raycast(CameraTransform().position, CameraTransform().forward, out var hit1, 300, Layers.Environment)){
                 _scopeObject.transform.position = hit1.point;
                 _hookTargetPoint = hit1.point;
                 foundGroundPoint = true;
-            } else if (SphereCast(GetCameraTransform().position, _player.ballDetectRadius, GetCameraTransform().forward, out var hit2, 100, Layers.Environment)){
+            } else if (SphereCast(CameraTransform().position, _player.ballDetectRadius, CameraTransform().forward, out var hit2, 100, Layers.Environment)){
                 _scopeObject.transform.position = hit2.point;
                 _hookTargetPoint = hit2.point;
                 foundGroundPoint = true;
             } else{
-                //_hookTargetPoint = GetCameraTransform().position + GetCameraTransform().forward * 100;
-                _scopeObject.transform.position = GetCameraTransform().position + GetCameraTransform().forward * 1000;
+                //_hookTargetPoint = CameraTransform().position + CameraTransform().forward * 100;
+                _scopeObject.transform.position = CameraTransform().position + CameraTransform().forward * 1000;
             }
             
             if (Input.GetKeyDown(KeyCode.V) && _hookTimer <= 0){
                 if (foundGroundPoint || ballInHookRange){
                     //hookTargetPos = _hookTargetPoint;
                     _hookRope = Instantiate(_ropePrefab, transform.position - transform.forward, Quaternion.identity);
-                    _hookRope.LockLastNode(GetCameraTransform(), transform.position - transform.forward);
-                    _hookRope.SetVelocityToFirstNode(GetCameraTransform().forward * 20);
+                    _hookRope.LockLastNode(CameraTransform(), transform.position - transform.forward);
+                    _hookRope.SetVelocityToFirstNode(CameraTransform().forward * 20);
                     GameObject firstNodeObject = _hookRope.FirstNode().gameObject;
                     //Animations.Instance.MoveObject(ref firstNodeObject, _hookTargetPoint, _player.hookPullDelay, false, 0, (a) => Sqrt(a));
                 }
@@ -556,13 +556,13 @@ public class PlayerController : MonoBehaviour{
                 
                 var enemy = targets[i].GetComponentInParent<Enemy>();
                 if (enemy){
-                    enemy.TakeKick(GetCameraTransform().forward * _player.kickPower, targets[i].ClosestPoint(KickCenter()));
+                    enemy.TakeKick(CameraTransform().forward * _player.kickPower, targets[i].ClosestPoint(KickCenter()));
                     PlayerCameraController.Instance.ShakeCameraBase(0.8f);
                     TimeController.Instance.AddHitStop(0.1f);
                 }
                 
                 if (targets[i].TryGetComponent<RopeNode>(out var ropeNode)){
-                    ropeNode.velocity += GetCameraTransform().forward * _player.kickPower;
+                    ropeNode.velocity += CameraTransform().forward * _player.kickPower;
                 }
             }
             
@@ -575,12 +575,12 @@ public class PlayerController : MonoBehaviour{
     }
     
     public Vector3 KickCenter(){
-        return transform.position + GetCameraTransform().forward * _player.kickHitBoxLength * 0.5f;
+        return transform.position + CameraTransform().forward * _player.kickHitBoxLength * 0.5f;
     }
     
     private Collider[] GetKickTargetsInRange(float mult = 1){
         var kickHitBoxCenter = KickCenter() * mult;
-        Collider[] targets = OverlapBox(kickHitBoxCenter, new Vector3(_player.kickHitBoxWidth * mult, _player.kickHitBoxWidth * mult, _player.kickHitBoxLength * mult) * 0.5f, GetCameraTransform().rotation, Layers.PlayerKickHitable);
+        Collider[] targets = OverlapBox(kickHitBoxCenter, new Vector3(_player.kickHitBoxWidth * mult, _player.kickHitBoxWidth * mult, _player.kickHitBoxLength * mult) * 0.5f, CameraTransform().rotation, Layers.PlayerKickHitable);
         
         return targets;
     }
@@ -1243,11 +1243,11 @@ public class PlayerController : MonoBehaviour{
     }
     
     private Vector3 BallStartPosition(){
-        return GetCameraTransform().position + GetCameraTransform().forward * 4 - GetCameraTransform().up * 2.5f;
+        return CameraTransform().position + CameraTransform().forward * 4 - CameraTransform().up * 2.5f;
     }
     
     private void SetKickVelocityToBall(ref PlayerBall ball){
-        ball.velocity = GetCameraTransform().forward * _player.maxBallSpeed + playerVelocity * 0.5f;
+        ball.velocity = CameraTransform().forward * _player.maxBallSpeed + playerVelocity * 0.5f;
         ball.angularVelocity = _currentStartAngularVelocity;
     }
     
@@ -1308,7 +1308,7 @@ public class PlayerController : MonoBehaviour{
         Gizmos.color = Color.red;
         
         
-        var kickHitBoxCenter = transform.position + GetCameraTransform().forward * _player.kickHitBoxLength * 0.5f;
+        var kickHitBoxCenter = transform.position + CameraTransform().forward * _player.kickHitBoxLength * 0.5f;
         Gizmos.DrawWireCube(kickHitBoxCenter, new Vector3(_player.kickHitBoxWidth, _player.kickHitBoxWidth, _player.kickHitBoxLength));
     }
     
