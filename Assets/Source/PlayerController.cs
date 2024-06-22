@@ -77,6 +77,9 @@ public class PlayerController : MonoBehaviour{
     [SerializeField] private PlayerSettings attackerSettings;
     [SerializeField] private PlayerSettings balancedSettings;
     
+    public Transform body;
+    public IKLegs[] legs;
+    
     private Vector3 _lastPosition;
     private float _distanceWalked;
     

@@ -16,6 +16,16 @@ public class PlayerCameraController : MonoBehaviour{
     [SerializeField] private float stepCamDamping = 15f;
     [SerializeField] private float stepCamBounce = 0.9f;
     [SerializeField] private float stepCamVelocityLoss = 5f;
+    
+    public float bodyDamping = 15f;
+    public float bodyBounce = 0.9f;
+    public float bodyVelocityLoss = 5f;
+    
+    public Transform bodyTarget;
+    public Transform upBodyPivot;
+    public Transform downBodyPivot;
+    public Transform mainBodyTransform;
+    public Transform bodyTransform;
 
     [SerializeField] private Transform cameraTarget;
     [SerializeField] private Transform xRotationTarget;
@@ -40,9 +50,14 @@ public class PlayerCameraController : MonoBehaviour{
     
     private Vector3 _camVelocity;
     private Vector3 _stepCamVelocity;
+    private Vector3 _bodyVelocity;
+    
+    private Vector3 _baseBodyLocalPos;
     
     private float _targetRoll, _targetPitch;
     private float _additionalRoll, _additionalPitch;
+    
+    private bool _bodyRotating;
     
     private PlayerController _player;
     
@@ -53,6 +68,8 @@ public class PlayerCameraController : MonoBehaviour{
         }
         
         Instance = this;
+        
+        _baseBodyLocalPos = bodyTransform.localPosition;
     }
     
     private void Start(){
@@ -85,32 +102,51 @@ public class PlayerCameraController : MonoBehaviour{
     }
     
     private Vector3 _oldCamLocalPos;
+    private Vector3 _oldBodyLocalPos;
     
     private void Update(){
         Look();        
         PitchAndRoll();
         Shake();
+        
+        float bodyRotationSpeed = 20f;
+        
+        if (_bodyRotating){
+            downBodyPivot.forward = Vector3.Lerp(downBodyPivot.forward, yRotationTarget.forward, bodyRotationSpeed * Time.deltaTime);
+            upBodyPivot.forward = Vector3.Lerp(upBodyPivot.forward, yRotationTarget.forward, bodyRotationSpeed * Time.deltaTime);
+            
+            if (Vector3.Angle(downBodyPivot.forward, yRotationTarget.forward) <= EPSILON){
+                _bodyRotating = false;
+            }
+        } else{
+            if (Vector3.Angle(downBodyPivot.forward, yRotationTarget.forward) > 60){
+                _bodyRotating = true;
+            } else{
+                upBodyPivot.forward = Vector3.Lerp(downBodyPivot.forward, yRotationTarget.forward, 0.5f);
+            }
+        }
     }
     
     private void LateUpdate(){
         transform.position = Vector3.Lerp(transform.position, cameraTarget.position, followSpeed * Time.deltaTime);
+        mainBodyTransform.position = Vector3.Lerp(mainBodyTransform.position, cameraTarget.position, followSpeed * Time.deltaTime);
         
-        UpdateCamLocalPosWithVelocity(ref _camVelocity, camVelocityLoss, camDamping, camBounce);
-        UpdateCamLocalPosWithVelocity(ref _stepCamVelocity, stepCamVelocityLoss, stepCamDamping, stepCamBounce);
+        UpdateCamLocalPosWithVelocity(ref yRotationTarget, ref _camVelocity,     ref _oldCamLocalPos, Vector3.zero, camVelocityLoss, camDamping, camBounce); 
+        UpdateCamLocalPosWithVelocity(ref yRotationTarget, ref _stepCamVelocity, ref _oldCamLocalPos, Vector3.zero, stepCamVelocityLoss, stepCamDamping, stepCamBounce);
+        
+        UpdateCamLocalPosWithVelocity(ref bodyTransform, ref _bodyVelocity, ref _oldBodyLocalPos, _baseBodyLocalPos, bodyVelocityLoss, bodyDamping, bodyBounce);
     }
     
-    private void UpdateCamLocalPosWithVelocity(ref Vector3 velocity, float velocityLoss, float damping, float bounce){
-        //Transform camTransform = Camera.main.transform;
-        Transform camTransform = yRotationTarget;
-        Vector3 previousCamLocalPos = camTransform.localPosition;
-        Vector3 nextLocalPos = camTransform.localPosition;
+    private void UpdateCamLocalPosWithVelocity(ref Transform targetTransform, ref Vector3 velocity, ref Vector3 oldPos, Vector3 baseLocalPos, float velocityLoss, float damping, float bounce){
+        Vector3 previousCamLocalPos = targetTransform.localPosition;
+        Vector3 nextLocalPos = targetTransform.localPosition;
         
         nextLocalPos += velocity * Time.deltaTime;
         velocity = Vector3.Lerp(velocity, Vector3.zero, Time.deltaTime * velocityLoss);
         
-        nextLocalPos = Vector3.Lerp(nextLocalPos, Vector3.zero, (1f - bounce) * Time.deltaTime * damping);
+        nextLocalPos = Vector3.Lerp(nextLocalPos, baseLocalPos, (1f - bounce) * Time.deltaTime * damping);
         
-        nextLocalPos = (1f + bounce) * nextLocalPos - bounce * _oldCamLocalPos;
+        nextLocalPos = (1f + bounce) * nextLocalPos - bounce * oldPos;
         
         float downLimit = -4f;
         if (!_player.IsGrounded()){
@@ -119,17 +155,19 @@ public class PlayerCameraController : MonoBehaviour{
         
         nextLocalPos.y = Clamp(nextLocalPos.y, downLimit, 2f);
         
-        camTransform.localPosition = nextLocalPos;
+        targetTransform.localPosition = nextLocalPos;
         
-        _oldCamLocalPos = previousCamLocalPos;
+        oldPos = previousCamLocalPos;
     }
     
     public void AddCamVelocity(Vector3 velocity){
         _camVelocity += velocity;
+        _bodyVelocity += velocity;
     }
     
     public void AddStepCamVelocity(Vector3 velocity){
         _stepCamVelocity += velocity;
+        _bodyVelocity += velocity;
     }
     
     private void Shake(){
