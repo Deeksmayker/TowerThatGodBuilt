@@ -10,6 +10,9 @@ public class IKLegs : MonoBehaviour{
     public Limb lastLimbPrefab;
     public Transform targetPoint;
     
+    public bool stretchToTarget = true;
+    public bool stretchToDirection;
+    
     public bool threeD = true;
     private Transform startPoint;
     
@@ -68,13 +71,17 @@ public class IKLegs : MonoBehaviour{
     public void UpdateIK(Vector3 target){
         Vector3 startToTarget = target - _limbs[0].transform.position;
         
-        if (startToTarget.magnitude > sumLength){
-            StretchInDirection(startToTarget);
+        // if (startToTarget.magnitude > sumLength){
+        //     StretchInDirection(startToTarget);
             
-            return;
-        }
+        //     return;
+        // }
         
-        StretchInDirection(target + Vector3.up * 10 - _limbs[0].transform.position);
+        if (stretchToTarget){
+            StretchInDirection(target + Vector3.up * 10 - _limbs[0].transform.position);
+        } else if (stretchToDirection){
+            StretchInDirection(transform.forward * 10 + Vector3.up * 10);//target + Vector3.up * 10 - _limbs[0].transform.position);
+        }
         
         for (int iteration = 0; iteration < iterationCount; iteration++){
             Limb lastLimb = _limbs[_limbs.Length-1];

@@ -104,16 +104,16 @@ public class PlayerCameraController : MonoBehaviour{
     private Vector3 _oldCamLocalPos;
     private Vector3 _oldBodyLocalPos;
     
-    private void Update(){
+    public void UpdateAll(float delta){
         Look();        
-        PitchAndRoll();
-        Shake();
+        PitchAndRoll(delta);
+        Shake(delta);
         
         float bodyRotationSpeed = 20f;
         
-        if (_bodyRotating){
-            downBodyPivot.forward = Vector3.Lerp(downBodyPivot.forward, yRotationTarget.forward, bodyRotationSpeed * Time.deltaTime);
-            upBodyPivot.forward = Vector3.Lerp(upBodyPivot.forward, yRotationTarget.forward, bodyRotationSpeed * Time.deltaTime);
+        if (_bodyRotating || _player.moveInput != Vector3.zero){
+            downBodyPivot.forward = Vector3.Lerp(downBodyPivot.forward, yRotationTarget.forward, bodyRotationSpeed * delta);
+            upBodyPivot.forward = Vector3.Lerp(upBodyPivot.forward, yRotationTarget.forward, bodyRotationSpeed * delta);
             
             if (Vector3.Angle(downBodyPivot.forward, yRotationTarget.forward) <= EPSILON){
                 _bodyRotating = false;
@@ -127,24 +127,24 @@ public class PlayerCameraController : MonoBehaviour{
         }
     }
     
-    private void LateUpdate(){
-        transform.position = Vector3.Lerp(transform.position, cameraTarget.position, followSpeed * Time.deltaTime);
-        mainBodyTransform.position = Vector3.Lerp(mainBodyTransform.position, cameraTarget.position, followSpeed * Time.deltaTime);
+    public void LateUpdateAll(float delta){
+        transform.position = Vector3.Lerp(transform.position, cameraTarget.position, followSpeed * delta);
+        mainBodyTransform.position = Vector3.Lerp(mainBodyTransform.position, cameraTarget.position, followSpeed * delta);
         
-        UpdateCamLocalPosWithVelocity(ref yRotationTarget, ref _camVelocity,     ref _oldCamLocalPos, Vector3.zero, camVelocityLoss, camDamping, camBounce); 
-        UpdateCamLocalPosWithVelocity(ref yRotationTarget, ref _stepCamVelocity, ref _oldCamLocalPos, Vector3.zero, stepCamVelocityLoss, stepCamDamping, stepCamBounce);
+        UpdateCamLocalPosWithVelocity(ref yRotationTarget, ref _camVelocity,     ref _oldCamLocalPos, Vector3.zero, camVelocityLoss, camDamping, camBounce, delta); 
+        UpdateCamLocalPosWithVelocity(ref yRotationTarget, ref _stepCamVelocity, ref _oldCamLocalPos, Vector3.zero, stepCamVelocityLoss, stepCamDamping, stepCamBounce, delta);
         
-        UpdateCamLocalPosWithVelocity(ref bodyTransform, ref _bodyVelocity, ref _oldBodyLocalPos, _baseBodyLocalPos, bodyVelocityLoss, bodyDamping, bodyBounce);
+        UpdateCamLocalPosWithVelocity(ref bodyTransform, ref _bodyVelocity, ref _oldBodyLocalPos, _baseBodyLocalPos, bodyVelocityLoss, bodyDamping, bodyBounce, delta);
     }
     
-    private void UpdateCamLocalPosWithVelocity(ref Transform targetTransform, ref Vector3 velocity, ref Vector3 oldPos, Vector3 baseLocalPos, float velocityLoss, float damping, float bounce){
+    private void UpdateCamLocalPosWithVelocity(ref Transform targetTransform, ref Vector3 velocity, ref Vector3 oldPos, Vector3 baseLocalPos, float velocityLoss, float damping, float bounce, float delta){
         Vector3 previousCamLocalPos = targetTransform.localPosition;
         Vector3 nextLocalPos = targetTransform.localPosition;
         
-        nextLocalPos += velocity * Time.deltaTime;
-        velocity = Vector3.Lerp(velocity, Vector3.zero, Time.deltaTime * velocityLoss);
+        nextLocalPos += velocity * delta;
+        velocity = Vector3.Lerp(velocity, Vector3.zero, delta * velocityLoss);
         
-        nextLocalPos = Vector3.Lerp(nextLocalPos, baseLocalPos, (1f - bounce) * Time.deltaTime * damping);
+        nextLocalPos = Vector3.Lerp(nextLocalPos, baseLocalPos, (1f - bounce) * delta * damping);
         
         nextLocalPos = (1f + bounce) * nextLocalPos - bounce * oldPos;
         
@@ -170,13 +170,13 @@ public class PlayerCameraController : MonoBehaviour{
         _bodyVelocity += velocity;
     }
     
-    private void Shake(){
-        UpdateShake(shakers.baseShake);
-        UpdateShake(shakers.rapidShake);
-        UpdateShake(shakers.longShake);
+    private void Shake(float delta){
+        UpdateShake(shakers.baseShake, delta);
+        UpdateShake(shakers.rapidShake, delta);
+        UpdateShake(shakers.longShake, delta);
     }
     
-    private void UpdateShake(ShakeSettings shake){
+    private void UpdateShake(ShakeSettings shake, float delta){
         var currentShake = Pow(shake.trauma, shake.traumaExponent);
         
         if (currentShake <= 0){
@@ -194,7 +194,7 @@ public class PlayerCameraController : MonoBehaviour{
         
         shake.shakeTransform.localRotation = Quaternion.Euler(shake.shakeTransform.localEulerAngles + shake.lastShakeRotation - previousShakeRotation);
         
-        shake.trauma = Clamp01(shake.trauma - Time.deltaTime * shake.traumaDecreaseSpeed);
+        shake.trauma = Clamp01(shake.trauma - delta * shake.traumaDecreaseSpeed);
     }
     
     private void Look(){
@@ -220,7 +220,7 @@ public class PlayerCameraController : MonoBehaviour{
         //xRotationTarget.localRotation = ClampRotationAroundXAxis(xRotationTarget.rotation);
     }
     
-    private void PitchAndRoll(){
+    private void PitchAndRoll(float delta){
         _targetRoll  = -Input.GetAxisRaw("Horizontal") * maxRoll;
         _targetPitch = Input.GetAxisRaw("Vertical") * maxPitch;
         
@@ -229,11 +229,11 @@ public class PlayerCameraController : MonoBehaviour{
         
         _targetPitch = Mathf.Clamp(_targetPitch, -maxPitch, 0);
 
-        rollTransform.localRotation  = Quaternion.Lerp(rollTransform.localRotation, Quaternion.Euler(new Vector3(0, 0, _targetRoll)), rollChangeSpeed * Time.deltaTime);
-        pitchTransform.localRotation  = Quaternion.Lerp(pitchTransform.localRotation, Quaternion.Euler(new Vector3(_targetPitch, 0, 0)), pitchChangeSpeed * Time.deltaTime);
+        rollTransform.localRotation  = Quaternion.Lerp(rollTransform.localRotation, Quaternion.Euler(new Vector3(0, 0, _targetRoll)), rollChangeSpeed * delta);
+        pitchTransform.localRotation  = Quaternion.Lerp(pitchTransform.localRotation, Quaternion.Euler(new Vector3(_targetPitch, 0, 0)), pitchChangeSpeed * delta);
         
-        _additionalRoll = Mathf.Lerp(_additionalRoll, 0, Time.deltaTime * recoverySpeed);
-        _additionalPitch = Mathf.Lerp(_additionalPitch, 0, Time.deltaTime * recoverySpeed);
+        _additionalRoll = Mathf.Lerp(_additionalRoll, 0, delta * recoverySpeed);
+        _additionalPitch = Mathf.Lerp(_additionalPitch, 0, delta * recoverySpeed);
     }
     
     private Quaternion ClampRotationAroundXAxis(Quaternion q)

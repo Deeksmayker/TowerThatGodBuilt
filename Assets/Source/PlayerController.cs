@@ -78,7 +78,8 @@ public class PlayerController : MonoBehaviour{
     [SerializeField] private PlayerSettings balancedSettings;
     
     public Transform body;
-    public IKLegs[] legs;
+    //public IKLegs[] legs;
+    public RopeLegs legs;
     
     private Vector3 _lastPosition;
     private float _distanceWalked;
@@ -122,7 +123,7 @@ public class PlayerController : MonoBehaviour{
     //private Vector3 _lastVelocity;
     public Vector3 playerVelocity;
     private float   _playerSpeed;
-    private Vector3 _moveInput;
+    public Vector3 moveInput;
     
     private CapsuleCollider _collider;
     
@@ -157,6 +158,8 @@ public class PlayerController : MonoBehaviour{
     
     [Header("Debug")]
     [SerializeField] private bool showPlayerStats;
+    
+    private PlayerCameraController _playerCamera;
     
     private TextMeshProUGUI _speedTextMesh;
     
@@ -203,6 +206,8 @@ public class PlayerController : MonoBehaviour{
         if (!showPlayerStats){
             _speedTextMesh.gameObject.SetActive(false);
         }
+        
+        _playerCamera = FindObjectOfType<PlayerCameraController>();
     }
 
     private void OnEnable()
@@ -254,9 +259,9 @@ public class PlayerController : MonoBehaviour{
     private void UpdateAll(float delta){
         //var delta = delta * _playerTimeScale;
         
-        _moveInput = new Vector3(Input.GetAxisRaw("Horizontal"), 0, Input.GetAxisRaw("Vertical"));
+        moveInput = new Vector3(Input.GetAxisRaw("Horizontal"), 0, Input.GetAxisRaw("Vertical"));
         
-        var wishDirection = new Vector3(_moveInput.x, 0, _moveInput.z);
+        var wishDirection = new Vector3(moveInput.x, 0, moveInput.z);
         wishDirection = directionTransform.right * wishDirection.x + directionTransform.forward * wishDirection.z;
         wishDirection.Normalize();
         
@@ -289,7 +294,7 @@ public class PlayerController : MonoBehaviour{
         
         transform.Translate(playerVelocity * delta);
         
-        UpdateSteps();
+        UpdateSteps(delta);
         
         if (transform.position.y < -30){
             transform.position = _spawnPosition;
@@ -320,13 +325,18 @@ public class PlayerController : MonoBehaviour{
         DebugStuff();
         
         _lastPosition = transform.position;
+        
+        _playerCamera.UpdateAll(delta);
+        _playerCamera.LateUpdateAll(delta);
     }
     
-    private void UpdateSteps(){
-        if (!IsGrounded() || _moveInput.Equals(Vector3.zero)){
+    private void UpdateSteps(float delta){
+        legs.UpdateAll(delta, playerVelocity);
+    
+        if (!IsGrounded() || moveInput.Equals(Vector3.zero)){
             return;
         }
-    
+        
         _distanceWalked += (transform.position - _lastPosition).magnitude;
         _distanceWalked = Mathf.Clamp(_distanceWalked, 0, stepDistance * 2);
         if (_distanceWalked >= stepDistance){
