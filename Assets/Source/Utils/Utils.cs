@@ -308,7 +308,11 @@ namespace Source.Utils
         }
     
         public static float EaseOutQuint(float x){
-            return 1 - Pow(1 - x, 5);
+            return 1f - Pow(1 - x, 5);
+        }
+        
+        public static float EaseOutCubic(float x){
+            return 1f - Pow(1 - x, 3);
         }
     
         public static float EaseInOutCubic(float x){

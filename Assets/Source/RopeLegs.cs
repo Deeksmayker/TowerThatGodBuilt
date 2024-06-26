@@ -122,8 +122,10 @@ public class RopeLegs : MonoBehaviour{
             
             float stepDistance = baseStepDistance;
             
-            if (velocity.magnitude <= EPSILON){
+            if (velocity.magnitude <= 10){
                 stepDistance = 0.1f;
+            } else if (velocity.magnitude < speedThreshold * 0.5f){
+                stepDistance = LerpUnclamped(0.1f, baseStepDistance, velocity.magnitude / (speedThreshold * 0.5f));
             }
         
             if (Hit(legs[i], out ColInfo colInfo, velocity)){
@@ -174,9 +176,8 @@ public class RopeLegs : MonoBehaviour{
         if (speed > speedThreshold){
             dirRotationAngle = afterThresholdAngle;
         } else if (speed > 5){
-            dirRotationAngle = beforeThresholdAngle;
+            dirRotationAngle = Lerp(0, beforeThresholdAngle, EaseOutCubic(speed / speedThreshold));
         }
-        
         Vector3 checkDirection = leg.wishTransform.forward;
         if (dirRotationAngle > 0){
             checkDirection = Quaternion.AngleAxis(-dirRotationAngle, velocityRight) * checkDirection;
