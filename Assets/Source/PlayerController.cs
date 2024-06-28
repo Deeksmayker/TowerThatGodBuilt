@@ -294,6 +294,9 @@ public class PlayerController : MonoBehaviour{
         
         transform.Translate(playerVelocity * delta);
         
+        _playerCamera.UpdateAll(delta);
+        _playerCamera.LateUpdateAll(delta);
+        
         UpdateSteps(delta);
         
         if (transform.position.y < -30){
@@ -325,13 +328,43 @@ public class PlayerController : MonoBehaviour{
         DebugStuff();
         
         _lastPosition = transform.position;
-        
-        _playerCamera.UpdateAll(delta);
-        _playerCamera.LateUpdateAll(delta);
     }
     
     private void UpdateSteps(float delta){
-        legs.UpdateAll(delta, playerVelocity);
+        Vector3 velocityNorm = playerVelocity.normalized;
+        Vector3 velocityRight = Quaternion.Euler(0, 90, 0) * velocityNorm;
+
+        IKLegs[] ikLegs = legs.ikLegs;
+
+        if (IsGrounded()){
+            if (moveInput != Vector3.zero || _playerSpeed <= EPSILON){
+                legs.UpdateAll(delta, playerVelocity);
+            } else{
+                legs.StopMoving();
+                for (int i = 0; i < ikLegs.Length; i++){
+                    if (legs.GroundHit(ikLegs[i].startPoint, out ColInfo colInfo, playerVelocity)){
+                        legs.SetIkTarget(i, Vector3.Lerp(ikLegs[i].lastTarget, colInfo.point, delta * 5f));
+                    } else{
+                        legs.SetIkTarget(i, Vector3.Lerp(ikLegs[i].lastTarget, ikLegs[i].startPoint.position + ikLegs[i].startPoint.forward * 4f, delta * 10));
+                    }
+                }
+            }
+        } else{
+            legs.StopMoving();
+            float legLength = 3f;
+            for (int i = 0; i < ikLegs.Length; i++){
+                Vector3 dir = ikLegs[i].startPoint.forward * legLength;
+                
+                float t = _timeSinceGrounded / 2f;
+                dir *= Lerp(1f, 1.8f, t * t);
+                float angle = Lerp(0, 90f, t);// * t);
+                dir = Quaternion.AngleAxis(-angle, velocityRight) * dir;
+                    
+                Vector3 targetPos = ikLegs[i].startPoint.position + dir;
+                legs.SetIkTarget(i, Vector3.Lerp(ikLegs[i].lastTarget, targetPos, delta * _playerSpeed * Clamp01(_timeSinceGrounded * 2)));
+
+            }
+        }
     
         if (!IsGrounded() || moveInput.Equals(Vector3.zero)){
             return;

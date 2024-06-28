@@ -14,7 +14,7 @@ public class IKLegs : MonoBehaviour{
     public bool stretchToDirection;
     
     public bool threeD = true;
-    private Transform startPoint;
+    public Transform startPoint;
     
     private float sumLength;
     
@@ -26,10 +26,13 @@ public class IKLegs : MonoBehaviour{
     private Limb[] _limbs;
     private LineRenderer _lr;
     
+    public Vector3 lastTarget;
+    
     private void Start(){
         //_lr = GetComponent<LineRenderer>();
         
         startPoint = transform;
+        lastTarget = startPoint.position;
         
         if (!s_LimbContainer){
             s_LimbContainer = (new GameObject("Global Limb Container")).transform;
@@ -114,6 +117,11 @@ public class IKLegs : MonoBehaviour{
                 }
             }
         }
+        
+//        _limbs[1].transform.position = _limbs[0].end.position + _limbs[1].transform.forward * _jointLengths[1];
+        
+        
+        lastTarget = target;
     }
     
     public void StretchInDirection(Vector3 direction){
