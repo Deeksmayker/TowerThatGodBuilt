@@ -156,6 +156,15 @@ public class PlayerController : MonoBehaviour{
     private PlayerBall       _playerBallPrefab;
     private List<PlayerBall> _balls = new();
     
+    [Header("Particles")]
+    public ParticleSystem[] slidingParticles;
+    
+    [Header("Audio")]
+    public AudioSource slidingSource;
+    public AudioClip landingClip;
+    
+    public Sound sound;
+    
     [Header("Debug")]
     [SerializeField] private bool showPlayerStats;
     
@@ -240,6 +249,8 @@ public class PlayerController : MonoBehaviour{
         }
         
         _lastPosition = transform.position;
+        
+        sound = Sound.Instance;
     }
     
     private float _previousDelta;
@@ -339,17 +350,33 @@ public class PlayerController : MonoBehaviour{
         if (IsGrounded()){
             if (moveInput != Vector3.zero || _playerSpeed <= EPSILON){
                 legs.UpdateAll(delta, playerVelocity);
+                slidingSource.volume = 0;
+                for (int i = 0; i < slidingParticles.Length; i++){
+                    slidingParticles[i].Pause();
+                }
             } else{
                 legs.StopMoving();
                 for (int i = 0; i < ikLegs.Length; i++){
                     if (legs.GroundHit(ikLegs[i].startPoint, out ColInfo colInfo, playerVelocity)){
-                        legs.SetIkTarget(i, Vector3.Lerp(ikLegs[i].lastTarget, colInfo.point, delta * 5f));
+                        legs.SetIkTarget(i, Vector3.Lerp(ikLegs[i].lastTarget, colInfo.point, delta * 6f));
+                        slidingParticles[i].Play();
+                        slidingParticles[i].transform.position = legs.IkTargetPoint(i);
                     } else{
                         legs.SetIkTarget(i, Vector3.Lerp(ikLegs[i].lastTarget, ikLegs[i].startPoint.position + ikLegs[i].startPoint.forward * 4f, delta * 10));
                     }
                 }
+                
+                slidingSource.volume = Lerp(slidingSource.volume, Lerp(0, 0.05f, _playerSpeed / 20), delta * 5f);
+                slidingSource.pitch = Lerp(slidingSource.pitch, Lerp(0.7f, 1.3f, _playerSpeed / 20), delta * 5f);
             }
         } else{
+            slidingSource.volume = 0;
+            
+            for (int i = 0; i < slidingParticles.Length; i++){
+                //slidingParticles[i].gameObject.SetActive(false);
+                slidingParticles[i].Pause();
+            }
+            
             legs.StopMoving();
             float legLength = 3f;
             for (int i = 0; i < ikLegs.Length; i++){
@@ -728,10 +755,12 @@ public class PlayerController : MonoBehaviour{
             
             if (Vector3.Angle(groundColliders[i].normal, transform.up) <= 30){
                 foundGround = true;
-                if (!_grounded){
+                if (!_grounded && _timeSinceGrounded > 0.1f){
                     var landingSpeedProgress = -velocity.y / 75; 
                     PlayerCameraController.Instance.ShakeCameraLong(landingSpeedProgress);
                     PlayerCameraController.Instance.AddCamVelocity(-transform.up * 30 * landingSpeedProgress + Random.insideUnitSphere * 10 * landingSpeedProgress);
+                    
+                    sound.Play(landingClip, 0.3f);
                 }
             }
             velocity -= groundColliders[i].normal * Vector3.Dot(velocity, groundColliders[i].normal);

@@ -18,6 +18,9 @@ public class RopeLegs : MonoBehaviour{
     [SerializeField] private Rope[] ropes;
     public IKLegs[] ikLegs;
     
+    public ParticleSystem stepParticles;
+    public AudioClip[] footsteps;
+    
     public bool separateWishPositions;
     public Transform[] wishPositions;
     
@@ -31,6 +34,8 @@ public class RopeLegs : MonoBehaviour{
     public bool updateByMyself = true;
     
     public Leg[] legs;
+    
+    public Sound sound;
     
     private void Awake(){
         legs = new Leg[ropes.Length + ikLegs.Length];
@@ -64,6 +69,10 @@ public class RopeLegs : MonoBehaviour{
         }
         
         _lastPosition = transform.position;
+    }
+    
+    private void Start(){
+        sound = Sound.Instance;
     }
     
     private float _previousDelta;
@@ -112,6 +121,13 @@ public class RopeLegs : MonoBehaviour{
                     if (legs[i].ropeVisual){
                         ropes[i].SetGravity(connectedGravity);
                         ropes[i].SetStrength(connectedStrength);
+                    }
+                    
+                    if (footsteps != null && footsteps.Length > 0){
+                        sound.AtPos(footsteps, currentEndPos, 0.2f);
+                    }
+                    if (stepParticles){
+                        Instantiate(stepParticles, currentEndPos, Quaternion.identity);
                     }
                 } else{
                     continue;
@@ -170,6 +186,10 @@ public class RopeLegs : MonoBehaviour{
         ikLegs[index].UpdateIK(target);
     }
     
+    public Vector3 IkTargetPoint(int index){
+        return legs[index + ropes.Length].currentTargetPoint;
+    }
+    
     public void StopMoving(){
         for (int i = 0; i < legs.Length; i++){
             legs[i].moving = false;
@@ -178,43 +198,6 @@ public class RopeLegs : MonoBehaviour{
     
     private bool Hit(Leg leg, out ColInfo colInfo, Vector3 velocity){
         return GroundHit(leg.wishTransform, out colInfo, velocity);
-        // float speed = velocity.magnitude;
-        // // float speedProgress = Clamp01(speed / speedThreshold);30      
-        // Vector3 velocityNorm = velocity.normalized;
-        // Vector3 velocityRight = Quaternion.Euler(0, 90, 0) * velocityNorm;
-        
-        // float dirRotationAngle = 0;
-        
-        // if (speed > speedThreshold){
-        //     dirRotationAngle = afterThresholdAngle;
-        // } else if (speed > 5){
-        //     dirRotationAngle = Lerp(0, beforeThresholdAngle, EaseOutCubic(speed / speedThreshold));
-        // }
-        // Vector3 checkDirection = leg.wishTransform.forward;
-        // if (dirRotationAngle > 0){
-        //     checkDirection = Quaternion.AngleAxis(-dirRotationAngle, velocityRight) * checkDirection;
-        // }
-        
-        // if (Raycast(leg.wishTransform.position, checkDirection, out var hit1, legLength, Layers.Environment)){
-        //     colInfo = new ColInfo();
-        //     colInfo.normal = hit1.normal;
-        //     colInfo.point = hit1.point;
-        //     return true;
-        // }
-        // // colInfo = null;
-        // // return false;
-        
-        // ColInfo[] colInfos = ColInfoInRadius(leg.wishTransform.position, checkRadius, Layers.Environment);
-        
-        // for (int i = 0; i < colInfos.Length; i++){
-        //     if (Vector3.Angle(colInfos[i].normal, Vector3.up) <= 30){
-        //         colInfo = colInfos[i];
-        //         return true;
-        //     }
-        // }
-        
-        // colInfo = null;
-        // return false;
     }
     
     public bool GroundHit(Transform targetTransform, out ColInfo colInfo, Vector3 velocity){
@@ -253,7 +236,6 @@ public class RopeLegs : MonoBehaviour{
         
         colInfo = null;
         return false;
-
     }
 }
 
