@@ -8,6 +8,10 @@ public class IKLegs : MonoBehaviour{
     public float jointLength = 1f;
     public Limb limbPrefab;
     public Limb lastLimbPrefab;
+    
+    public bool useUniqueLimbs;
+    public Limb[] uniqueLimbs;
+    
     public Transform targetPoint;
     
     public bool stretchToTarget = true;
@@ -46,7 +50,10 @@ public class IKLegs : MonoBehaviour{
         //_limbs[_limbs.Length-1] = targetPoint;
         for (int i = 1; i < _limbs.Length; i++){
             Limb prefabToSpawn = limbPrefab;
-            if (i == _limbs.Length - 1 && lastLimbPrefab){
+            
+            if (useUniqueLimbs){
+                prefabToSpawn = uniqueLimbs[i - 1];
+            } else if (i == _limbs.Length - 1 && lastLimbPrefab){
                 prefabToSpawn = lastLimbPrefab;
             }
             _limbs[i] = Instantiate(prefabToSpawn, s_LimbContainer);//, Quaternion.identity);
@@ -125,9 +132,11 @@ public class IKLegs : MonoBehaviour{
     }
     
     public void StretchInDirection(Vector3 direction){
+        float len = direction.magnitude;
+    
         for (int i = 1; i < _limbs.Length; i++){
             ////_lr.SetPosition(i, startPoint.position + i * startToTarget.normalized * jointLength);
-            _limbs[i].transform.position = _limbs[0].transform.position + (i) * direction.normalized * jointLength;
+            _limbs[i].transform.position = _limbs[0].transform.position + (i) * direction.normalized * _jointLengths[i] + direction.normalized * ((len - sumLength) / (_limbs.Length - 1));
             _limbs[i].transform.rotation = Quaternion.LookRotation(direction);
         }
     }

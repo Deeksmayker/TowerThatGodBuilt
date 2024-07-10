@@ -183,6 +183,7 @@ public class RopeLegs : MonoBehaviour{
     
     public void SetIkTarget(int index, Vector3 target){
         legs[index + ropes.Length].currentTargetPoint = target;
+        legs[index + ropes.Length].targetMovePoint = target;
         ikLegs[index].UpdateIK(target);
     }
     

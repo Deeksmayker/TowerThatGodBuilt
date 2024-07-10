@@ -178,27 +178,18 @@ public class Rope : MonoBehaviour{
         node.forces = Vector3.zero;
     }
     
+    // private float _previousDelta;
+    // private float _unscaledDelta;
     // private void Update(){
-    //     for (int i = 0; i < nodesCount; i++){
-    //         RopeNode node = _nodes[i];
-    //         if (!node.canMove){
-    //             return;
-    //         }
-            
-    //         _lr.SetPosition(i, _lr.GetPosition(i) + node.velocity * Time.deltaTime);
+    //     if (GAME_DELTA_SCALE <= 0){
+    //         return;
     //     }
+    //     Utils.MakeFixedUpdate(UpdateAll, ref _previousDelta, ref _unscaledDelta);
     // }
-    
     
     private void FixedUpdate(){
         UpdateAll(Time.fixedDeltaTime);
     }    
-    
-    // private float _previousDelta;
-    // private float _unscaledDelta;
-    // private void Update(){
-    //     Utils.MakeGoodFrameUpdate(UpdateAll, ref _previousDelta, ref _unscaledDelta);
-    // }
     
     private void UpdateAll(float delta){
         for (int i = 0; i < nodesCount; i++){

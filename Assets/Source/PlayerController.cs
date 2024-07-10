@@ -49,9 +49,6 @@ public class PlayerSettings{
     //Kick
     public float kickHitBoxLength = 5;
     public float kickHitBoxWidth = 5;
-    public float kickDuration = 0.2f;
-    public float kickCooldown = 0.3f;
-    public float kickPower = 100f;
     
     [Header("Balls")]
     public bool haveScope;
@@ -67,6 +64,10 @@ public class PlayerSettings{
 }
 
 public class PlayerController : MonoBehaviour{
+    public Transform cameraTarget;
+    
+    private Vector3 _baseCamTargetLocalPos;
+    
     [Header("Player")]
     [SerializeField] private Transform directionTransform;
     public PlayerClass playerClass;
@@ -87,10 +88,14 @@ public class PlayerController : MonoBehaviour{
     private PlayerSettings _player;
     
     private List<int> _alreadyHitByKick = new();
-    private float _kickPerformingTimer;
+    private float _kickPerformingCountdown;
     private float _kickCooldownTimer;
     
-    private ParticleSystem _kickModelParticle;
+    private float _kickDuration = 0.5f;
+    private float _kickCooldown = 0.8f;
+    private float _kickPower = 200f;
+    
+//    private ParticleSystem _kickModelParticle;
     private ParticleSystem _kickHitParticles;
     
     private float _currentFriction;
@@ -202,7 +207,7 @@ public class PlayerController : MonoBehaviour{
         _ballCounterTextMesh = GameObject.FindWithTag("BallCounter")?.GetComponent<TextMeshProUGUI>();
         
         
-        _kickModelParticle = GameObject.FindWithTag("KickLeg").GetComponent<ParticleSystem>();
+        //_kickModelParticle = GameObject.FindWithTag("KickLeg").GetComponent<ParticleSystem>();
         
         _imaginaryBallAreas = new Collider[10];
         
@@ -230,6 +235,8 @@ public class PlayerController : MonoBehaviour{
     }
 
     private void Start(){
+        _baseCamTargetLocalPos = cameraTarget.localPosition;
+    
         _kickHitParticles  = Particles.Instance.GetParticles("KickHitParticles");
         _ballHitParticles  = Particles.Instance.GetParticles("BallHitParticles");
         
@@ -264,11 +271,11 @@ public class PlayerController : MonoBehaviour{
         }
            // _unscaledDelta = Time.unscaledDeltaTime;
            // UpdateAll(Time.deltaTime);
-        MakeGoodFrameUpdate(UpdateAll, ref _previousDelta, ref _unscaledDelta);
+        MakeFixedUpdate(UpdateAll, ref _previousDelta, ref _unscaledDelta);
     }
     
-    private void UpdateAll(float delta){
-        //var delta = delta * _playerTimeScale;
+    private void UpdateAll(float dt){
+        //var dt = dt * _playerTimeScale;
         
         moveInput = new Vector3(Input.GetAxisRaw("Horizontal"), 0, Input.GetAxisRaw("Vertical"));
         
@@ -281,48 +288,48 @@ public class PlayerController : MonoBehaviour{
         if (IsGrounded()){
             _timeSinceGrounded = 0;
         
-            GroundMove(delta, wishDirection);
+            GroundMove(dt, wishDirection);
         } else{
-            _timeSinceGrounded += delta;
+            _timeSinceGrounded += dt;
         
-            AirMove(delta, wishDirection);
+            AirMove(dt, wishDirection);
         }
         
-        _timeSinceJump += delta;
+        _timeSinceJump += dt;
         
         var gravityMultiplierProgress = InverseLerp(0, _player.minJumpForce, playerVelocity.y);
         var gravityMultiplier         = Lerp(1, 2, gravityMultiplierProgress * gravityMultiplierProgress);
-        playerVelocity += Vector3.down * _player.gravity * gravityMultiplier * delta;
+        playerVelocity += Vector3.down * _player.gravity * gravityMultiplier * dt;
         
-        StaminaAbilities(delta, wishDirection);
-        UpdateRopeMovement(delta);
+        StaminaAbilities(dt, wishDirection);
+        UpdateRopeMovement(dt);
                 
         _playerSpeed = playerVelocity.magnitude;
         
-        CalculatePlayerCollisions(ref playerVelocity, delta);
+        CalculatePlayerCollisions(ref playerVelocity, dt);
         
         _playerSpeed = playerVelocity.magnitude;
         
-        transform.Translate(playerVelocity * delta);
+        transform.Translate(playerVelocity * dt);
         
-        _playerCamera.UpdateAll(delta);
-        _playerCamera.LateUpdateAll(delta);
+        _playerCamera.UpdateAll(dt);
+        _playerCamera.LateUpdateAll(dt);
         
-        UpdateSteps(delta);
+        UpdateSteps(dt);
         
         if (transform.position.y < -30){
             transform.position = _spawnPosition;
         }
         
-        UpdateBalls(delta);
+        UpdateBalls(dt);
         
         if (!_holdingBall){
-            _timeSinceHoldingBall += delta;
+            _timeSinceHoldingBall += dt;
         } else{
             _timeSinceHoldingBall = 0;
         }
         
-        UpdateKick(delta);
+        UpdateKick(dt);
         BulletTime();
         
         if (showPlayerStats){
@@ -341,37 +348,49 @@ public class PlayerController : MonoBehaviour{
         _lastPosition = transform.position;
     }
     
-    private void UpdateSteps(float delta){
+    private void UpdateSteps(float dt){
         Vector3 velocityNorm = playerVelocity.normalized;
         Vector3 velocityRight = Quaternion.Euler(0, 90, 0) * velocityNorm;
-
         IKLegs[] ikLegs = legs.ikLegs;
-
+        
+        Vector3 camTargetLocalPos = _baseCamTargetLocalPos;
+        
+                        
+        if (IsGrounded() && (moveInput != Vector3.zero && _playerSpeed > EPSILON)){
+            camTargetLocalPos = _baseCamTargetLocalPos + Vector3.down * (_sprinting ? 1f : 0.5f);
+        }
+        
         if (IsGrounded()){
-            if (moveInput != Vector3.zero || _playerSpeed <= EPSILON){
-                legs.UpdateAll(delta, playerVelocity);
+            bool kick = _kickPerformingCountdown > 0 || _kickCooldownTimer > 0;
+            if ((moveInput != Vector3.zero || _playerSpeed <= EPSILON) && !kick){
+            
+                legs.UpdateAll(dt, playerVelocity);
                 slidingSource.volume = 0;
                 for (int i = 0; i < slidingParticles.Length; i++){
                     slidingParticles[i].Pause();
                 }
             } else{
                 legs.StopMoving();
-                for (int i = 0; i < ikLegs.Length; i++){
+                int iFrom = 0;
+                int iTo = ikLegs.Length;
+                if (kick){
+                    iTo--;
+                }
+                for (int i = iFrom; i < iTo; i++){
                     if (legs.GroundHit(ikLegs[i].startPoint, out ColInfo colInfo, playerVelocity)){
-                        legs.SetIkTarget(i, Vector3.Lerp(ikLegs[i].lastTarget, colInfo.point, delta * 6f));
+                        legs.SetIkTarget(i, Vector3.Lerp(ikLegs[i].lastTarget, colInfo.point, dt * 6f));
                         slidingParticles[i].Play();
                         slidingParticles[i].transform.position = legs.IkTargetPoint(i);
                     } else{
-                        legs.SetIkTarget(i, Vector3.Lerp(ikLegs[i].lastTarget, ikLegs[i].startPoint.position + ikLegs[i].startPoint.forward * 4f, delta * 10));
+                        legs.SetIkTarget(i, Vector3.Lerp(ikLegs[i].lastTarget, ikLegs[i].startPoint.position + ikLegs[i].startPoint.forward * 4f, dt * 10));
                     }
                 }
                 
-                slidingSource.volume = Lerp(slidingSource.volume, Lerp(0, 0.05f, _playerSpeed / 20), delta * 5f);
-                slidingSource.pitch = Lerp(slidingSource.pitch, Lerp(0.7f, 1.3f, _playerSpeed / 20), delta * 5f);
+                slidingSource.volume = Lerp(slidingSource.volume, Lerp(0, 0.05f, _playerSpeed / 20), dt * 5f);
+                slidingSource.pitch = Lerp(slidingSource.pitch, Lerp(0.7f, 1.3f, _playerSpeed / 20), dt * 5f);
             }
         } else{
             slidingSource.volume = 0;
-            
             for (int i = 0; i < slidingParticles.Length; i++){
                 //slidingParticles[i].gameObject.SetActive(false);
                 slidingParticles[i].Pause();
@@ -386,12 +405,12 @@ public class PlayerController : MonoBehaviour{
                 dir *= Lerp(1f, 1.8f, t * t);
                 float angle = Lerp(0, 90f, t);// * t);
                 dir = Quaternion.AngleAxis(-angle, velocityRight) * dir;
-                    
                 Vector3 targetPos = ikLegs[i].startPoint.position + dir;
-                legs.SetIkTarget(i, Vector3.Lerp(ikLegs[i].lastTarget, targetPos, delta * _playerSpeed * Clamp01(_timeSinceGrounded * 2)));
-
+                legs.SetIkTarget(i, Vector3.Lerp(ikLegs[i].lastTarget, targetPos, dt * _playerSpeed * Clamp01(_timeSinceGrounded * 2)));
             }
         }
+        
+        cameraTarget.localPosition = Vector3.Lerp(cameraTarget.localPosition, camTargetLocalPos, dt * 5);
     
         if (!IsGrounded() || moveInput.Equals(Vector3.zero)){
             return;
@@ -412,7 +431,7 @@ public class PlayerController : MonoBehaviour{
         }
     }
     
-    private void UpdateRopeMovement(float delta){
+    private void UpdateRopeMovement(float dt){
         if (!Input.GetKey(KeyCode.Space)){
             return;
         }
@@ -425,23 +444,23 @@ public class PlayerController : MonoBehaviour{
         (Collider[], int) ropeColliders = CollidersInRadius(transform.position, ropeCheckRadius, Layers.Rope);
         for (int i = 0; i < ropeColliders.Item2; i++){
             if (ropeColliders.Item1[i].TryGetComponent<RopeNode>(out var ropeNode)){
-                ropeNode.velocity.x += playerVelocity.x * delta * 10;
-                ropeNode.velocity.z += playerVelocity.z * delta * 10;
-                ropeNode.velocity.y -= playerVelocity.y * delta * 10;
+                ropeNode.velocity.x += playerVelocity.x * dt * 10;
+                ropeNode.velocity.z += playerVelocity.z * dt * 10;
+                ropeNode.velocity.y -= playerVelocity.y * dt * 10;
                 foundOne = true;
             }
         }
         if (foundOne){
-            playerVelocity.x *= 1f - ropeDamping * delta;
-            playerVelocity.z *= 1f - ropeDamping * delta;
-            playerVelocity.y = MoveTowards(playerVelocity.y, _player.gravity * 0.5f, _player.gravity * 2 * delta);
+            playerVelocity.x *= 1f - ropeDamping * dt;
+            playerVelocity.z *= 1f - ropeDamping * dt;
+            playerVelocity.y = MoveTowards(playerVelocity.y, _player.gravity * 0.5f, _player.gravity * 2 * dt);
         }
         if (CheckSphere(transform.position, ropeCheckRadius, Layers.Rope)){
         }
     }
 
     
-    private void StaminaAbilities(float delta, Vector3 wishDirection){
+    private void StaminaAbilities(float dt, Vector3 wishDirection){
         // if (Input.GetKey(KeyCode.Space)){   
         //     if (_currentStamina > 0 && _jumpChargeProgress < 1){
         //         _jumpChargeProgress += _unscaledDelta / _player.timeToChargeMaxJump;
@@ -456,7 +475,7 @@ public class PlayerController : MonoBehaviour{
             if (_currentStamina > 0){
                 _currentSpeed = _player.sprintSpeed;
                 _sprinting = true;
-                _currentStamina -= delta * _player.sprintStaminaDrain;
+                _currentStamina -= dt * _player.sprintStaminaDrain;
             } else {
                 _currentSpeed = _player.baseSpeed;
                 _sprinting = false;
@@ -464,7 +483,7 @@ public class PlayerController : MonoBehaviour{
         }
         
         if (_jumpBufferTimer > 0){
-            _jumpBufferTimer -= delta;
+            _jumpBufferTimer -= dt;
             if (_jumpBufferTimer <= 0){
                 _currentStamina += _jumpChargeProgress * _player.timeToChargeMaxJump * _player.jumpChargeStaminaDrain;
                 _jumpChargeProgress = 0;
@@ -488,7 +507,7 @@ public class PlayerController : MonoBehaviour{
         }
         
         if (/*!Input.GetKey(KeyCode.Space) &&*/ !Input.GetKey(KeyCode.LeftShift) && !Input.GetKey(_bulletTimeKey)){
-            _currentStamina = Clamp(_currentStamina + _player.staminaRecoveryRate * delta, 0, _player.maxStamina);
+            _currentStamina = Clamp(_currentStamina + _player.staminaRecoveryRate * dt, 0, _player.maxStamina);
         }
         
         //Rope logics
@@ -548,7 +567,7 @@ public class PlayerController : MonoBehaviour{
             } else{
                 _scopeObject.transform.position = _hookRope.FirstNode().transform.position;
             }
-            _hookTimer += delta;
+            _hookTimer += dt;
             if (_hookTimer >= _player.hookPullDelay && !_hookPulled){
                 _hookPulled = true;
                 if (_hookPullingBall){
@@ -574,23 +593,41 @@ public class PlayerController : MonoBehaviour{
         }
     }
     
-    private void UpdateKick(float delta){
+    private Vector3 _lastKickTarget;
+    private void UpdateKick(float dt){
         if (_kickCooldownTimer > 0){
-            _kickCooldownTimer -= delta;
+            _kickCooldownTimer -= dt;
         }
         if (_kickCooldownTimer > 0){
             return;
         }
     
-        if (_kickPerformingTimer <= 0 && Input.GetMouseButtonDown(0)){
-            _kickPerformingTimer = _player.kickDuration;
-            _kickModelParticle.Emit(1);
+        if (_kickPerformingCountdown <= 0 && Input.GetMouseButtonDown(0)){
+            _kickPerformingCountdown = _kickDuration;
+            //_kickModelParticle.Emit(1);
         }
-    
-        if (_kickPerformingTimer > 0){
-            _kickPerformingTimer -= delta;
         
-            Collider[] targets = GetKickTargetsInRange();            
+        if (_kickPerformingCountdown > 0){
+            _kickPerformingCountdown -= dt;
+            
+            Collider[] targets = KickTargets();            
+            
+            Vector3 target = Vector3.zero;
+            
+            if (targets.Length > 0){
+                target = targets[0].ClosestPoint(KickCenter());
+            } else{
+                target = KickEnd();
+            }
+            
+            legs.SetIkTarget(1, Vector3.Lerp(legs.ikLegs[1].lastTarget, target, dt * 20));
+            _lastKickTarget = target;
+        }
+        
+        if (_kickPerformingCountdown > 0){
+            _kickPerformingCountdown -= dt;
+        
+            Collider[] targets = KickTargets();            
             
             for (int i = 0; i < targets.Length; i++){
                 int targetHash = targets[i].transform.parent ? targets[i].transform.parent.GetHashCode() : targets[i].GetHashCode();
@@ -623,24 +660,23 @@ public class PlayerController : MonoBehaviour{
                     
                     float colliderSizeProgress = Clamp01(_playerSpeed / 50);
                     ball.sphere.radius = Lerp(1, 3, colliderSizeProgress);
-                    
                     break;
                 }
                 
                 var enemy = targets[i].GetComponentInParent<Enemy>();
                 if (enemy){
-                    enemy.TakeKick(CameraTransform().forward * _player.kickPower, targets[i].ClosestPoint(KickCenter()));
+                    enemy.TakeKick(CameraTransform().forward * _kickPower, targets[i].ClosestPoint(KickCenter()));
                     PlayerCameraController.Instance.ShakeCameraBase(0.8f);
                     TimeController.Instance.AddHitStop(0.1f);
                 }
                 
                 if (targets[i].TryGetComponent<RopeNode>(out var ropeNode)){
-                    ropeNode.velocity += CameraTransform().forward * _player.kickPower;
+                    ropeNode.velocity += CameraTransform().forward * _kickPower;
                 }
             }
             
-            if (_kickPerformingTimer <= 0){
-                _kickCooldownTimer = _player.kickCooldown;
+            if (_kickPerformingCountdown <= 0){
+                _kickCooldownTimer = _kickCooldown;
                 _alreadyHitByKick.Clear();
             }
         }
@@ -651,7 +687,11 @@ public class PlayerController : MonoBehaviour{
         return transform.position + CameraTransform().forward * _player.kickHitBoxLength * 0.5f;
     }
     
-    private Collider[] GetKickTargetsInRange(float mult = 1){
+    public Vector3 KickEnd(){
+        return transform.position + CameraTransform().forward * _player.kickHitBoxLength;
+    }
+    
+    private Collider[] KickTargets(float mult = 1){
         var kickHitBoxCenter = KickCenter() * mult;
         Collider[] targets = OverlapBox(kickHitBoxCenter, new Vector3(_player.kickHitBoxWidth * mult, _player.kickHitBoxWidth * mult, _player.kickHitBoxLength * mult) * 0.5f, CameraTransform().rotation, Layers.PlayerKickHitable);
         
@@ -659,7 +699,7 @@ public class PlayerController : MonoBehaviour{
     }
     
     private bool TargetInKickRange(){
-        var targets = GetKickTargetsInRange();
+        var targets = KickTargets();
         for (int i = 0; i < targets.Length; i++){
             var ball = targets[i].GetComponentInParent<PlayerBall>();
             if (ball){
@@ -681,20 +721,20 @@ public class PlayerController : MonoBehaviour{
         _timeSinceJump = 0;
     }
     
-    private void GroundMove(float delta, Vector3 wishDirection){
+    private void GroundMove(float dt, Vector3 wishDirection){
         var wishSpeed = wishDirection.sqrMagnitude * _currentSpeed;
         
-        ApplyFriction(delta);
+        ApplyFriction(dt);
         
         var directionDotVelocity = Vector3.Dot(wishDirection, playerVelocity.normalized);
         var acceleration = directionDotVelocity < 0.5f ? _player.groundDeceleration : _player.groundAcceleration;
         
-        Accelerate(delta, wishDirection, wishSpeed, acceleration);
+        Accelerate(dt, wishDirection, wishSpeed, acceleration);
         
         _playerSpeed = playerVelocity.magnitude;
         
         if (_playerSpeed > _player.baseSpeed && directionDotVelocity < 0.1f){
-            PlayerCameraController.Instance.ShakeCameraRapid(delta * 5);
+            PlayerCameraController.Instance.ShakeCameraRapid(dt * 5);
         }
         
         if (_playerSpeed <= EPSILON){
@@ -702,18 +742,18 @@ public class PlayerController : MonoBehaviour{
         }
     }
     
-    private void AirMove(float delta, Vector3 wishDirection){
+    private void AirMove(float dt, Vector3 wishDirection){
         var wishSpeed = wishDirection.sqrMagnitude * _currentSpeed;
         
         var directionDotVelocity = Vector3.Dot(wishDirection, playerVelocity.normalized);
         var acceleration = directionDotVelocity < 0f ? _player.airDeceleration : _player.airAcceleration;
 
-        Accelerate(delta, wishDirection, wishSpeed, acceleration);
+        Accelerate(dt, wishDirection, wishSpeed, acceleration);
         
         _playerSpeed = playerVelocity.magnitude;
     }
     
-    private void Accelerate(float delta, Vector3 targetDirection, float wishSpeed, float acceleration){
+    private void Accelerate(float dt, Vector3 targetDirection, float wishSpeed, float acceleration){
         var speedInWishDirection = Vector3.Dot(playerVelocity, targetDirection);
         
         var speedDifference = wishSpeed - speedInWishDirection;        
@@ -722,7 +762,7 @@ public class PlayerController : MonoBehaviour{
             return;
         }
         
-        var accelerationSpeed = acceleration * speedDifference * delta;
+        var accelerationSpeed = acceleration * speedDifference * dt;
         if (accelerationSpeed > speedDifference){
             accelerationSpeed = speedDifference;
         }
@@ -731,16 +771,16 @@ public class PlayerController : MonoBehaviour{
         playerVelocity.z += targetDirection.z * accelerationSpeed;
     }
     
-    private void ApplyFriction(float delta){
-        Vector3 frictionForce = _currentFriction * -playerVelocity.normalized * delta;
+    private void ApplyFriction(float dt){
+        Vector3 frictionForce = _currentFriction * -playerVelocity.normalized * dt;
         
         frictionForce = Vector3.ClampMagnitude(frictionForce, _playerSpeed);
         
         playerVelocity += frictionForce;
     }  
     
-    private void CalculatePlayerCollisions(ref Vector3 velocity, float delta){
-        Vector3 nextPosition = transform.position + velocity * delta;
+    private void CalculatePlayerCollisions(ref Vector3 velocity, float dt){
+        Vector3 nextPosition = transform.position + velocity * dt;
         // var sphereCenter1 = nextPosition - transform.up * _collider.height * 0.5f + _collider.radius * transform.up;
         // var sphereCenter2 = nextPosition + transform.up * _collider.height * 0.5f - _collider.radius * transform.up;
         
@@ -769,9 +809,9 @@ public class PlayerController : MonoBehaviour{
         _grounded = foundGround;
     }
     
-    private void UpdateBalls(float delta){
+    private void UpdateBalls(float dt){
         if (_currentBallCount < _player.maxBallCount){
-            _ballReloadCountdown -= delta;
+            _ballReloadCountdown -= dt;
             if (_ballReloadCountdown <= 0){
                 _currentBallCount++;
                 if (_ballCounterTextMesh){
@@ -785,7 +825,7 @@ public class PlayerController : MonoBehaviour{
         }
     
         if (_shootCooldownTimer > 0){
-            _shootCooldownTimer -= delta;
+            _shootCooldownTimer -= dt;
         }
     
         var angularVelocityDecreaseMultiplier = 0.5f; 
@@ -794,13 +834,13 @@ public class PlayerController : MonoBehaviour{
             _currentStartAngularVelocity = Vector3.zero;
         }
         
-        HoldBallLogic(delta);
+        HoldBallLogic(dt);
         PredictAndDrawBallTrajectory();
         
         if (Input.GetMouseButton(1)){
 //            PredictAndDrawBallTrajectory();
         } else{
-            //_currentStartAngularVelocity = Vector3.Lerp(_currentStartAngularVelocity, Vector3.zero, delta * 4);
+            //_currentStartAngularVelocity = Vector3.Lerp(_currentStartAngularVelocity, Vector3.zero, dt * 4);
             angularVelocityDecreaseMultiplier = 2f;
         }
         if (Input.GetMouseButtonUp(1)){
@@ -832,11 +872,11 @@ public class PlayerController : MonoBehaviour{
                 //_balls.RemoveAt(i);
                 continue;
             }
-            UpdateBall(_balls[i], delta);    
+            UpdateBall(_balls[i], dt);    
         }
     }
     
-    private void UpdateBall(PlayerBall ball, float delta, bool imaginaryBall = false){
+    private void UpdateBall(PlayerBall ball, float dt, bool imaginaryBall = false){
         if (ball.lifeTime < 1){
             ball.inHold = false;
         }
@@ -845,10 +885,10 @@ public class PlayerController : MonoBehaviour{
             return;
         }
     
-        ball.velocity += Vector3.down * _player.ballGravity * delta;
+        ball.velocity += Vector3.down * _player.ballGravity * dt;
         
-        ball.angularVelocity.y = Lerp(ball.angularVelocity.y, 0, delta * _player.angularVelocityDecreaseRate);
-        ball.angularVelocity.x = Lerp(ball.angularVelocity.x, 0, delta * _player.angularVelocityDecreaseRate * 2);
+        ball.angularVelocity.y = Lerp(ball.angularVelocity.y, 0, dt * _player.angularVelocityDecreaseRate);
+        ball.angularVelocity.x = Lerp(ball.angularVelocity.x, 0, dt * _player.angularVelocityDecreaseRate * 2);
         
         ball.velocityNormalized = ball.velocity.normalized;
         
@@ -857,16 +897,16 @@ public class PlayerController : MonoBehaviour{
         
         ball.speed = ball.velocity.magnitude;
         
-        ball.velocity += (ball.velocityUp * ball.angularVelocity.x + ball.velocityRight * ball.angularVelocity.y) * _player.angularVelocityPower * delta;
+        ball.velocity += (ball.velocityUp * ball.angularVelocity.x + ball.velocityRight * ball.angularVelocity.y) * _player.angularVelocityPower * dt;
         
         ball.transform.forward = ball.velocity;
         
-        ball.lifeTime += delta;
+        ball.lifeTime += dt;
         
         if (ball.groundBounceCount >= 1 
                 && Raycast(ball.transform.position, ball.velocityNormalized, out var hit, 10, Layers.Environment) 
                 && hit.normal.y == 1){
-            ball.velocity *= 1f - delta * 5;
+            ball.velocity *= 1f - dt * 5;
             /*
             if (ball.velocity.sqrMagnitude < 2 * 2){
                 ball.velocity = Vector3.ClampMagnitude(ball.velocity, 1);
@@ -874,13 +914,13 @@ public class PlayerController : MonoBehaviour{
             */
         }
     
-        CalculateBallCollisions(ref ball, delta, imaginaryBall);
+        CalculateBallCollisions(ref ball, dt, imaginaryBall);
         
         ball.velocity.y = Clamp(ball.velocity.y, -150, 150);
         
         if (imaginaryBall){
             //We made it only for imaginary because otherwise WindGuy do it by himself
-            //_enemiesController.CheckWindForImaginaryBall(ref ball, delta);
+            //_enemiesController.CheckWindForImaginaryBall(ref ball, dt);
             
             Array.Clear(_imaginaryBallAreas, 0, _imaginaryBallAreas.Length);
             OverlapSphereNonAlloc(ball.transform.position, ball.sphere.radius, _imaginaryBallAreas, Layers.Area);
@@ -891,7 +931,7 @@ public class PlayerController : MonoBehaviour{
                 }
                 
                 if (_imaginaryBallAreas[i].TryGetComponent<WindArea>(out var wind)){
-                    ball.velocity += wind.PowerVector(ball.transform.position) * delta;
+                    ball.velocity += wind.PowerVector(ball.transform.position) * dt;
                 }
             }
         }
@@ -901,12 +941,12 @@ public class PlayerController : MonoBehaviour{
             (Collider[], int) ropesInRadius = CollidersInRadius(ball.transform.position, ropeCheckRadius, Layers.Rope);
             for (int i = 0; i < ropesInRadius.Item2; i++){
                 if (ropesInRadius.Item1[i].TryGetComponent<RopeNode>(out var ropeNode)){
-                    ropeNode.velocity += ball.velocity * delta * 20;
+                    ropeNode.velocity += ball.velocity * dt * 20;
                 }
             }
         }
     
-        ball.transform.Translate(ball.velocity * delta, Space.World);
+        ball.transform.Translate(ball.velocity * dt, Space.World);
         
         if (imaginaryBall || (ball.lifeTime < 1 && !ball.hitEnemy)) return;
         
@@ -964,9 +1004,9 @@ public class PlayerController : MonoBehaviour{
         return false;
     }
     
-    private void CalculateBallCollisions(ref PlayerBall ball, float delta, bool imaginaryBall = false){
+    private void CalculateBallCollisions(ref PlayerBall ball, float dt, bool imaginaryBall = false){
         //Layers. - gives us proper flag, but gameObject.layer gives us layer number from unity editor
-        Vector3 nextPosition = ball.transform.position + ball.velocity * delta;
+        Vector3 nextPosition = ball.transform.position + ball.velocity * dt;
         
         var hitableLayers = Layers.PlayerBallHitable;
         /*
@@ -1078,7 +1118,7 @@ public class PlayerController : MonoBehaviour{
             
 //        RaycastHit[] otherHits = SphereCastAll(ball.transform.position, 0.5f, ball.velocity.normalized, deltaVelocity.magnitude, Layers.Environment | Layers.EnemyProjectile);
         
-        nextPosition = ball.transform.position + ball.velocity * delta;
+        nextPosition = ball.transform.position + ball.velocity * dt;
         
         (Collider[], int) otherColliders = CollidersInRadius(nextPosition, 0.5f, Layers.Environment | Layers.EnemyProjectile);
         
@@ -1126,7 +1166,7 @@ public class PlayerController : MonoBehaviour{
     }
     
     private PlayerBall BallInRange(float multiplier = 2){
-        var kickTargets = GetKickTargetsInRange(multiplier);
+        var kickTargets = KickTargets(multiplier);
         for (int i = 0; i < kickTargets.Length; i++){
             var ball = kickTargets[i].GetComponentInParent<PlayerBall>();
             if (ball && ball.lifeTime > 1){
@@ -1136,7 +1176,7 @@ public class PlayerController : MonoBehaviour{
         return null;
     }
     
-    private void HoldBallLogic(float delta){
+    private void HoldBallLogic(float dt){
         //_holdingBall = false;
         
         // if (Input.GetMouseButtonDown(1)){
@@ -1160,7 +1200,7 @@ public class PlayerController : MonoBehaviour{
             // }
             
             // if (_ballInHold){
-            //     _holdingBallTime += delta;
+            //     _holdingBallTime += dt;
             // }
         }
         
@@ -1180,8 +1220,8 @@ public class PlayerController : MonoBehaviour{
                 ballSnapSpeed = 5;
             }
             
-            _holdingBallTime += delta;
-            _ballInHold.transform.position = Vector3.Lerp(_ballInHold.transform.position, BallStartPosition(), delta * ballSnapSpeed * Clamp(_playerSpeed / _player.baseSpeed, 1, 10));
+            _holdingBallTime += dt;
+            _ballInHold.transform.position = Vector3.Lerp(_ballInHold.transform.position, BallStartPosition(), dt * ballSnapSpeed * Clamp(_playerSpeed / _player.baseSpeed, 1, 10));
             MoveSphereOutCollision(_ballInHold.transform, _ballInHold.sphere.radius, Layers.Environment);
             _ballInHold.velocity = playerVelocity;
             
@@ -1193,7 +1233,7 @@ public class PlayerController : MonoBehaviour{
         return;
 
         if (!_ballInHold && (_timeSinceGrounded <= 0.3f || _timeSinceHoldingBall >= 0.5f)){
-            var kickTargets = GetKickTargetsInRange(2f);
+            var kickTargets = KickTargets(2f);
             for (int i = 0; i < kickTargets.Length; i++){
                 var ball = kickTargets[i].GetComponentInParent<PlayerBall>();
                 if (ball && ball.lifeTime > 1){
@@ -1213,11 +1253,11 @@ public class PlayerController : MonoBehaviour{
         } 
         
         if (_ballInHold){
-            _holdingBallTime += delta;
+            _holdingBallTime += dt;
             if (_timeSinceGrounded <= 0.2f || _holdingBallTime <= 0.5f){
                 GameObject ballObject = _ballInHold.gameObject;
                 Animations.Instance.ChangeMaterialColor(ref ballObject, Colors.BallHighlightColor, 0.002f);
-                _ballInHold.transform.position = Vector3.Lerp(_ballInHold.transform.position, BallStartPosition(), delta * 10 * Clamp(_playerSpeed / _player.baseSpeed, 1, 10));
+                _ballInHold.transform.position = Vector3.Lerp(_ballInHold.transform.position, BallStartPosition(), dt * 10 * Clamp(_playerSpeed / _player.baseSpeed, 1, 10));
                 MoveSphereOutCollision(_ballInHold.transform, 0.5f, Layers.Environment);
                 //_holdingBall = true;
                 _ballInHold.inHold = true;

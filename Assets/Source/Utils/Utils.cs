@@ -9,8 +9,9 @@ namespace Source.Utils
     public static class Utils{
         public static float GAME_DELTA_SCALE = 1;
 
+        public const float FIXED_DELTA = 0.0083333333f;
         public const float MIN_FRAME_DELTA = 0.01666666f;
-        public const float EPSILON = 0.000001f;
+        public const float EPSILON = 0.00001f;
 
         public static void ToggleCursor(bool canISeeYou){
             var lockState = canISeeYou ? CursorLockMode.None : CursorLockMode.Locked;
@@ -29,23 +30,47 @@ namespace Source.Utils
             return Camera.main.transform;
         }
         
-        public static void MakeGoodFrameUpdate(Action<float> update, ref float previousDelta, ref float unscaledDelta){
+        public static void MakeGoodFrameUpdate(Action<float> update, ref float previousDt, ref float unscaledDt){
             float fullDelta = Time.deltaTime * GAME_DELTA_SCALE;
-            unscaledDelta = Time.unscaledDeltaTime * GAME_DELTA_SCALE;
-            fullDelta += previousDelta;
-            previousDelta = 0;
+            unscaledDt = Time.unscaledDeltaTime * GAME_DELTA_SCALE;
+            fullDelta += previousDt;
+            previousDt = 0;
             
             if (fullDelta > MIN_FRAME_DELTA){
                 float delta = MIN_FRAME_DELTA * GAME_DELTA_SCALE;
                 while (fullDelta > MIN_FRAME_DELTA){
                     update(delta);
                     fullDelta -= delta;
-                    unscaledDelta = 0;
+                    unscaledDt = 0;
                 }
-                previousDelta = fullDelta;
+                previousDt = fullDelta;
             } else{
                 update(fullDelta);
             }
+        }
+        
+        public static void MakeFixedUpdate(Action<float> update, ref float previousDt, ref float unscaledDt){
+            float fullDelta = Time.unscaledDeltaTime + previousDt;
+            previousDt = 0;
+            
+            if (fullDelta < FIXED_DELTA){
+                previousDt = fullDelta;
+                return;
+            }
+            
+            fullDelta = Clamp(fullDelta, 0, 0.1f);
+            
+            while (fullDelta >= FIXED_DELTA){
+                float dt = FIXED_DELTA * Time.timeScale * GAME_DELTA_SCALE;
+                if (dt == 0){
+                    return;
+                }
+                update(dt);
+                
+                fullDelta -= FIXED_DELTA;
+            }
+            
+            previousDt = fullDelta;
         }
     
         public static Collider ClosestCollider(Vector3 distanceToWhom, (Collider[], int) colliders, GameObject excludedObject = null){
