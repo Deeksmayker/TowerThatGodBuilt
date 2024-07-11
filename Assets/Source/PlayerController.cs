@@ -2,7 +2,6 @@ using UnityEngine;
 using System.Collections.Generic;
 using System;
 using Source.Features.SceneEditor.Controllers;
-using TMPro;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using Random = UnityEngine.Random;
@@ -68,6 +67,9 @@ public class PlayerController : MonoBehaviour{
     
     private Vector3 _baseCamTargetLocalPos;
     
+    private float _surfaceAngle;
+    private Vector3 _groundNormal;
+    
     [Header("Player")]
     [SerializeField] private Transform directionTransform;
     public PlayerClass playerClass;
@@ -120,8 +122,8 @@ public class PlayerController : MonoBehaviour{
     
     private Rope _ropePrefab;
     
-    private Slider          _staminaSlider;
-    private TextMeshProUGUI _ballCounterTextMesh;
+    private Slider _staminaSlider;
+    private Text   _ballCounterTextMesh;
     
     private bool _grounded;
     
@@ -175,7 +177,9 @@ public class PlayerController : MonoBehaviour{
     
     private PlayerCameraController _playerCamera;
     
-    private TextMeshProUGUI _speedTextMesh;
+    private Text _speedText;
+    private Text _groundedText;
+    private Text _surfaceAngleText;
     
     private void Awake(){
         Application.targetFrameRate = 200;
@@ -204,7 +208,7 @@ public class PlayerController : MonoBehaviour{
         if (staminaObject){
             _staminaSlider       = staminaObject.GetComponent<Slider>();
         }
-        _ballCounterTextMesh = GameObject.FindWithTag("BallCounter")?.GetComponent<TextMeshProUGUI>();
+        _ballCounterTextMesh = GameObject.FindWithTag("BallCounter")?.GetComponent<Text>();
         
         
         //_kickModelParticle = GameObject.FindWithTag("KickLeg").GetComponent<ParticleSystem>();
@@ -215,10 +219,14 @@ public class PlayerController : MonoBehaviour{
         if (_ballCounterTextMesh){
             _ballCounterTextMesh.text = _currentBallCount.ToString();
         }
-        _speedTextMesh = GameObject.FindWithTag("SpeedText")?.GetComponent<TextMeshProUGUI>();
+        _speedText    = GameObject.FindWithTag("SpeedText")?.GetComponent<Text>();
+        _groundedText = GameObject.FindWithTag("GroundedText")?.GetComponent<Text>();
+        _surfaceAngleText = GameObject.FindWithTag("SurfaceAngleText")?.GetComponent<Text>();
         
         if (!showPlayerStats){
-            _speedTextMesh.gameObject.SetActive(false);
+            _speedText.gameObject.SetActive(false);
+            _groundedText.gameObject.SetActive(false);
+            _surfaceAngleText.gameObject.SetActive(false);
         }
         
         _playerCamera = FindObjectOfType<PlayerCameraController>();
@@ -289,17 +297,19 @@ public class PlayerController : MonoBehaviour{
             _timeSinceGrounded = 0;
         
             GroundMove(dt, wishDirection);
+            
+            playerVelocity = Vector3.ProjectOnPlane(playerVelocity, _groundNormal);
         } else{
             _timeSinceGrounded += dt;
         
             AirMove(dt, wishDirection);
+            
+            var gravityMultiplierProgress = InverseLerp(0, _player.minJumpForce, playerVelocity.y);
+            var gravityMultiplier         = Lerp(1, 2, gravityMultiplierProgress * gravityMultiplierProgress);
+            playerVelocity += Vector3.down * _player.gravity * gravityMultiplier * dt;
         }
         
         _timeSinceJump += dt;
-        
-        var gravityMultiplierProgress = InverseLerp(0, _player.minJumpForce, playerVelocity.y);
-        var gravityMultiplier         = Lerp(1, 2, gravityMultiplierProgress * gravityMultiplierProgress);
-        playerVelocity += Vector3.down * _player.gravity * gravityMultiplier * dt;
         
         StaminaAbilities(dt, wishDirection);
         UpdateRopeMovement(dt);
@@ -332,13 +342,6 @@ public class PlayerController : MonoBehaviour{
         UpdateKick(dt);
         BulletTime();
         
-        if (showPlayerStats){
-            var horizontalSpeed = (new Vector3(playerVelocity.x, 0, playerVelocity.z)).magnitude;
-            if (_speedTextMesh){
-                _speedTextMesh.text = "Horizontal: " + horizontalSpeed;
-            }
-        }
-        
         if (!_holdingBall){
             //_playerTimeScale = Lerp(_playerTimeScale, 1, _unscaledDelta * 5);
         }
@@ -357,7 +360,7 @@ public class PlayerController : MonoBehaviour{
         
                         
         if (IsGrounded() && (moveInput != Vector3.zero && _playerSpeed > EPSILON)){
-            camTargetLocalPos = _baseCamTargetLocalPos + Vector3.down * (_sprinting ? 1f : 0.5f);
+            camTargetLocalPos = _baseCamTargetLocalPos + Vector3.down * (_sprinting ? 1.25f : 0.75f);
         }
         
         if (IsGrounded()){
@@ -401,7 +404,14 @@ public class PlayerController : MonoBehaviour{
             for (int i = 0; i < ikLegs.Length; i++){
                 Vector3 dir = ikLegs[i].startPoint.forward * legLength;
                 
+                float horizontalSpeed = (playerVelocity - Vector3.up * playerVelocity.y).magnitude;
+                
                 float t = _timeSinceGrounded / 2f;
+                
+                if (horizontalSpeed < 15){
+                    t = 0;
+                }
+                
                 dir *= Lerp(1f, 1.8f, t * t);
                 float angle = Lerp(0, 90f, t);// * t);
                 dir = Quaternion.AngleAxis(-angle, velocityRight) * dir;
@@ -608,7 +618,7 @@ public class PlayerController : MonoBehaviour{
         }
         
         if (_kickPerformingCountdown > 0){
-            _kickPerformingCountdown -= dt;
+            //_kickPerformingCountdown -= dt;
             
             Collider[] targets = KickTargets();            
             
@@ -786,25 +796,55 @@ public class PlayerController : MonoBehaviour{
         
         bool foundGround = false;
         
+        bool wasGrounded = false;
+        
+        if (IsGrounded()){
+            //nextPosition.y -= 1f;
+            velocity -= _groundNormal;
+            //nextPosition.y -= dt;
+            wasGrounded = true;
+        }
+        
         ColInfo[] groundColliders = ColInfoInCapsule(nextPosition, transform, _collider, velocity, Layers.Environment);
         
+        // if (CheckSphere(transform.position, 10, Layers.Environment)){
+        //     Debug.Log("FSD");
+        // }
         for (int i = 0; i < groundColliders.Length; i++){
             if (Vector3.Dot(velocity, groundColliders[i].normal) >= 0){
+                Debug.Log("SDF");
                 continue;
             }
             
-            if (Vector3.Angle(groundColliders[i].normal, transform.up) <= 30){
+            bool justGrounded = false;
+            
+            _surfaceAngle = Vector3.Angle(groundColliders[i].normal, transform.up);
+            
+            if (_surfaceAngle <= 55){
+                _groundNormal = groundColliders[i].normal;
+            
                 foundGround = true;
                 if (!_grounded && _timeSinceGrounded > 0.1f){
                     var landingSpeedProgress = -velocity.y / 75; 
                     PlayerCameraController.Instance.ShakeCameraLong(landingSpeedProgress);
                     PlayerCameraController.Instance.AddCamVelocity(-transform.up * 30 * landingSpeedProgress + Random.insideUnitSphere * 10 * landingSpeedProgress);
                     
-                    sound.Play(landingClip, 0.3f);
+                    sound.Play(landingClip, Lerp(0, 0.3f, playerVelocity.y / -100f));
+                    justGrounded = true;
+                    Vector3 normal = groundColliders[i].normal;
+                    velocity = Vector3.ProjectOnPlane(velocity, normal);
                 }
             }
-            velocity -= groundColliders[i].normal * Vector3.Dot(velocity, groundColliders[i].normal);
+            
+             velocity -= groundColliders[i].normal * Vector3.Dot(velocity, groundColliders[i].normal);
         }
+        
+        // if (wasGrounded && !foundGround && playerVelocity.y < 20 && Raycast(transform.position, Vector3.down, out var hit12, 10f, Layers.Environment)){
+        //     Debug.Log(velocity.magnitude);
+        //     velocity = (Vector3.ProjectOnPlane(velocity, hit12.normal)).normalized * velocity.magnitude;
+        //     Debug.Log("after: " + velocity.magnitude);
+        //     foundGround = true;
+        // }
         
         _grounded = foundGround;
     }
@@ -1463,6 +1503,21 @@ public class PlayerController : MonoBehaviour{
         
         if (Input.GetKeyDown(KeyCode.H)){
             Jump(transform.up, 5);
+        }
+        
+        if (showPlayerStats){
+            //var horizontalSpeed = (new Vector3(playerVelocity.x, 0, playerVelocity.z)).magnitude;
+            if (_speedText){
+                _speedText.text = "Speed: " + playerVelocity.magnitude;
+            }
+            
+            if (_groundedText){
+                _groundedText.text = "Grounded: " + IsGrounded();
+            }
+            
+            if (_surfaceAngleText){
+                _surfaceAngleText.text = "Surface angle: " + _surfaceAngle;
+            }
         }
     }
 }

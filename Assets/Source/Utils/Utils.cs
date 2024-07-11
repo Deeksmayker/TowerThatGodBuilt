@@ -182,6 +182,8 @@ namespace Source.Utils
                 result[i] = new ColInfo();
                 result[i].col = colliders.Item1[i];
                 
+                Collider col = result[i].col;
+                
                 Vector3 closest = result[i].col.ClosestPoint(nextPosition);
                 Vector3 closestPos1 = result[i].col.ClosestPoint(capsulePos1);
                 Vector3 closestPos2 = result[i].col.ClosestPoint(capsulePos2);

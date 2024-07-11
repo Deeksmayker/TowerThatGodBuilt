@@ -6111,6 +6111,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d6c28e9df094a654888e45909d92674c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  cameraTarget: {fileID: 7707078164465611288}
   directionTransform: {fileID: 1105597203424874383}
   playerClass: 0
   stepDistance: 8
@@ -6143,9 +6144,6 @@ MonoBehaviour:
     ballDetectRadius: 7
     kickHitBoxLength: 10
     kickHitBoxWidth: 10
-    kickDuration: 0.2
-    kickCooldown: 0.3
-    kickPower: 100
     haveScope: 0
     ballCollectRadius: 6
     shootCooldown: 0.05
@@ -6184,9 +6182,6 @@ MonoBehaviour:
     ballDetectRadius: 7
     kickHitBoxLength: 5
     kickHitBoxWidth: 5
-    kickDuration: 0.2
-    kickCooldown: 0.3
-    kickPower: 100
     haveScope: 0
     ballCollectRadius: 6
     shootCooldown: 0.05
@@ -6875,7 +6870,7 @@ MonoBehaviour:
   m_PreserveMeshAssetOnDestroy: 0
   assetGuid: 
   m_Mesh: {fileID: 0}
-  m_VersionIndex: 250
+  m_VersionIndex: 259
   m_IsSelectable: 1
   m_SelectedFaces: 
   m_SelectedEdges: []
@@ -7217,7 +7212,7 @@ MonoBehaviour:
   m_PreserveMeshAssetOnDestroy: 0
   assetGuid: 
   m_Mesh: {fileID: 0}
-  m_VersionIndex: 337
+  m_VersionIndex: 355
   m_IsSelectable: 1
   m_SelectedFaces: 
   m_SelectedEdges: []
@@ -7593,6 +7588,12 @@ MonoBehaviour:
   limbPrefab: {fileID: 1598775424726112163, guid: 774390c656f91704ebf007a97ea2939f,
     type: 3}
   lastLimbPrefab: {fileID: 0}
+  useUniqueLimbs: 0
+  uniqueLimbs:
+  - {fileID: 1598775424726112163, guid: d724173d9e99c804d88130424b7af474, type: 3}
+  - {fileID: 1598775424726112163, guid: 774390c656f91704ebf007a97ea2939f, type: 3}
+  - {fileID: 1598775424726112163, guid: d724173d9e99c804d88130424b7af474, type: 3}
+  - {fileID: 1598775424726112163, guid: 0e1d64fbd2b0db946894cbcaeee45e9c, type: 3}
   targetPoint: {fileID: 0}
   stretchToTarget: 0
   stretchToDirection: 1
@@ -8029,6 +8030,12 @@ MonoBehaviour:
   limbPrefab: {fileID: 1598775424726112163, guid: 774390c656f91704ebf007a97ea2939f,
     type: 3}
   lastLimbPrefab: {fileID: 0}
+  useUniqueLimbs: 0
+  uniqueLimbs:
+  - {fileID: 1598775424726112163, guid: d724173d9e99c804d88130424b7af474, type: 3}
+  - {fileID: 1598775424726112163, guid: 774390c656f91704ebf007a97ea2939f, type: 3}
+  - {fileID: 1598775424726112163, guid: d724173d9e99c804d88130424b7af474, type: 3}
+  - {fileID: 1598775424726112163, guid: 0e1d64fbd2b0db946894cbcaeee45e9c, type: 3}
   targetPoint: {fileID: 0}
   stretchToTarget: 0
   stretchToDirection: 1

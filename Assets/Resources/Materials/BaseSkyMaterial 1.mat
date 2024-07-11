@@ -110,7 +110,7 @@ Material:
     - _Cutoff: 0.5
     - _DetailAlbedoMapScale: 1
     - _DetailNormalMapScale: 1
-    - _DistanceFade: 1.47
+    - _DistanceFade: 2.19
     - _DstBlend: 0
     - _DstBlendAlpha: 0
     - _EnvironmentReflections: 1
@@ -157,8 +157,8 @@ Material:
     - _Noise3Speed: {r: 0.05, g: -0.05, b: 0, a: 0}
     - _Noise3Tiling: {r: 0.1, g: 0.1, b: 0, a: 0}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
-    - _SunColor: {r: 146.55295, g: 54.316753, b: 18.664762, a: 1}
+    - _SunColor: {r: 48.914917, g: 48.914917, b: 48.914917, a: 1}
     - _VoronoiSpeed: {r: 0.01, g: 0.01, b: 0, a: 0}
-    - _VoronoiTiling: {r: 1, g: 1, b: 0, a: 0}
-    - _ZenithColor: {r: 0.9137255, g: 0.61705226, b: 0.26311463, a: 0.8156863}
+    - _VoronoiTiling: {r: 2.92, g: 1, b: 0, a: 0}
+    - _ZenithColor: {r: 0.2627451, g: 0.8633471, b: 0.9137255, a: 0.8156863}
   m_BuildTextureStacks: []

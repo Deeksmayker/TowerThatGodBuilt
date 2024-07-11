@@ -11,6 +11,8 @@ TagManager:
   - KickLeg
   - AvaliableModesText
   - EditModeText
+  - GroundedText
+  - SurfaceAngleText
   layers:
   - Default
   - TransparentFX
