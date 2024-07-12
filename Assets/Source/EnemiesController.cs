@@ -85,13 +85,9 @@ public class WindGuy{
 public class Defender{
     public Enemy enemy;
     public CapsuleCollider capsule;
-    public float gravity = 100;
     public bool grounded;
-    public Leg[] legs;
     
     public Transform parentTransform;
-    public float moveSpeed = 30f;
-    
     public float restRadius = 10f;
 }
 
@@ -274,7 +270,7 @@ public class EnemiesController : MonoBehaviour{
                 
                 defender.capsule = defender.enemy.GetComponent<CapsuleCollider>();
                 
-                defender.legs = defender.enemy.GetComponent<RopeLegs>().legs;
+                //defender.legs = defender.enemy.GetComponent<RopeLegs>().legs;
                 
                 _defenders.Add(defender);
                 break;
@@ -349,69 +345,11 @@ public class EnemiesController : MonoBehaviour{
                 return;
             }
             
-            float minGroundOffset = 5f;
-            float maxGroundOffset = 14f;
-            
-            float offsetT = Clamp01((_playerPosition.y - defenderTransform.position.y) / (maxGroundOffset - minGroundOffset));
-            float groundOffset = Lerp(minGroundOffset, maxGroundOffset, offsetT);
-            float upForceMultiplier = 1f;
-            
-            Vector3 lowest = Vector3.one * 100000000;
-            Vector3 highest = -Vector3.one * 10000000;
-            int groundedCount = 0;
-            
-            for (int l = 0; l < defender.legs.Length; l++){
-                if (defender.legs[l].standPoint.y >= highest.y){
-                    highest = defender.legs[l].standPoint;
-                }
-                if (defender.legs[l].standPoint.y < lowest.y){
-                    lowest = defender.legs[l].standPoint;
-                }
-                if (!defender.legs[l].moving && defender.legs[l].connected && defender.legs[l].grounded){
-                    groundedCount++;
-                }
-            }
-            
-            //groundOffset += highest.y - lowest.y;
-            
-            Vector3 vecToHighest = highest - lowest;
-            //groundOffset += highest.y - lowest.y;
-            
-            float legCount = 6;
-            float compensation = 1.2f;
-            float upForcePerGrounded = (defender.gravity / (legCount - 2)) * compensation;
-            
-            float targetVerticalSpeed = groundedCount * upForcePerGrounded;
-            //float targetVerticalSpeed = 80;
-            
+            float gravity = 100;
+            float vOffset = 5f;
+            float moveSpeed = 30f;
             bool grounded = false;
             
-            defender.enemy.velocity.y += defender.gravity * delta * -1;
-
-            if (groundedCount > 2){// && Raycast(defenderTransform.position, Vector3.down, out var groundHit, groundOffset * 1.5f, Layers.Environment)){
-                //Ground gravity targetVerticalSpeed
-                float heightDifference = highest.y + groundOffset - defenderTransform.position.y;
-                float sign = Sign(heightDifference);
-                float verticalDot = defender.enemy.velocity.y * sign;
-                float stoppingDistance = defender.enemy.velocity.y * defender.enemy.velocity.y / (targetVerticalSpeed * 2);
-                
-                if (verticalDot > 0){
-                    if (Abs(heightDifference) <= stoppingDistance || Abs(defender.enemy.velocity.y) > targetVerticalSpeed){
-                        defender.enemy.velocity.y += targetVerticalSpeed * delta * -sign;
-                    } else{
-                        defender.enemy.velocity.y += targetVerticalSpeed * delta * sign;
-                    }
-                } else{
-                    defender.enemy.velocity.y += targetVerticalSpeed * delta * sign;
-                }
-                
-                grounded = true;
-            } else{
-                //defender.enemy.velocity.y += defender.gravity * delta * -1;
-            }
-            
-            //defender.enemy.velocity += Vector3.up * upForcePerGrounded * groundedCount * delta * upForceMultiplier;
-
             if (grounded){
                 Vector3 vecToPlayer = _playerPosition - defenderTransform.position;
                 float distanceToPlayer = vecToPlayer.magnitude;
@@ -419,26 +357,17 @@ public class EnemiesController : MonoBehaviour{
                 Vector3 horizontalVecToPlayer = vecToPlayer;
                 horizontalVecToPlayer.y = 0;
                 
-                Vector3 cross = Vector3.Cross(horizontalVecToPlayer.normalized, vecToHighest.normalized);
-                //cross.y = Clamp(cross.y, 0.8f, 1f);
-                if (cross.y < 0){
-                    cross *= -1;
-                }
-                
-                Quaternion targetRotation = Quaternion.LookRotation(horizontalVecToPlayer, cross);
-                
-                //defenderTransform.rotation = Quaternion.Slerp(defenderTransform.rotation, Quaternion.LookRotation(horizontalVecToPlayer, cross), delta * 5);
+                Quaternion targetRotation = Quaternion.LookRotation(horizontalVecToPlayer); //need up
                 
                 defenderTransform.rotation = Quaternion.RotateTowards(defenderTransform.rotation, targetRotation, delta * 50);
                 
-                Vector3 targetLocalPosition = defender.parentTransform.InverseTransformPoint(_playerPosition);
-                //targetLocalPosition.z = Sin(Time.time * defender.moveSpeed * 0.1f) * defender.restRadius;
-                targetLocalPosition.z = 0;
-                targetLocalPosition.y = defenderTransform.localPosition.y;
+                Vector3 targetLocalPos = defender.parentTransform.InverseTransformPoint(_playerPosition);
+                targetLocalPos.z = 0;
+                targetLocalPos.y = defenderTransform.localPosition.y;
                 
-                Vector3 targetPosition = defender.parentTransform.TransformPoint(targetLocalPosition);
+                Vector3 targetPos = defender.parentTransform.TransformPoint(targetLocalPos);
                 
-                Vector3 vecToTarget = targetPosition - defenderTransform.position;
+                Vector3 vecToTarget = targetPos - defenderTransform.position;
                 float distanceToTarget = vecToTarget.magnitude;
                 Vector3 dirToTarget = vecToTarget / distanceToTarget;
                 
@@ -446,23 +375,23 @@ public class EnemiesController : MonoBehaviour{
                 float deceleration = 100f;
                 float targetSpeed = 100f;
                 
-                float defenderSpeed = defender.enemy.velocity.magnitude;
+                //float defenderSpeed = defender.enemy.velocity.magnitude;
                 
-                float dot = Vector3.Dot(defender.enemy.velocity, dirToTarget);
-                if (dot > 0){
-                    float stoppingDistance = (defenderSpeed * defenderSpeed) / (deceleration * 2);
-                    if (distanceToTarget <= stoppingDistance || defenderSpeed > targetSpeed){
-                        defender.enemy.velocity += deceleration * delta * -dirToTarget;
-                    } else{
-                        defender.enemy.velocity += acceleration * delta * dirToTarget;
-                    }
-                } else{
-                    defender.enemy.velocity += acceleration * delta * dirToTarget;
-                }
+                // float dot = Vector3.Dot(defender.enemy.velocity, dirToTarget);
+                // if (dot > 0){
+                //     float stoppingDistance = (defenderSpeed * defenderSpeed) / (deceleration * 2);
+                //     if (distanceToTarget <= stoppingDistance || defenderSpeed > targetSpeed){
+                //         defender.enemy.velocity += deceleration * delta * -dirToTarget;
+                //     } else{
+                //         defender.enemy.velocity += acceleration * delta * dirToTarget;
+                //     }
+                // } else{
+                //     defender.enemy.velocity += acceleration * delta * dirToTarget;
+                // }
                 
-                float damping = 1f;
-                defender.enemy.velocity.x *= 1f - delta * damping;
-                defender.enemy.velocity.z *= 1f - delta * damping;
+                // float damping = 1f;
+                // defender.enemy.velocity.x *= 1f - delta * damping;
+                // defender.enemy.velocity.z *= 1f - delta * damping;
                 
                 Vector3 nextVelocityPosition = defenderTransform.position + defender.enemy.velocity * delta;
             

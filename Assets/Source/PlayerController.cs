@@ -1082,7 +1082,9 @@ public class PlayerController : MonoBehaviour{
                 //if (ball.bounceCount > 20) continue;
                 
                 if (!imaginaryBall){
-                    Particles.Instance.SpawnAndPlay(_ballHitParticles, colPoint);
+                    var p = Particles.Instance.SpawnAndPlay(_ballHitParticles, colPoint + normal);
+                    p.transform.rotation = Quaternion.LookRotation(normal);
+                    p.Play();
                 }
             }
 

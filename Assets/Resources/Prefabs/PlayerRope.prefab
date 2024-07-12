@@ -52,9 +52,14 @@ MonoBehaviour:
   strength: 1
   airFriction: 0.5
   gravity: 150
-  iterationCount: 5
-  collisionSamples: 3
+  iterationCount: 1
+  collisionSamples: 1
   multiplier: 1
+  lifetime: 0
+  sleeping: 0
+  index: -1
+  nodes: []
+  lr: {fileID: 0}
 --- !u!120 &4449453477830190216
 LineRenderer:
   serializedVersion: 2
