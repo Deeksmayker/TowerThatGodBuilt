@@ -65,8 +65,18 @@ namespace Source.Utils
                 if (dt == 0){
                     return;
                 }
-                update(dt);
                 
+                if (Time.timeScale > 1){
+                    while (dt >= FIXED_DELTA){
+                        update(FIXED_DELTA);
+                        dt -= FIXED_DELTA;
+                    }
+                
+                    //if (dt > 0) update(dt);
+                    previousDt += dt;
+                } else{
+                    update(dt);   
+                }
                 fullDelta -= FIXED_DELTA;
             }
             

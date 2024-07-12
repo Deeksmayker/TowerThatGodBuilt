@@ -170,7 +170,9 @@ public class PlayerController : MonoBehaviour{
     public AudioSource slidingSource;
     public AudioClip landingClip;
     
-    public Sound sound;
+    public Sound _sound;
+    public TimeController _time;
+    public Particles _particles;
     
     [Header("Debug")]
     [SerializeField] private bool showPlayerStats;
@@ -265,7 +267,9 @@ public class PlayerController : MonoBehaviour{
         
         _lastPosition = transform.position;
         
-        sound = Sound.Instance;
+        _sound = Sound.Instance;
+        _time = TimeController.Instance;
+        _particles = Particles.Instance;
     }
     
     private float _previousDelta;
@@ -661,7 +665,7 @@ public class PlayerController : MonoBehaviour{
                     StopHoldingBall();
                     SetKickVelocityToBall(ref ball);
                     
-                    TimeController.Instance.AddHitStop(0.05f);
+                    _time.AddHitStop(0.05f);
                     PlayerCameraController.Instance.ShakeCameraBase(0.7f);
                     
                     Vector3 targetScale = Vector3.one * 0.5f;
@@ -677,7 +681,7 @@ public class PlayerController : MonoBehaviour{
                 if (enemy){
                     enemy.TakeKick(CameraTransform().forward * _kickPower, targets[i].ClosestPoint(KickCenter()));
                     PlayerCameraController.Instance.ShakeCameraBase(0.8f);
-                    TimeController.Instance.AddHitStop(0.1f);
+                    _time.AddHitStop(0.1f);
                 }
                 
                 if (targets[i].TryGetComponent<RopeNode>(out var ropeNode)){
@@ -829,7 +833,7 @@ public class PlayerController : MonoBehaviour{
                     PlayerCameraController.Instance.ShakeCameraLong(landingSpeedProgress);
                     PlayerCameraController.Instance.AddCamVelocity(-transform.up * 30 * landingSpeedProgress + Random.insideUnitSphere * 10 * landingSpeedProgress);
                     
-                    sound.Play(landingClip, Lerp(0, 0.3f, playerVelocity.y / -100f));
+                    _sound.Play(landingClip, Lerp(0, 0.3f, playerVelocity.y / -100f));
                     justGrounded = true;
                     Vector3 normal = groundColliders[i].normal;
                     velocity = Vector3.ProjectOnPlane(velocity, normal);
@@ -1100,7 +1104,7 @@ public class PlayerController : MonoBehaviour{
                             hitStopMultiplier = 3.0f;
                         }
                         
-                        TimeController.Instance.AddHitStop(0.05f * hitStopMultiplier);
+                        _time.AddHitStop(0.05f * hitStopMultiplier);
                         PlayerCameraController.Instance.ShakeCameraBase(0.3f);
                     }
 
@@ -1428,7 +1432,7 @@ public class PlayerController : MonoBehaviour{
     }
     
     public void Win(Vector3 pos){
-        TimeController.Instance.SlowToZero();
+        _time.SlowToZero();
         for (int i = 0; i < 100; i++){
             Particles.Instance.SpawnAndPlay(_ballHitParticles, pos);
         }
@@ -1470,17 +1474,18 @@ public class PlayerController : MonoBehaviour{
     }
     
     private void DebugStuff(){
-        if (Input.GetKey(KeyCode.Keypad5)){
-            TimeController.Instance.SetTargetTimeScale(5);
+        if (Input.GetKeyDown(KeyCode.Keypad5)){
+            _time.SetDebugTimeScale(5);
         }
-        if (Input.GetKeyUp(KeyCode.Keypad5)){
-            TimeController.Instance.SetTargetTimeScale(1);
+        if (Input.GetKeyDown(KeyCode.Keypad2)){
+            _time.SetDebugTimeScale(2);
         }
-        if (Input.GetKey(KeyCode.Keypad2)){
-            TimeController.Instance.SetTargetTimeScale(2);
+        
+        if (Input.GetKeyDown(KeyCode.Keypad3)){
+            _time.SetDebugTimeScale(0.5f);
         }
-        if (Input.GetKeyUp(KeyCode.Keypad2)){
-            TimeController.Instance.SetTargetTimeScale(1);
+        if (Input.GetKeyDown(KeyCode.Keypad4)){
+            _time.SetDebugTimeScale(0.1f);
         }
         //No other keys
         if (Input.GetKeyDown(KeyCode.L)){

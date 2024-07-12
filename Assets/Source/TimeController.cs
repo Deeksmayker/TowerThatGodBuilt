@@ -52,4 +52,9 @@ public class TimeController : MonoBehaviour{
         _targetTimeScale = value;
         Time.timeScale = _targetTimeScale;
     }
+    
+    public void SetDebugTimeScale(float scale){
+        _targetTimeScale = scale == _targetTimeScale ? 1 : scale;
+        Time.timeScale  = _targetTimeScale;
+    }
 }
