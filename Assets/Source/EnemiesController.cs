@@ -261,6 +261,11 @@ public class EnemiesController : MonoBehaviour{
             case DefenderType:
                 var defender = new Defender() {enemy = enemy}; 
                 defender.enemy.index = _defenders.Count;
+            
+                if (Raycast(defender.enemy.transform.position, Vector3.down, out var hit, 100, Layers.Environment)){
+                    defender.enemy.transform.position = hit.point + hit.normal * 5;
+                    defender.enemy.transform.rotation = Quaternion.LookRotation(defender.enemy.transform.forward, hit.normal);
+                }
                 
                 GameObject defenderParentObj = new GameObject("DefenderParent");
                 defenderParentObj.transform.position = defender.enemy.transform.position;
@@ -296,9 +301,9 @@ public class EnemiesController : MonoBehaviour{
 //         _previousDelta = 0;
         
 //         if (fullDelta > MIN_FRAME_DELTA){
-//             float delta = MIN_FRAME_DELTA * Time.timeScale * GAME_DELTA_SCALE;
+//             float dt = MIN_FRAME_DELTA * Time.timeScale * GAME_DELTA_SCALE;
 //             while (fullDelta > MIN_FRAME_DELTA){
-//                 UpdateAll(delta);
+//                 UpdateAll(dt);
 //                 fullDelta -= MIN_FRAME_DELTA;
 // //                _unscaledDelta = 0;
 //             }
@@ -310,137 +315,114 @@ public class EnemiesController : MonoBehaviour{
         MakeGoodFrameUpdate(UpdateAll, ref _previousDelta, ref _unscaledDelta);
     }
     
-    private void UpdateAll(float delta){
+    private void UpdateAll(float dt){
         _playerPosition = _playerTransform.position;
-        UpdateRicoches(delta);
-        UpdateShooters(delta);
-        UpdateEnemyProjectiles(delta);
-        UpdateDummies(delta);
-        UpdateBlockers(delta);
-        UpdateWindGuys(delta);
-        UpdateDefenders(delta);
+        UpdateRicoches(dt);
+        UpdateShooters(dt);
+        UpdateEnemyProjectiles(dt);
+        UpdateDummies(dt);
+        UpdateBlockers(dt);
+        UpdateWindGuys(dt);
+        UpdateDefenders(dt);
         
-        UpdateDebug(delta);
+        UpdateDebug(dt);
     }
     
-    private void UpdateDefenders(float delta){
+    private void UpdateDefenders(float dt){
         for (int i = 0; i < _defenders.Count; i++){
             var defender = _defenders[i];
             
             if (!defender.enemy.gameObject.activeSelf){
                 continue;
             }
-            // MoveByVelocity(ref windGuy.enemy, delta);            
-            // FlyByKick(ref windGuy.enemy, delta);
-            EnemyCountdowns(ref defender.enemy, delta);
+            // MoveByVelocity(ref windGuy.enemy, dt);            
+            // FlyByKick(ref windGuy.enemy, dt);
+            EnemyCountdowns(ref defender.enemy, dt);
             
             // if (EnemyHit(ref defender.enemy)){
             //     continue;
             // }
             
-            var defenderTransform = defender.enemy.transform;
+            var defTrans = defender.enemy.transform;
             
-            if (defenderTransform.transform.position.y < -1000){
+            if (defTrans.transform.position.y < -1000){
                 defender.enemy.gameObject.SetActive(false);
                 return;
             }
             
-            float gravity = 100;
+            //float gravity = 100;
             float vOffset = 5f;
-            float moveSpeed = 30f;
-            bool grounded = false;
+            float moveSpeed = 100f;
+            bool grounded = true;
             
-            if (grounded){
-                Vector3 vecToPlayer = _playerPosition - defenderTransform.position;
-                float distanceToPlayer = vecToPlayer.magnitude;
-                
-                Vector3 horizontalVecToPlayer = vecToPlayer;
-                horizontalVecToPlayer.y = 0;
-                
-                Quaternion targetRotation = Quaternion.LookRotation(horizontalVecToPlayer); //need up
-                
-                defenderTransform.rotation = Quaternion.RotateTowards(defenderTransform.rotation, targetRotation, delta * 50);
-                
-                Vector3 targetLocalPos = defender.parentTransform.InverseTransformPoint(_playerPosition);
-                targetLocalPos.z = 0;
-                targetLocalPos.y = defenderTransform.localPosition.y;
-                
-                Vector3 targetPos = defender.parentTransform.TransformPoint(targetLocalPos);
-                
-                Vector3 vecToTarget = targetPos - defenderTransform.position;
-                float distanceToTarget = vecToTarget.magnitude;
-                Vector3 dirToTarget = vecToTarget / distanceToTarget;
-                
-                float acceleration = 100f;
-                float deceleration = 100f;
-                float targetSpeed = 100f;
-                
-                //float defenderSpeed = defender.enemy.velocity.magnitude;
-                
-                // float dot = Vector3.Dot(defender.enemy.velocity, dirToTarget);
-                // if (dot > 0){
-                //     float stoppingDistance = (defenderSpeed * defenderSpeed) / (deceleration * 2);
-                //     if (distanceToTarget <= stoppingDistance || defenderSpeed > targetSpeed){
-                //         defender.enemy.velocity += deceleration * delta * -dirToTarget;
-                //     } else{
-                //         defender.enemy.velocity += acceleration * delta * dirToTarget;
-                //     }
-                // } else{
-                //     defender.enemy.velocity += acceleration * delta * dirToTarget;
-                // }
-                
-                // float damping = 1f;
-                // defender.enemy.velocity.x *= 1f - delta * damping;
-                // defender.enemy.velocity.z *= 1f - delta * damping;
-                
-                Vector3 nextVelocityPosition = defenderTransform.position + defender.enemy.velocity * delta;
+            Vector3 normal = Vector3.zero;
             
-                if (!Raycast(nextVelocityPosition + Vector3.up * 5, Vector3.down, 50f, Layers.Environment)){
-                    defender.enemy.velocity.x *= -1.1f;
-                    defender.enemy.velocity.z *= -1.1f;
-                    defender.enemy.velocity.y = Abs(defender.enemy.velocity.y);
-                }
+            Vector3 vecToPlayer = _playerPosition - defTrans.position;
+            float distanceToPlayer = vecToPlayer.magnitude;
+            
+            Vector3 horizontalVecToPlayer = vecToPlayer;
+            horizontalVecToPlayer.y = 0;
+            
+            Vector3 targetLocalPos = defender.parentTransform.InverseTransformPoint(_playerPosition);
+            targetLocalPos.z = 0;
+            targetLocalPos.y = defTrans.localPosition.y;
+            
+            Vector3 targetPos = defender.parentTransform.TransformPoint(targetLocalPos);
+            
+            Vector3 nextPos = Vector3.MoveTowards(defTrans.position, targetPos, moveSpeed * dt);
+            
+            if (Raycast(nextPos + Vector3.up * 5, Vector3.down, out var hit, 40, Layers.Environment)){
+                normal = hit.normal;
+                defTrans.position = hit.point + Vector3.up * vOffset;
+            } else{
+                nextPos = defTrans.position;
             }
             
-            Vector3 nextPosition = defenderTransform.position + defender.enemy.velocity * delta;
             
-            ColInfo[] cols = ColInfoInCapsule(nextPosition, defenderTransform, defender.capsule, defender.enemy.velocity, Layers.Environment);
+            if (normal != Vector3.zero){
+                Quaternion targetRotation = Quaternion.LookRotation(horizontalVecToPlayer, normal); //need up
+                defTrans.rotation = Quaternion.RotateTowards(defTrans.rotation, targetRotation, dt * 50);
+            }
+            //defTrans.position = nextPos;
             
-            for (int j = 0; j < cols.Length; j++){
-                if (Vector3.Dot(defender.enemy.velocity, cols[j].normal) >= 0){
-                    continue;
-                }
+            // ColInfo[] cols = ColInfoInCapsule(nextPosition, defTrans, defender.capsule, defender.enemy.velocity, Layers.Environment);
+            
+            // for (int j = 0; j < cols.Length; j++){
+            //     if (Vector3.Dot(defender.enemy.velocity, cols[j].normal) >= 0){
+            //         continue;
+            //     }
                 
-                defender.enemy.velocity -= cols[j].normal * Vector3.Dot(defender.enemy.velocity, cols[j].normal) * 1.1f;
-                //defender.enemy.angularVelocity.x *= -1f;
-            }
+            //     defender.enemy.velocity -= cols[j].normal * Vector3.Dot(defender.enemy.velocity, cols[j].normal) * 1.1f;
+            //     //defender.enemy.angularVelocity.x *= -1f;
+            // }
             
-            defenderTransform.Translate(defender.enemy.velocity * delta, Space.World);
+            // defTrans.Translate(defender.enemy.velocity * dt, Space.World);
             
-            defenderTransform.Rotate(defender.enemy.angularVelocity * delta);
-            defender.enemy.angularVelocity *= 1f - delta * 2f;
+            // defTrans.Rotate(defender.enemy.angularVelocity * dt);
+            // defender.enemy.angularVelocity *= 1f - dt * 2f;
             
-            if (CheckSphere(defenderTransform.position + defenderTransform.up * defender.capsule.height, defender.capsule.radius, Layers.Environment)){
-                defender.enemy.angularVelocity *= -1f;                
-            }
+            // if (CheckSphere(defTrans.position + defTrans.up * defender.capsule.height, defender.capsule.radius, Layers.Environment)){
+            //     defender.enemy.angularVelocity *= -1f;                
+            // }
             
             float punchPower = 100f;
             
             CapsuleSphereCenters(defender.capsule, out Vector3 capsulePos1, out Vector3 capsulePos2);
-            if (grounded && CheckCapsule(capsulePos1, capsulePos2, defender.capsule.radius * 2, Layers.PlayerHurtBox)){
-                PunchPlayer(defenderTransform.position, punchPower);            
+            if (CheckCapsule(capsulePos1, capsulePos2, defender.capsule.radius * 2, Layers.PlayerHurtBox)){
+                PunchPlayer(defTrans.position, punchPower);            
             }
         }        
     }
     
     private void PunchPlayer(Vector3 puncherPos, float power){
         Vector3 dirToPlayer = (_playerPosition - puncherPos).normalized;
+        dirToPlayer.y *= 0.5f;
         _player.playerVelocity = dirToPlayer * power;
         PlayerCameraController.Instance.ShakeCameraLong(1f);
         PlayerCameraController.Instance.ShakeCameraBase(1f);
     }
     
-    private void UpdateWindGuys(float delta){
+    private void UpdateWindGuys(float dt){
         for (int i = 0; i < _windGuys.Count; i++){
             var windGuy = _windGuys[i];
             
@@ -448,9 +430,9 @@ public class EnemiesController : MonoBehaviour{
                 continue;
             }
             
-            MoveByVelocity(ref windGuy.enemy, delta);            
-            FlyByKick(ref windGuy.enemy, delta);
-            EnemyCountdowns(ref windGuy.enemy, delta);
+            MoveByVelocity(ref windGuy.enemy, dt);            
+            FlyByKick(ref windGuy.enemy, dt);
+            EnemyCountdowns(ref windGuy.enemy, dt);
             
             if (EnemyHit(ref windGuy.enemy)){
                 continue;
@@ -474,23 +456,23 @@ public class EnemiesController : MonoBehaviour{
                 }
                 
                 if (otherEnemy && otherEnemy != windGuy.enemy){
-                    otherEnemy.velocity += (windGuy.windArea.PowerVector(otherEnemy.transform.position) / otherEnemy.weight) * delta;
+                    otherEnemy.velocity += (windGuy.windArea.PowerVector(otherEnemy.transform.position) / otherEnemy.weight) * dt;
                 } else if (target.TryGetComponent<PlayerBall>(out var playerBall)){
-                    playerBall.velocity += windGuy.windArea.PowerVector(playerBall.transform.position) * delta;
+                    playerBall.velocity += windGuy.windArea.PowerVector(playerBall.transform.position) * dt;
                 } else if (target.TryGetComponent<PlayerController>(out var player)){
-                    player.playerVelocity += windGuy.windArea.PowerVector(player.transform.position) * delta;
+                    player.playerVelocity += windGuy.windArea.PowerVector(player.transform.position) * dt;
                 } else if(target.TryGetComponent<EnemyProjectile>(out var enemyProjectile)){ 
-                    enemyProjectile.velocity += windGuy.windArea.PowerVector(enemyProjectile.transform.position) * delta;
+                    enemyProjectile.velocity += windGuy.windArea.PowerVector(enemyProjectile.transform.position) * dt;
                 } else if (target.TryGetComponent<RopeNode>(out var ropeNode)){
-                    ropeNode.velocity += windGuy.windArea.PowerVector(ropeNode.transform.position) * delta * 10;
+                    ropeNode.velocity += windGuy.windArea.PowerVector(ropeNode.transform.position) * dt * 10;
                 }
             }
             
-            windGuyTransform.Rotate(Vector3.forward * windGuyPower * 5 * delta); 
+            windGuyTransform.Rotate(Vector3.forward * windGuyPower * 5 * dt); 
         }
     }
     
-    private void UpdateRicoches(float delta){
+    private void UpdateRicoches(float dt){
         for (int i = 0; i < _ricoches.Count; i++){
             var ricoche = _ricoches[i];
             
@@ -498,31 +480,31 @@ public class EnemiesController : MonoBehaviour{
                 continue;
             }
             
-            MoveByVelocity(ref ricoche.enemy, delta);
-            EnemyCountdowns(ref ricoche.enemy, delta);
+            MoveByVelocity(ref ricoche.enemy, dt);
+            EnemyCountdowns(ref ricoche.enemy, dt);
             
-            if (FlyByKick(ref ricoche.enemy, delta) || EnemyHit(ref ricoche.enemy)){
+            if (FlyByKick(ref ricoche.enemy, dt) || EnemyHit(ref ricoche.enemy)){
                 continue;
             }
             
             var ricocheTransform = ricoche.enemy.transform;
             
-            ricoche.pivotPosition += ricoche.enemy.velocity * delta;
-            ricocheTransform.position += ricoche.enemy.velocity * delta;
+            ricoche.pivotPosition += ricoche.enemy.velocity * dt;
+            ricocheTransform.position += ricoche.enemy.velocity * dt;
             
-            ricoche.orbitPosition = Quaternion.AngleAxis(ricoche.orbitingSpeed * delta, ricoche.orbitAxis) * ricoche.orbitPosition;
+            ricoche.orbitPosition = Quaternion.AngleAxis(ricoche.orbitingSpeed * dt, ricoche.orbitAxis) * ricoche.orbitPosition;
                         
             ricocheTransform.position = ricoche.pivotPosition + ricoche.orbitPosition;
             
             ricocheTransform.rotation = Quaternion.Slerp(ricocheTransform.rotation,
                                                          Quaternion.LookRotation((_playerPosition - ricocheTransform.position).normalized),
-                                                         delta * 5);
+                                                         dt * 5);
                                                          
             Enemy closestEnemy = GetClosestEnemy(ricocheTransform.position, ricoche.enemy.gameObject);
             
             if (closestEnemy){
                 ricoche.targetLine.positionCount = 2;
-                Vector3 lineTargetPosition = Vector3.Lerp(ricoche.targetLine.GetPosition(1), closestEnemy.transform.position, delta * 20);
+                Vector3 lineTargetPosition = Vector3.Lerp(ricoche.targetLine.GetPosition(1), closestEnemy.transform.position, dt * 20);
                 ricoche.targetLine.SetPosition(0, ricocheTransform.position);
                 ricoche.targetLine.SetPosition(1, lineTargetPosition);
             } else{
@@ -533,7 +515,7 @@ public class EnemiesController : MonoBehaviour{
         }
     }
     
-    private void UpdateBlockers(float delta){
+    private void UpdateBlockers(float dt){
         for (int i = 0; i < _blockers.Count; i++){
             var blocker = _blockers[i];
             
@@ -543,11 +525,11 @@ public class EnemiesController : MonoBehaviour{
             
             var blockerTransform = blocker.enemy.transform;
             
-            blocker.pivotPosition += MoveByVelocity(ref blocker.enemy, delta);
+            blocker.pivotPosition += MoveByVelocity(ref blocker.enemy, dt);
             
-            EnemyCountdowns(ref blocker.enemy, delta);
+            EnemyCountdowns(ref blocker.enemy, dt);
             
-            if (FlyByKick(ref blocker.enemy, delta) || EnemyHit(ref blocker.enemy)){
+            if (FlyByKick(ref blocker.enemy, dt) || EnemyHit(ref blocker.enemy)){
                 blocker.cycleProgress = 0.25f;
                 blocker.pivotPosition = blockerTransform.position;
                 continue;
@@ -556,7 +538,7 @@ public class EnemiesController : MonoBehaviour{
             HandleEnvCollisions(ref blocker.enemy);
             
             if (blocker.blockCooldownCountdown > 0){
-                blocker.blockCooldownCountdown -= delta;
+                blocker.blockCooldownCountdown -= dt;
             }
             
             if (!blocker.blocking && blocker.blockTimer <= 0 && blocker.blockCooldownCountdown <= 0){
@@ -583,7 +565,7 @@ public class EnemiesController : MonoBehaviour{
             }
             
             if (!blocker.blocking){
-                blocker.cycleProgress += delta / blocker.cycleTime;
+                blocker.cycleProgress += dt / blocker.cycleTime;
                 
                 float t = blocker.cycleProgress <= 0.5f ? blocker.cycleProgress * 2 : 1f - (blocker.cycleProgress - 0.5f) * 2;
                 
@@ -601,24 +583,24 @@ public class EnemiesController : MonoBehaviour{
         }
     }
     
-    private void EnemyCountdowns(ref Enemy enemy, float delta){
+    private void EnemyCountdowns(ref Enemy enemy, float dt){
         if (enemy.hitImmuneCountdown > 0){
-            enemy.hitImmuneCountdown -= delta;
+            enemy.hitImmuneCountdown -= dt;
             enemy.hitImmuneCountdown = Clamp(enemy.hitImmuneCountdown, 0, 1);
         }
         if (enemy.kickImmuneCountdown > 0){
-            enemy.kickImmuneCountdown -= delta;
+            enemy.kickImmuneCountdown -= dt;
             enemy.kickImmuneCountdown = Clamp(enemy.kickImmuneCountdown, 0, 1);
         }
         if (enemy.effectsCooldown > 0){
-            enemy.effectsCooldown -= delta;
+            enemy.effectsCooldown -= dt;
             enemy.effectsCooldown = Clamp(enemy.effectsCooldown, 0, 1);
         }
     }
     
-    private Vector3 MoveByVelocity(ref Enemy enemy, float delta){
-        enemy.transform.position += enemy.velocity * delta;
-        enemy.velocity *= 1f - enemy.weight * delta;
+    private Vector3 MoveByVelocity(ref Enemy enemy, float dt){
+        enemy.transform.position += enemy.velocity * dt;
+        enemy.velocity *= 1f - enemy.weight * dt;
         
         if (enemy.velocity.sqrMagnitude <= EPSILON){
             enemy.velocity = Vector3.zero;
@@ -627,7 +609,7 @@ public class EnemiesController : MonoBehaviour{
             enemy.timeInKickFlight = 0;
         }
         
-        return enemy.velocity * delta;
+        return enemy.velocity * dt;
     }
     
     private bool EnemyHit(ref Enemy enemy){
@@ -670,7 +652,7 @@ public class EnemiesController : MonoBehaviour{
         return false;
     }
     
-    private void UpdateShooters(float delta){
+    private void UpdateShooters(float dt){
         for (int i = 0; i < _shooters.Count; i++){
             var shooter = _shooters[i];
             
@@ -679,14 +661,14 @@ public class EnemiesController : MonoBehaviour{
             }
             
             if (shooter.enemy.variation == 1 || shooter.enemy.variation == 2){
-                UpdateDummy(ref shooter.dummyDodgeComponent, delta);
+                UpdateDummy(ref shooter.dummyDodgeComponent, dt);
             }
             
-            EnemyCountdowns(ref shooter.enemy, delta);
+            EnemyCountdowns(ref shooter.enemy, dt);
             
-            MoveByVelocity(ref shooter.enemy, delta);
+            MoveByVelocity(ref shooter.enemy, dt);
             
-            if (FlyByKick(ref shooter.enemy, delta) || EnemyHit(ref shooter.enemy)){            
+            if (FlyByKick(ref shooter.enemy, dt) || EnemyHit(ref shooter.enemy)){            
                 continue;
             }
             
@@ -695,12 +677,12 @@ public class EnemiesController : MonoBehaviour{
             //var vectorToPlayer = (_playerPosition - shooterTransform.position).normalized;
             /*
             var horizontalVectorToPlayer = new Vector3(vectorToPlayer.x, 0, vectorToPlayer.z);
-            shooter.enemy.transform.rotation = Quaternion.Slerp(shooterTransform.rotation, Quaternion.LookRotation(horizontalVectorToPlayer), delta * 3);
+            shooter.enemy.transform.rotation = Quaternion.Slerp(shooterTransform.rotation, Quaternion.LookRotation(horizontalVectorToPlayer), dt * 3);
             */
             
             KillPlayerIfNearby(shooter.enemy);
             
-            shooter.cooldownTimer -= delta;
+            shooter.cooldownTimer -= dt;
             
             if (shooter.cooldownTimer > 0){
                 continue;
@@ -717,12 +699,12 @@ public class EnemiesController : MonoBehaviour{
                     shooter.shootedCount = 0;
                 }
             } else{
-                shooter.delayTimer -= delta;
+                shooter.delayTimer -= dt;
             }
         }
     }
     
-    private void UpdateEnemyProjectiles(float delta){
+    private void UpdateEnemyProjectiles(float dt){
         for (int i = 0; i < _enemyProjectiles.Count; i++){
             if (!_enemyProjectiles[i].gameObject.activeSelf){
                 continue;
@@ -735,16 +717,16 @@ public class EnemiesController : MonoBehaviour{
                 continue;
             }
                 
-            CalculateEnemyProjectileCollisions(ref projectile, delta);
+            CalculateEnemyProjectileCollisions(ref projectile, dt);
             
             projectile.transform.rotation = Quaternion.LookRotation(projectile.velocity);
-            projectile.transform.Translate(projectile.velocity * delta, Space.World);
+            projectile.transform.Translate(projectile.velocity * dt, Space.World);
             
-            projectile.lifeTime += delta;
+            projectile.lifeTime += dt;
             
             if (projectile.lifeTime >= projectile.slowingLifetime){
                 float lifetimeOvershoot = projectile.lifeTime - projectile.slowingLifetime;
-                projectile.velocity *= Clamp01(1f - delta * (lifetimeOvershoot * lifetimeOvershoot));
+                projectile.velocity *= Clamp01(1f - dt * (lifetimeOvershoot * lifetimeOvershoot));
                 
                 if (projectile.velocity.sqrMagnitude <= EPSILON){
                     DisableEnemyProjectile(ref projectile);
@@ -780,14 +762,14 @@ public class EnemiesController : MonoBehaviour{
         projectile.gameObject.SetActive(false);
     }
     
-    private void CalculateEnemyProjectileCollisions(ref EnemyProjectile projectile, float delta){
+    private void CalculateEnemyProjectileCollisions(ref EnemyProjectile projectile, float dt){
         if (projectile == null){
             return;
         }
     
-        //var deltaVelocity = projectile.velocity * delta;
+        //var deltaVelocity = projectile.velocity * dt;
         
-        Vector3 nextPosition = projectile.transform.position + projectile.velocity * delta;
+        Vector3 nextPosition = projectile.transform.position + projectile.velocity * dt;
         
         //var hits = SphereCastAll(projectile.transform.position, projectile.sphere.radius, projectile.velocity.normalized, deltaVelocity.magnitude, Layers.PlayerHurtBox | Layers.Environment);
         
@@ -816,12 +798,12 @@ public class EnemiesController : MonoBehaviour{
         }
     }
 
-    private bool FlyByKick(ref Enemy enemy, float delta){
+    private bool FlyByKick(ref Enemy enemy, float dt){
         if (!enemy.takedKick){
             return false;
         }
         
-        enemy.timeInKickFlight += delta;
+        enemy.timeInKickFlight += dt;
         if (enemy.timeInKickFlight >= 6){
             enemy.takedKick = false;
             enemy.kickTrailParticles.Stop();
@@ -844,7 +826,7 @@ public class EnemiesController : MonoBehaviour{
                 _player.Win(enemy.transform.position); 
                 enemy.TakeHit();
             } else if (collidersNearby.Item1[i].TryGetComponent<RopeNode>(out var ropeNode)){
-                ropeNode.velocity += enemy.velocity * delta * 20;
+                ropeNode.velocity += enemy.velocity * dt * 20;
             } else{
                 enemy.TakeHit();
             }
@@ -853,16 +835,16 @@ public class EnemiesController : MonoBehaviour{
         return true;
     }
     
-    private void UpdateDummy(ref Dummy dummy, float delta){
+    private void UpdateDummy(ref Dummy dummy, float dt){
         if (!dummy.enemy.gameObject.activeSelf){
             return;
         }
         
-        EnemyCountdowns(ref dummy.enemy, delta);
+        EnemyCountdowns(ref dummy.enemy, dt);
         
-        dummy.dodgeStartPosition += MoveByVelocity(ref dummy.enemy, delta);
+        dummy.dodgeStartPosition += MoveByVelocity(ref dummy.enemy, dt);
         
-        if (FlyByKick(ref dummy.enemy, delta) || EnemyHit(ref dummy.enemy)){
+        if (FlyByKick(ref dummy.enemy, dt) || EnemyHit(ref dummy.enemy)){
             dummy.dodging = false;
             dummy.dodgeTimer = 0;
             dummy.dodgeStartPosition = dummy.enemy.transform.position;
@@ -908,18 +890,18 @@ public class EnemiesController : MonoBehaviour{
         }
         
         if (!dummy.dodging && dummy.dodgeTimer <= 0){
-            dummyTransform.rotation = Quaternion.Slerp(dummyTransform.rotation, Quaternion.LookRotation((_playerPosition - dummyTransform.position).normalized), delta * 30);
+            dummyTransform.rotation = Quaternion.Slerp(dummyTransform.rotation, Quaternion.LookRotation((_playerPosition - dummyTransform.position).normalized), dt * 30);
 
         }
         
         KillPlayerIfNearby(dummy.enemy);
     }
     
-    private void UpdateDummies(float delta){
+    private void UpdateDummies(float dt){
         for (int i = 0; i < _dummies.Count; i++){
             Dummy dummy = _dummies[i];
                         
-            UpdateDummy(ref dummy, delta);
+            UpdateDummy(ref dummy, dt);
         }
     }
     
@@ -961,7 +943,7 @@ public class EnemiesController : MonoBehaviour{
         enemy.velocity = Vector3.zero;
     }
     
-    private void UpdateDebug(float delta){
+    private void UpdateDebug(float dt){
         if (Input.GetKeyDown(KeyCode.U)){
             for (int i = 0; i < _enemies.Count; i++){
                 var enemy = _enemies[i];

@@ -94,13 +94,34 @@ public class RopeManager : MonoBehaviour{
     
     private void UpdateAll(float dt){
         for (int r = 0; r < _ropes.Count; r++){
+            if (_ropes[r] == null){
+                _ropes.RemoveAt(r);
+                continue;
+            }
+            
             Rope rope = _ropes[r];   
             
+            if (rope.sleeping){
+                continue;
+            }
+        
             UpdateRope(ref rope, dt);
         }
     }
     
     private void UpdateRope(ref Rope rope, float dt){
+        if (rope.sleepCountdown > 0){
+            rope.sleepCountdown -= dt;
+            
+            if (rope.sleepCountdown <= 0){
+                rope.sleeping = true;
+                return;
+            } else{
+                float t = rope.sleepCountdown / 2f;
+                dt *= Mathf.Lerp(0f, 1f, t * t);
+            }
+        }
+    
         for (int i = 0; i < rope.nodesCount; i++){
             RopeNode node = rope.nodes[i];
             

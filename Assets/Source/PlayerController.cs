@@ -180,6 +180,7 @@ public class PlayerController : MonoBehaviour{
     private PlayerCameraController _playerCamera;
     
     private Text _speedText;
+    private Text _horizontalSpeedText;
     private Text _groundedText;
     private Text _surfaceAngleText;
     
@@ -222,6 +223,7 @@ public class PlayerController : MonoBehaviour{
             _ballCounterTextMesh.text = _currentBallCount.ToString();
         }
         _speedText    = GameObject.FindWithTag("SpeedText")?.GetComponent<Text>();
+        _horizontalSpeedText    = GameObject.FindWithTag("HorizontalSpeedText")?.GetComponent<Text>();
         _groundedText = GameObject.FindWithTag("GroundedText")?.GetComponent<Text>();
         _surfaceAngleText = GameObject.FindWithTag("SurfaceAngleText")?.GetComponent<Text>();
         
@@ -232,6 +234,8 @@ public class PlayerController : MonoBehaviour{
         }
         
         _playerCamera = FindObjectOfType<PlayerCameraController>();
+        
+        //Application.targetFrameRate = 120;
     }
 
     private void OnEnable()
@@ -277,13 +281,12 @@ public class PlayerController : MonoBehaviour{
     
     private void Update(){
         if (GAME_DELTA_SCALE <= 0){
-            DebugStuff();
-        
             return;
         }
            // _unscaledDelta = Time.unscaledDeltaTime;
            // UpdateAll(Time.deltaTime);
         MakeFixedUpdate(UpdateAll, ref _previousDelta, ref _unscaledDelta);
+        DebugStuff();
     }
     
     private void UpdateAll(float dt){
@@ -350,7 +353,7 @@ public class PlayerController : MonoBehaviour{
             //_playerTimeScale = Lerp(_playerTimeScale, 1, _unscaledDelta * 5);
         }
         
-        DebugStuff();
+        //DebugStuff();
         
         _lastPosition = transform.position;
     }
@@ -724,8 +727,9 @@ public class PlayerController : MonoBehaviour{
     }
     
     private void Jump(Vector3 wishDirection, float multiplier = 1){
+        if (playerVelocity.y < 0) playerVelocity.y = 0;
         playerVelocity.y += Lerp(_player.minJumpForce, _player.maxJumpForce, _jumpChargeProgress);
-        playerVelocity += wishDirection * _player.jumpForwardBoost * multiplier;
+//        playerVelocity += wishDirection * _player.jumpForwardBoost * multiplier;
         
         PlayerCameraController.Instance.ShakeCameraLong(0.1f);
         PlayerCameraController.Instance.AddCamVelocity(-transform.up * 80);
@@ -811,12 +815,8 @@ public class PlayerController : MonoBehaviour{
         
         ColInfo[] groundColliders = ColInfoInCapsule(nextPosition, transform, _collider, velocity, Layers.Environment);
         
-        // if (CheckSphere(transform.position, 10, Layers.Environment)){
-        //     Debug.Log("FSD");
-        // }
         for (int i = 0; i < groundColliders.Length; i++){
             if (Vector3.Dot(velocity, groundColliders[i].normal) >= 0){
-                Debug.Log("SDF");
                 continue;
             }
             
@@ -1516,6 +1516,10 @@ public class PlayerController : MonoBehaviour{
             //var horizontalSpeed = (new Vector3(playerVelocity.x, 0, playerVelocity.z)).magnitude;
             if (_speedText){
                 _speedText.text = "Speed: " + playerVelocity.magnitude;
+            }
+            
+            if (_horizontalSpeedText){
+                _horizontalSpeedText.text = "HorizontalSpeed: " + (new Vector3(playerVelocity.x, 0, playerVelocity.z)).magnitude;
             }
             
             if (_groundedText){

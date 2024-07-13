@@ -19,6 +19,7 @@ public class Rope : MonoBehaviour{
 
     public float lifetime;
     public bool sleeping;
+    public float sleepCountdown;
     
     private static GameObject _globalRopeHandler;
     private GameObject _myRopeHandler;
@@ -135,10 +136,12 @@ public class Rope : MonoBehaviour{
         nodes[0].canMove = true;
         nodes[nodesCount-1].canMove = true;
         
-        RopeManager.Instance.RemoveRope(index);
+        //RopeManager.Instance.RemoveRope(index);
         
-        Destroy(_myRopeHandler, time);
-        Destroy(gameObject, time);
+        sleepCountdown = 2f;
+        
+        // Destroy(_myRopeHandler, time);
+        // Destroy(gameObject, time);
     }
     
     public void SetVelocityToFirstNode(Vector3 velocity){

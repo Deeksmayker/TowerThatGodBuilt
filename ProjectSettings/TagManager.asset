@@ -13,6 +13,7 @@ TagManager:
   - EditModeText
   - GroundedText
   - SurfaceAngleText
+  - HorizontalSpeedText
   layers:
   - Default
   - TransparentFX
