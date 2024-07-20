@@ -49,7 +49,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   canMove: 0
   stopOnCollision: 0
+  oldPosition: {x: 0, y: 0, z: 0}
+  frameStartPos: {x: 0, y: 0, z: 0}
+  framePreviousPos: {x: 0, y: 0, z: 0}
   velocity: {x: 0, y: 0, z: 0}
+  forces: {x: 0, y: 0, z: 0}
+  mass: 1
   sphere: {fileID: 0}
   neighbourIndexes: 
 --- !u!33 &7609329150300580282

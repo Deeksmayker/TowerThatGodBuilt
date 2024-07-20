@@ -25,6 +25,8 @@ public class Enemy : MonoBehaviour{
     public bool takedKick;
     public bool justTakeHit;
     
+    public bool dead;
+    
     public int variation = 1;
     
     [Header("TEMP")]
@@ -62,5 +64,9 @@ public class Enemy : MonoBehaviour{
         angularVelocity.y += vecToImpactPoint.x * impactPower / (weight * 2);
         
         kickTrailParticles.Play();
+        
+        var rb =  gameObject.AddComponent<Rigidbody>();
+        
+        rb.velocity = powerVector * 2;
     }
 }

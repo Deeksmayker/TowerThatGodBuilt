@@ -83,7 +83,7 @@ public class WindGuy{
 
 [Serializable] 
 public class Defender{
-    public Enemy enemy;
+    public Enemy e;
     public CapsuleCollider capsule;
     public bool grounded;
     
@@ -259,23 +259,23 @@ public class EnemiesController : MonoBehaviour{
                 _windGuys.Add(windGuy);
                 break;
             case DefenderType:
-                var defender = new Defender() {enemy = enemy}; 
-                defender.enemy.index = _defenders.Count;
+                var defender = new Defender() {e = enemy}; 
+                defender.e.index = _defenders.Count;
             
-                if (Raycast(defender.enemy.transform.position, Vector3.down, out var hit, 100, Layers.Environment)){
-                    defender.enemy.transform.position = hit.point + hit.normal * 5;
-                    defender.enemy.transform.rotation = Quaternion.LookRotation(defender.enemy.transform.forward, hit.normal);
+                if (Raycast(defender.e.transform.position, Vector3.down, out var hit, 100, Layers.Environment)){
+                    defender.e.transform.position = hit.point + hit.normal * 5;
+                    defender.e.transform.rotation = Quaternion.LookRotation(defender.e.transform.forward, hit.normal);
                 }
                 
                 GameObject defenderParentObj = new GameObject("DefenderParent");
-                defenderParentObj.transform.position = defender.enemy.transform.position;
-                defenderParentObj.transform.rotation = defender.enemy.transform.rotation;
+                defenderParentObj.transform.position = defender.e.transform.position;
+                defenderParentObj.transform.rotation = defender.e.transform.rotation;
                 defender.parentTransform = defenderParentObj.transform;
-                defender.enemy.transform.SetParent(defender.parentTransform, true);
+                defender.e.transform.SetParent(defender.parentTransform, true);
                 
-                defender.capsule = defender.enemy.GetComponent<CapsuleCollider>();
+                defender.capsule = defender.e.GetComponent<CapsuleCollider>();
                 
-                //defender.legs = defender.enemy.GetComponent<RopeLegs>().legs;
+                //defender.legs = defender.e.GetComponent<RopeLegs>().legs;
                 
                 _defenders.Add(defender);
                 break;
@@ -330,23 +330,28 @@ public class EnemiesController : MonoBehaviour{
     
     private void UpdateDefenders(float dt){
         for (int i = 0; i < _defenders.Count; i++){
-            var defender = _defenders[i];
+            var def = _defenders[i];
             
-            if (!defender.enemy.gameObject.activeSelf){
+            if (!def.e.gameObject.activeSelf || def.e.dead){
                 continue;
             }
             // MoveByVelocity(ref windGuy.enemy, dt);            
             // FlyByKick(ref windGuy.enemy, dt);
-            EnemyCountdowns(ref defender.enemy, dt);
+            EnemyCountdowns(ref def.e, dt);
             
-            // if (EnemyHit(ref defender.enemy)){
+            // if (EnemyHit(ref def.e)){
             //     continue;
             // }
             
-            var defTrans = defender.enemy.transform;
+            if (def.e.justTakeHit || def.e.takedKick){
+                def.e.dead = true;
+                continue;
+            }
+            
+            var defTrans = def.e.transform;
             
             if (defTrans.transform.position.y < -1000){
-                defender.enemy.gameObject.SetActive(false);
+                def.e.gameObject.SetActive(false);
                 return;
             }
             
@@ -363,11 +368,11 @@ public class EnemiesController : MonoBehaviour{
             Vector3 horizontalVecToPlayer = vecToPlayer;
             horizontalVecToPlayer.y = 0;
             
-            Vector3 targetLocalPos = defender.parentTransform.InverseTransformPoint(_playerPosition);
+            Vector3 targetLocalPos = def.parentTransform.InverseTransformPoint(_playerPosition);
             targetLocalPos.z = 0;
             targetLocalPos.y = defTrans.localPosition.y;
             
-            Vector3 targetPos = defender.parentTransform.TransformPoint(targetLocalPos);
+            Vector3 targetPos = def.parentTransform.TransformPoint(targetLocalPos);
             
             Vector3 nextPos = Vector3.MoveTowards(defTrans.position, targetPos, moveSpeed * dt);
             
@@ -385,30 +390,30 @@ public class EnemiesController : MonoBehaviour{
             }
             //defTrans.position = nextPos;
             
-            // ColInfo[] cols = ColInfoInCapsule(nextPosition, defTrans, defender.capsule, defender.enemy.velocity, Layers.Environment);
+            // ColInfo[] cols = ColInfoInCapsule(nextPosition, defTrans, def.capsule, def.e.velocity, Layers.Environment);
             
             // for (int j = 0; j < cols.Length; j++){
-            //     if (Vector3.Dot(defender.enemy.velocity, cols[j].normal) >= 0){
+            //     if (Vector3.Dot(def.e.velocity, cols[j].normal) >= 0){
             //         continue;
             //     }
                 
-            //     defender.enemy.velocity -= cols[j].normal * Vector3.Dot(defender.enemy.velocity, cols[j].normal) * 1.1f;
-            //     //defender.enemy.angularVelocity.x *= -1f;
+            //     def.e.velocity -= cols[j].normal * Vector3.Dot(def.e.velocity, cols[j].normal) * 1.1f;
+            //     //def.e.angularVelocity.x *= -1f;
             // }
             
-            // defTrans.Translate(defender.enemy.velocity * dt, Space.World);
+            // defTrans.Translate(def.e.velocity * dt, Space.World);
             
-            // defTrans.Rotate(defender.enemy.angularVelocity * dt);
-            // defender.enemy.angularVelocity *= 1f - dt * 2f;
+            // defTrans.Rotate(def.e.angularVelocity * dt);
+            // def.e.angularVelocity *= 1f - dt * 2f;
             
-            // if (CheckSphere(defTrans.position + defTrans.up * defender.capsule.height, defender.capsule.radius, Layers.Environment)){
-            //     defender.enemy.angularVelocity *= -1f;                
+            // if (CheckSphere(defTrans.position + defTrans.up * def.capsule.height, def.capsule.radius, Layers.Environment)){
+            //     def.e.angularVelocity *= -1f;                
             // }
             
             float punchPower = 100f;
             
-            CapsuleSphereCenters(defender.capsule, out Vector3 capsulePos1, out Vector3 capsulePos2);
-            if (CheckCapsule(capsulePos1, capsulePos2, defender.capsule.radius * 2, Layers.PlayerHurtBox)){
+            CapsuleSphereCenters(def.capsule, out Vector3 capsulePos1, out Vector3 capsulePos2);
+            if (CheckCapsule(capsulePos1, capsulePos2, def.capsule.radius * 2, Layers.PlayerHurtBox)){
                 PunchPlayer(defTrans.position, punchPower);            
             }
         }        
