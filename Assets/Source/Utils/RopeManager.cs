@@ -85,7 +85,7 @@ public class RopeManager : MonoBehaviour{
         if (GAME_DELTA_SCALE <= 0){
             return;
         }
-        MakeFixedUpdate(UpdateAll, ref _previousDelta, ref _unscaledDelta);
+        MakeRealFixedUpdate(UpdateAll, ref _previousDelta, ref _unscaledDelta);
     }
     
     // private void FixedUpdate(){

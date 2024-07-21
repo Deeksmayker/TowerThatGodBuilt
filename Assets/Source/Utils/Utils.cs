@@ -82,6 +82,25 @@ namespace Source.Utils
             
             previousDt = fullDelta;
         }
+        
+        public static void MakeRealFixedUpdate(Action<float> update, ref float previousDt, ref float unscaledDt){
+            float fullDelta = Time.deltaTime + previousDt;
+            previousDt = 0;
+            
+            if (fullDelta < FIXED_DELTA){
+                previousDt = fullDelta;
+                return;
+            }
+            
+            fullDelta = Clamp(fullDelta, 0, 0.1f);
+            
+            while (fullDelta >= FIXED_DELTA){
+                update(FIXED_DELTA);
+                fullDelta -= FIXED_DELTA;
+            }
+            
+            previousDt = fullDelta;
+        }
     
         public static Collider ClosestCollider(Vector3 distanceToWhom, (Collider[], int) colliders, GameObject excludedObject = null){
             var minDistance = 1000000000f;

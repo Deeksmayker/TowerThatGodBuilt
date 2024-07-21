@@ -332,9 +332,30 @@ public class EnemiesController : MonoBehaviour{
         for (int i = 0; i < _defenders.Count; i++){
             var def = _defenders[i];
             
-            if (!def.e.gameObject.activeSelf || def.e.dead){
+            if (!def.e.gameObject.activeSelf){
                 continue;
             }
+            
+            if (def.e.dead){
+                if (def.e.deadTimer > 5){
+                    def.e.gameObject.SetActive(false);
+                    continue;
+                }
+            
+                def.e.deadTimer += dt;
+                
+                def.e.transform.Translate(def.e.velocity * dt, Space.World);
+                def.e.transform.Rotate(def.e.angularVelocity * dt);
+                
+                Vector3 vel = def.e.startDeadVelocity;
+                Vector3 aVel = def.e.startDeadAngularVelocity;
+                float t = def.e.deadTimer / 4f;
+                def.e.velocity = Vector3.Lerp(vel, Vector3.zero, t * t);
+                def.e.angularVelocity = Vector3.Lerp(aVel, Vector3.zero, t * t);
+                
+                continue;
+            }
+            
             // MoveByVelocity(ref windGuy.enemy, dt);            
             // FlyByKick(ref windGuy.enemy, dt);
             EnemyCountdowns(ref def.e, dt);
@@ -345,6 +366,8 @@ public class EnemiesController : MonoBehaviour{
             
             if (def.e.justTakeHit || def.e.takedKick){
                 def.e.dead = true;
+                def.e.startDeadVelocity = def.e.velocity;
+                def.e.startDeadAngularVelocity = def.e.angularVelocity;
                 continue;
             }
             
