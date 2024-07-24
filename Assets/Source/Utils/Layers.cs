@@ -12,6 +12,6 @@ public static class Layers{
     public static LayerMask Rope             {get;}  = LayerMask.GetMask("Rope");
     
     //Specified usecase
-    public static LayerMask PlayerBallHitable {get;} = Environment | EnemyHurtBox | EnemyProjectile;
-    public static LayerMask PlayerKickHitable {get;} = EnemyHurtBox | EnemyProjectile | PlayerProjectile | Rope;
+    public static LayerMask PlayerBallHitable {get;} = Environment | EnemyHurtBox | EnemyProjectile | Player;
+    public static LayerMask PlayerKickHitable {get;} = /*EnemyHurtBox | EnemyProjectile | */PlayerProjectile/* | Rope*/;
 }

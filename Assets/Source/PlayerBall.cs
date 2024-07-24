@@ -7,6 +7,7 @@ public class PlayerBall : MonoBehaviour{
     public int bounceCount;
     public int groundBounceCount;
     public float lifeTime;
+    public float lastKickedTimer;
     public SphereCollider sphere;
     public bool imaginary;
     public bool ricocheCharged;

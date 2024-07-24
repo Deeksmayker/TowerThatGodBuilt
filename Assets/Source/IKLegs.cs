@@ -30,14 +30,22 @@ public class IKLegs : MonoBehaviour{
     private Limb[] _limbs;
     private LineRenderer _lr;
     
+    private LineRenderer _connectionLr;
+    
     public Vector3 lastTarget;
     
     private void Start(){
-        //_lr = GetComponent<LineRenderer>();
+        _lr = GetComponent<LineRenderer>();
         
         startPoint = transform;
         lastTarget = startPoint.position;
-        
+        if (!_lr){
+            _connectionLr = gameObject.AddComponent<LineRenderer>();
+            _connectionLr.material = Assets.Instance.whiteMaterial;
+            _connectionLr.startWidth = 0.1f;
+            _connectionLr.endWidth = 0.4f;
+            _connectionLr.positionCount = positionsCount + 1;
+        }
         if (!s_LimbContainer){
             s_LimbContainer = (new GameObject("Global Limb Container")).transform;
         }
@@ -124,6 +132,13 @@ public class IKLegs : MonoBehaviour{
                 }
             }
         }
+        
+        if (_connectionLr){
+            for (int i = 0; i < _connectionLr.positionCount; i++){
+                _connectionLr.SetPosition(i, _limbs[i].transform.position);
+            }
+        }        
+        
         
 //        _limbs[1].transform.position = _limbs[0].end.position + _limbs[1].transform.forward * _jointLengths[1];
         

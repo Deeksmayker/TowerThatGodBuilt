@@ -91,10 +91,10 @@ public class RopeLegs : MonoBehaviour{
         _lastPosition = transform.position;
     }
     
-    public void UpdateAll(float delta, Vector3 velocity){
+    public void UpdateAll(float dt, Vector3 velocity){
         for (int i = 0; i < legs.Length; i++){
             if (legs[i].moving){
-                legs[i].moveT += delta / moveTime;
+                legs[i].moveT += dt / moveTime;
                 Vector3 currentEndPos = Vector3.Lerp(legs[i].startMovePoint, legs[i].targetMovePoint, EaseInOutQuad(legs[i].moveT));
                 float heightDifference = legs[i].targetMovePoint.y - legs[i].startMovePoint.y;
                 float upper = legs[i].startMovePoint.y + heightDifference + stepHeight;
@@ -133,7 +133,7 @@ public class RopeLegs : MonoBehaviour{
                     continue;
                 }
             } else{
-                legs[i].lastMoveTimer += delta;
+                legs[i].lastMoveTimer += dt;
             }
             
             float stepDistance = baseStepDistance;

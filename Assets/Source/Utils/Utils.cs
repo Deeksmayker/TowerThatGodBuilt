@@ -258,8 +258,6 @@ namespace Source.Utils
             var sphereCenter1 = targetTransform.position - targetTransform.up * capsule.height * 0.5f + capsule.radius * targetTransform.up + capsule.center;
             var sphereCenter2 = targetTransform.position + targetTransform.up * capsule.height * 0.5f - capsule.radius * targetTransform.up + capsule.center;
             
-            Debug.Log(targetTransform.up);
-            
             return CheckCapsule(sphereCenter1, sphereCenter2, capsule.radius, layers);
         }
         

@@ -10,58 +10,6 @@ using static UnityEngine.Physics;
 using static Source.Utils.Utils;
 using static EnemyType;
 
-public enum PlayerClass{
-    Attacker, 
-    Balanced
-}
-
-[Serializable]
-public class PlayerSettings{
-    public float baseSpeed = 20; 
-    public float sprintSpeed = 40;
-    public float sprintStaminaDrain = 10;
-    public float groundAcceleration = 15;
-    public float groundDeceleration = 5;
-    public float airAcceleration = 2;
-    public float airDeceleration = 5;
-    public float friction = 50;
-    public float gravity = 40;
-    public float minJumpForce = 20;
-    public float maxJumpForce = 140;
-    public float timeToChargeMaxJump = 3;
-    public float jumpChargeStaminaDrain = 30;
-    public float jumpForwardBoost = 10;
-    public float coyoteTime = 0.2f;
-    public float jumpBufferTime = 0.3f;
-    public float maxStamina = 100;
-    public float staminaRecoveryRate = 5;
-    public float bulletTimeStaminaDrain = 10;
-    public float ballReloadTime = 5;
-    public int   maxBallCount = 3;
-    
-    //hook
-    public float hookPullDelay = 0.4f;
-    public float hookPullPower = 40;
-    public float hookUpPower = 20;
-    public float ballDetectRadius = 7;
-    
-    //Kick
-    public float kickHitBoxLength = 5;
-    public float kickHitBoxWidth = 5;
-    
-    [Header("Balls")]
-    public bool haveScope;
-    public float ballCollectRadius = 6;
-    public float shootCooldown = 0.05f;
-    public float maxBallSpeed = 50;
-    public float ballGravity = 25;
-    public float angularVelocityPower = 2;
-    public float angularVelocitySense = 2;
-    public float maxAngularVelocity = 100;
-    public float angularVelocityDecreaseRate = 1;
-    public float findEnemiesRadius = 100;
-}
-
 public class PlayerController : MonoBehaviour{
     public Transform cameraTarget;
     
@@ -72,13 +20,56 @@ public class PlayerController : MonoBehaviour{
     
     [Header("Player")]
     [SerializeField] private Transform directionTransform;
-    public PlayerClass playerClass;
     
-    [SerializeField] private float stepDistance = 1f;
-    [SerializeField] private float stepCamPower = 10f;
+    [NonSerialized] public float baseSpeed = 30; 
+    [NonSerialized] public float sprintSpeed = 60;
+    [NonSerialized] public float sprintStaminaDrain = 10;
+    [NonSerialized] public float groundAcceleration = 15;
+    [NonSerialized] public float groundDeceleration = 5;
+    [NonSerialized] public float airAcceleration = 2;
+    [NonSerialized] public float airDeceleration = 1;
+    [NonSerialized] public float friction = 100;
+    [NonSerialized] public float gravity = 80;
+    [NonSerialized] public float jumpForce = 60;
+    // public float minJumpForce = 60;
+    // public float maxJumpForce = 60;
+    // public float timeToChargeMaxJump = 3;
+    //public float jumpChargeStaminaDrain = 30;
+    [NonSerialized] public float jumpForwardBoost = 0;
+    [NonSerialized] public float coyoteTime = 0.2f;
+    [NonSerialized] public float jumpBufferTime = 0.05f;
+    //public float maxStamina = 100;
+    //public float staminaRecoveryRate = 5;
+    //public float bulletTimeStaminaDrain = 10;
     
-    [SerializeField] private PlayerSettings attackerSettings;
-    [SerializeField] private PlayerSettings balancedSettings;
+    //public float ballReloadTime = 5;
+    //public int   maxBallCount = 3;
+    
+    //hook
+    [NonSerialized] public float hookPullDelay = 0.4f;
+    [NonSerialized] public float hookPullPower = 40;
+    [NonSerialized] public float hookUpPower = 60;
+    public float hookBallDetectRadius = 7;
+    
+    //Kick
+    [NonSerialized] public float kickHitBoxLength = 20;
+    [NonSerialized] public float kickHitBoxWidth = 20;
+    
+    [Header("Balls")]
+    //public bool haveScope;
+    //public float ballCollectRadius = 6;
+    //public float shootCooldown = 0.05f;
+    [NonSerialized] public float maxBallSpeed = 100;
+    [NonSerialized] public float ballGravity = 50;
+    [NonSerialized] public float angularVelocityPower = 2;
+    [NonSerialized] public float angularVelocitySense = 2;
+    [NonSerialized] public float maxAngularVelocity = 100;
+    [NonSerialized] public float angularVelocityDecreaseRate = 1;
+    [NonSerialized] public float findEnemiesRadius = 100;
+
+    
+    public float stepDistance = 8f;
+    public float stepCamPower = 2f;
     
     public Transform body;
     //public IKLegs[] legs;
@@ -87,11 +78,9 @@ public class PlayerController : MonoBehaviour{
     private Vector3 _lastPosition;
     private float _distanceWalked;
     
-    private PlayerSettings _player;
-    
     private List<int> _alreadyHitByKick = new();
     private float _kickPerformingCountdown;
-    private float _kickCooldownTimer;
+    private float _kickCooldownCountdown;
     
     private float _kickDuration = 0.5f;
     private float _kickCooldown = 0.8f;
@@ -101,12 +90,12 @@ public class PlayerController : MonoBehaviour{
     private ParticleSystem _kickHitParticles;
     
     private float _currentFriction;
-    private float _currentStamina;
-    private float _jumpChargeProgress;
+    //private float _currentStamina;
+    //private float _jumpChargeProgress;
     private float _currentSpeed;
     private float _timeSinceGrounded;
     private float _timeSinceJump;
-    private float _jumpBufferTimer;
+    private float _jumpBufferCountdown;
     
     private float _playerTimeScale = 1;
     
@@ -114,15 +103,15 @@ public class PlayerController : MonoBehaviour{
     private bool _catchedBallOnInput;
     private float _holdingBallTime;
     private float _timeSinceHoldingBall;
-    private float _ballReloadCountdown;
-    private int   _currentBallCount;
+    //private float _ballReloadCountdown;
+    //private int   _currentBallCount;
     
     private bool _needToJump;
     private bool _sprinting;
     
     private Rope _ropePrefab;
     
-    private Slider _staminaSlider;
+    //private Slider _staminaSlider;
     private Text   _ballCounterTextMesh;
     
     private bool _grounded;
@@ -132,7 +121,8 @@ public class PlayerController : MonoBehaviour{
     private float   _playerSpeed;
     public Vector3 moveInput;
     
-    private CapsuleCollider _collider;
+    private CapsuleCollider _capsule;
+    private float _startCapsuleHeight;
     
     private KeyCode _bulletTimeKey  = KeyCode.Q;
     private KeyCode _collectBallKey = KeyCode.E;
@@ -186,31 +176,21 @@ public class PlayerController : MonoBehaviour{
     
     private void Awake(){
         Application.targetFrameRate = 200;
-        
-        switch (playerClass){
-            case PlayerClass.Attacker:
-                _player = attackerSettings;
-                break;
-            case PlayerClass.Balanced:
-                _player = balancedSettings;
-                break;
-        }
-        
-        _collider = GetComponent<CapsuleCollider>();
+        _capsule = GetComponent<CapsuleCollider>();
         
         _playerBallPrefab           = GetPrefab("PlayerBall").GetComponent<PlayerBall>();
         _ropePrefab                 = GetPrefab("PlayerRope").GetComponent<Rope>();
         _scopeObject                = Instantiate(GetPrefab("ScopePrefab"));
         _ballPredictionLineRenderer = Instantiate(GetPrefab("PredictionTrail")).GetComponent<LineRenderer>();
         
-        _currentStamina  = _player.maxStamina;
-        _currentSpeed    = _player.baseSpeed;
-        _currentFriction = _player.friction;
+//        _currentStamina  = maxStamina;
+        _currentSpeed    = baseSpeed;
+        _currentFriction = friction;
         
-        GameObject staminaObject = GameObject.FindWithTag("StaminaSlider");
-        if (staminaObject){
-            _staminaSlider       = staminaObject.GetComponent<Slider>();
-        }
+        // GameObject staminaObject = GameObject.FindWithTag("StaminaSlider");
+        // if (staminaObject){
+        //     _staminaSlider       = staminaObject.GetComponent<Slider>();
+        // }
         _ballCounterTextMesh = GameObject.FindWithTag("BallCounter")?.GetComponent<Text>();
         
         
@@ -218,10 +198,10 @@ public class PlayerController : MonoBehaviour{
         
         _imaginaryBallAreas = new Collider[10];
         
-        _currentBallCount = _player.maxBallCount;
-        if (_ballCounterTextMesh){
-            _ballCounterTextMesh.text = _currentBallCount.ToString();
-        }
+        //_currentBallCount = maxBallCount;
+        // if (_ballCounterTextMesh){
+        //     _ballCounterTextMesh.text = _currentBallCount.ToString();
+        // }
         _speedText    = GameObject.FindWithTag("SpeedText")?.GetComponent<Text>();
         _horizontalSpeedText    = GameObject.FindWithTag("HorizontalSpeedText")?.GetComponent<Text>();
         _groundedText = GameObject.FindWithTag("GroundedText")?.GetComponent<Text>();
@@ -249,6 +229,8 @@ public class PlayerController : MonoBehaviour{
     }
 
     private void Start(){
+        _startCapsuleHeight = _capsule.height;
+    
         _baseCamTargetLocalPos = cameraTarget.localPosition;
     
         _kickHitParticles  = Particles.Instance.GetParticles("KickHitParticles");
@@ -297,23 +279,27 @@ public class PlayerController : MonoBehaviour{
         var wishDirection = new Vector3(moveInput.x, 0, moveInput.z);
         wishDirection = directionTransform.right * wishDirection.x + directionTransform.forward * wishDirection.z;
         wishDirection.Normalize();
-        
         _playerSpeed = playerVelocity.magnitude;
 
         if (IsGrounded()){
+            //_capsule.height = Lerp(_capsule.height, _startCapsuleHeight, dt * 10f);
+            //_capsule.height = _startCapsuleHeight, dt * 10f);
+        
             _timeSinceGrounded = 0;
         
             GroundMove(dt, wishDirection);
             
             playerVelocity = Vector3.ProjectOnPlane(playerVelocity, _groundNormal);
         } else{
+            //_capsule.height = 1f;
+        
             _timeSinceGrounded += dt;
         
             AirMove(dt, wishDirection);
             
-            var gravityMultiplierProgress = InverseLerp(0, _player.minJumpForce, playerVelocity.y);
+            var gravityMultiplierProgress = InverseLerp(0, jumpForce, playerVelocity.y);
             var gravityMultiplier         = Lerp(1, 2, gravityMultiplierProgress * gravityMultiplierProgress);
-            playerVelocity += Vector3.down * _player.gravity * gravityMultiplier * dt;
+            playerVelocity += Vector3.down * gravity * gravityMultiplier * dt;
         }
         
         _timeSinceJump += dt;
@@ -358,22 +344,64 @@ public class PlayerController : MonoBehaviour{
         _lastPosition = transform.position;
     }
     
+    private Vector3 _legTarget;
+    private float _kickTimer;
+    
+    private Vector3 _legStart;
+    private Vector3 _legBack ;
+    private Vector3 _lastKickTarget;
+
     private void UpdateSteps(float dt){
         Vector3 velocityNorm = playerVelocity.normalized;
         Vector3 velocityRight = Quaternion.Euler(0, 90, 0) * velocityNorm;
         IKLegs[] ikLegs = legs.ikLegs;
         
         Vector3 camTargetLocalPos = _baseCamTargetLocalPos;
-        
                         
         if (IsGrounded() && (moveInput != Vector3.zero && _playerSpeed > EPSILON)){
             camTargetLocalPos = _baseCamTargetLocalPos + Vector3.down * (_sprinting ? 1.25f : 0.75f);
         }
         
-        if (IsGrounded()){
-            bool kick = _kickPerformingCountdown > 0 || _kickCooldownTimer > 0;
-            if ((moveInput != Vector3.zero || _playerSpeed <= EPSILON) && !kick){
+        bool kick = _kickedSomething;
+
+        int iFrom = 0;
+        int iTo = ikLegs.Length;
+        if (kick){
+            iTo--;
+        }
+        
+        if (kick){
+            Collider[] targets = KickTargets();
+            if (targets.Length > 0){
+                _lastKickTarget = transform.InverseTransformPoint(_kickedCol.ClosestPoint(transform.position));                
+            } 
+        
+            legs.StopMoving();
+            if (_kickTimer == 0f){
+                _legStart = transform.InverseTransformPoint(ikLegs[1].lastTarget);
+                _legBack = _legStart - transform.forward * 4f + transform.right * 2f;
+            }
+        
+            _kickTimer += dt;
             
+            float backTime = 0.025f;
+            float forwardTime = 0.75f;
+            float t = 0f;
+            if (_kickTimer <= backTime){
+                t = _kickTimer / backTime;
+                _legTarget = Vector3.Lerp(_legStart, _legBack, t * t);
+            } else{
+                t = (_kickTimer - backTime) / forwardTime;
+                _legTarget = Vector3.Lerp(_legBack, _lastKickTarget, EaseInOutBounce(t));
+            }
+            
+            legs.SetIkTarget(1, transform.TransformPoint(_legTarget));
+        } else{
+            _kickTimer = 0;
+        }
+
+        if (IsGrounded()){
+            if ((moveInput != Vector3.zero || _playerSpeed <= EPSILON) && !kick){
                 legs.UpdateAll(dt, playerVelocity);
                 slidingSource.volume = 0;
                 for (int i = 0; i < slidingParticles.Length; i++){
@@ -381,11 +409,6 @@ public class PlayerController : MonoBehaviour{
                 }
             } else{
                 legs.StopMoving();
-                int iFrom = 0;
-                int iTo = ikLegs.Length;
-                if (kick){
-                    iTo--;
-                }
                 for (int i = iFrom; i < iTo; i++){
                     if (legs.GroundHit(ikLegs[i].startPoint, out ColInfo colInfo, playerVelocity)){
                         legs.SetIkTarget(i, Vector3.Lerp(ikLegs[i].lastTarget, colInfo.point, dt * 6f));
@@ -408,7 +431,7 @@ public class PlayerController : MonoBehaviour{
             
             legs.StopMoving();
             float legLength = 3f;
-            for (int i = 0; i < ikLegs.Length; i++){
+            for (int i = iFrom; i < iTo; i++){
                 Vector3 dir = ikLegs[i].startPoint.forward * legLength;
                 
                 float horizontalSpeed = (playerVelocity - Vector3.up * playerVelocity.y).magnitude;
@@ -470,7 +493,7 @@ public class PlayerController : MonoBehaviour{
         if (foundOne){
             playerVelocity.x *= 1f - ropeDamping * dt;
             playerVelocity.z *= 1f - ropeDamping * dt;
-            playerVelocity.y = MoveTowards(playerVelocity.y, _player.gravity * 0.5f, _player.gravity * 2 * dt);
+            playerVelocity.y = MoveTowards(playerVelocity.y, gravity * 0.5f, gravity * 2 * dt);
         }
         if (CheckSphere(transform.position, ropeCheckRadius, Layers.Rope)){
         }
@@ -480,63 +503,63 @@ public class PlayerController : MonoBehaviour{
     private void StaminaAbilities(float dt, Vector3 wishDirection){
         // if (Input.GetKey(KeyCode.Space)){   
         //     if (_currentStamina > 0 && _jumpChargeProgress < 1){
-        //         _jumpChargeProgress += _unscaledDelta / _player.timeToChargeMaxJump;
-        //         _currentStamina -= _unscaledDelta * _player.jumpChargeStaminaDrain;
-        //         _jumpBufferTimer = 0;
-        //         _currentFriction = _player.friction * 0.5f;
+        //         _jumpChargeProgress += _unscaledDelta / timeToChargeMaxJump;
+        //         _currentStamina -= _unscaledDelta * jumpChargeStaminaDrain;
+        //         _jumpBufferCountdown = 0;
+        //         _currentFriction = friction * 0.5f;
         //     } else{
-        //         _currentFriction = _player.friction;
+        //         _currentFriction = friction;
         //     }
         // } 
-        if (Input.GetKey(KeyCode.LeftShift)){
-            if (_currentStamina > 0){
-                _currentSpeed = _player.sprintSpeed;
-                _sprinting = true;
-                _currentStamina -= dt * _player.sprintStaminaDrain;
-            } else {
-                _currentSpeed = _player.baseSpeed;
-                _sprinting = false;
-            }
-        }
+        // if (Input.GetKey(KeyCode.LeftShift)){
+        //     if (_currentStamina > 0){
+        //         _currentSpeed = sprintSpeed;
+        //         _sprinting = true;
+        //         _currentStamina -= dt * sprintStaminaDrain;
+        //     } else {
+        //         _currentSpeed = baseSpeed;
+        //         _sprinting = false;
+        //     }
+        // }
         
-        if (_jumpBufferTimer > 0){
-            _jumpBufferTimer -= dt;
-            if (_jumpBufferTimer <= 0){
-                _currentStamina += _jumpChargeProgress * _player.timeToChargeMaxJump * _player.jumpChargeStaminaDrain;
-                _jumpChargeProgress = 0;
+        if (_jumpBufferCountdown > 0){
+            _jumpBufferCountdown -= dt;
+            if (_jumpBufferCountdown <= 0){
+                //_currentStamina += _jumpChargeProgress * timeToChargeMaxJump * jumpChargeStaminaDrain;
+                //_jumpChargeProgress = 0;
             }
         }
         
         if (Input.GetKeyDown(KeyCode.Space)){
-            if (IsGrounded() || (_timeSinceGrounded <= _player.coyoteTime && _timeSinceJump > 1f)){
+            if (IsGrounded() || (_timeSinceGrounded <= coyoteTime && _timeSinceJump > 1f)){
                 Jump(wishDirection);
             } else{
-                _jumpBufferTimer = _player.jumpBufferTime;
+                _jumpBufferCountdown = jumpBufferTime;
             }
-            //_currentFriction = _player.friction;
-        } else if (IsGrounded() && _jumpBufferTimer > 0){
+            //_currentFriction = friction;
+        } else if (IsGrounded() && _jumpBufferCountdown > 0){
             Jump(wishDirection);
         }
         
-        if (Input.GetKeyUp(KeyCode.LeftShift)){
-            _currentSpeed = _player.baseSpeed;
-            _sprinting = false;
-        }
+        // if (Input.GetKeyUp(KeyCode.LeftShift)){
+        //     _currentSpeed = baseSpeed;
+        //     _sprinting = false;
+        // }
         
-        if (/*!Input.GetKey(KeyCode.Space) &&*/ !Input.GetKey(KeyCode.LeftShift) && !Input.GetKey(_bulletTimeKey)){
-            _currentStamina = Clamp(_currentStamina + _player.staminaRecoveryRate * dt, 0, _player.maxStamina);
-        }
+        // if (/*!Input.GetKey(KeyCode.Space) &&*/ !Input.GetKey(KeyCode.LeftShift) && !Input.GetKey(_bulletTimeKey)){
+        //     _currentStamina = Clamp(_currentStamina + staminaRecoveryRate * dt, 0, maxStamina);
+        // }
         
         //Rope logics
         if (Input.GetKeyDown(KeyCode.C)){
             Rope rope = Instantiate(_ropePrefab, BallStartPosition(), Quaternion.identity);
-            rope.SetVelocityToFirstNode(CameraTransform().forward * _player.maxBallSpeed + playerVelocity * 0.5f);
+            rope.SetVelocityToFirstNode(CameraTransform().forward * maxBallSpeed + playerVelocity * 0.5f);
         }
         if (_hookTimer <= 0){
             PlayerBall ballInHookRange = null;
             _hookTargetPoint = Vector3.zero;
             bool foundGroundPoint = false;
-            if (SphereCast(CameraTransform().position, _player.ballDetectRadius, CameraTransform().forward, out var hit, 100, Layers.PlayerProjectile)){
+            if (SphereCast(CameraTransform().position, hookBallDetectRadius, CameraTransform().forward, out var hit, 100, Layers.PlayerProjectile)){
                 if (hit.transform.TryGetComponent<PlayerBall>(out var playerBall)){
                     ballInHookRange = playerBall;
                     _scopeObject.transform.position = hit.point;
@@ -546,7 +569,7 @@ public class PlayerController : MonoBehaviour{
                 _scopeObject.transform.position = hit1.point;
                 _hookTargetPoint = hit1.point;
                 foundGroundPoint = true;
-            } else if (SphereCast(CameraTransform().position, _player.ballDetectRadius, CameraTransform().forward, out var hit2, 100, Layers.Environment)){
+            } else if (SphereCast(CameraTransform().position, hookBallDetectRadius, CameraTransform().forward, out var hit2, 100, Layers.Environment)){
                 _scopeObject.transform.position = hit2.point;
                 _hookTargetPoint = hit2.point;
                 foundGroundPoint = true;
@@ -562,7 +585,7 @@ public class PlayerController : MonoBehaviour{
                     _hookRope.LockLastNode(CameraTransform(), transform.position - transform.forward);
                     _hookRope.SetVelocityToFirstNode(CameraTransform().forward * 20);
                     GameObject firstNodeObject = _hookRope.FirstNode().gameObject;
-                    //Animations.Instance.MoveObject(ref firstNodeObject, _hookTargetPoint, _player.hookPullDelay, false, 0, (a) => Sqrt(a));
+                    //Animations.Instance.MoveObject(ref firstNodeObject, _hookTargetPoint, hookPullDelay, false, 0, (a) => Sqrt(a));
                 }
                 
                 if (ballInHookRange){
@@ -573,30 +596,30 @@ public class PlayerController : MonoBehaviour{
         }
         
         if (_hookRope){
-            if (_hookTimer <= _player.hookPullDelay){
+            if (_hookTimer <= hookPullDelay){
                 Vector3 targetPoint = _hookTargetPoint;
                 if (_hookPullingBall){
                     targetPoint = _hookPullingBall.transform.position;
                     _scopeObject.transform.position = targetPoint;
                 }
                 var ropeTransform = _hookRope.FirstNode().transform;
-                MoveToPosition(ref ropeTransform, ref _hookFlyTimer, _player.hookPullDelay, BallStartPosition(), targetPoint, false, (a) => Sqrt(a));
+                MoveToPosition(ref ropeTransform, ref _hookFlyTimer, hookPullDelay, BallStartPosition(), targetPoint, false, (a) => Sqrt(a));
             } else{
                 _scopeObject.transform.position = _hookRope.FirstNode().transform.position;
             }
             _hookTimer += dt;
-            if (_hookTimer >= _player.hookPullDelay && !_hookPulled){
+            if (_hookTimer >= hookPullDelay && !_hookPulled){
                 _hookPulled = true;
                 if (_hookPullingBall){
                     _ballInHold = _hookPullingBall;
                     _hookPullingBall = null;
                     _hookRope.LockFirstNode(_ballInHold.transform, _ballInHold.transform.position);
                 } else{
-                    playerVelocity = _hookRope.EndToStartDirection() * _player.hookPullPower;
+                    playerVelocity = _hookRope.EndToStartDirection() * hookPullPower;
                 }
-                playerVelocity.y = Clamp(playerVelocity.y, 0, 40) + _player.hookUpPower;
+                playerVelocity.y = Clamp(playerVelocity.y, 0, 40) + hookUpPower;
             }
-            if (_hookTimer >= _player.hookPullDelay * 2){
+            if (_hookTimer >= hookPullDelay * 2){
                 _hookPulled = false;
                 _hookRope.DestroyRope(1);
                 _hookRope = null;
@@ -605,17 +628,79 @@ public class PlayerController : MonoBehaviour{
             }
         }
         
-        if (_staminaSlider){
-             _staminaSlider.value = _currentStamina / _player.maxStamina;
+        // if (_staminaSlider){
+        //      _staminaSlider.value = _currentStamina / maxStamina;
+        // }
+    }
+    
+    private void UpdateKick(float dt){
+        if (_kickCooldownCountdown > 0){
+            _kickCooldownCountdown -= dt;
+            
+            if (_kickCooldownCountdown <= _kickCooldown * 0.7f){
+                _kickedSomething = false;
+            }
+        }
+        
+        if (_kickCooldownCountdown > 0){
+            return;
+        }
+        
+        if (_kickPerformingCountdown <= 0 && Input.GetMouseButtonDown(0)){
+            _kickPerformingCountdown = _kickDuration;
+            //_kickModelParticle.Emit(1);
+        }
+        
+        if (_kickPerformingCountdown <= 0){
+            return;
+        }
+        
+        Collider[] targets = KickTargets();
+        
+        for (int i = 0; i < targets.Length; i++){
+            _kickedSomething = true;
+            _kickedCol = targets[i];
+            
+            if (_kickPerformingCountdown >= _kickDuration - 0.1f){
+                break;
+            }
+            //Ball kick
+            var ball = targets[i].GetComponentInParent<PlayerBall>();
+            if (ball){
+                ball.groundBounceCount = 0;
+                ball.lifeTime = 0;
+                StopHoldingBall();
+                SetKickVelocityToBall(ref ball);
+                
+                _time.AddHitStop(0.05f);
+                PlayerCameraController.Instance.ShakeCameraBase(0.7f);
+                
+                Vector3 targetScale = Vector3.one * 0.5f;
+                targetScale.z *= ball.velocity.magnitude * 0.2f;
+                Animations.Instance.ChangeScale(ball.transform.gameObject, targetScale, 0.1f, true, 0.3f, EaseOutQuint);
+                
+                float colliderSizeProgress = Clamp01(_playerSpeed / 50);
+                ball.sphere.radius = Lerp(1, 3, colliderSizeProgress);
+                
+                _kickPerformingCountdown = 0;
+                _kickCooldownCountdown = _kickCooldown;
+            }
+        }
+        
+        _kickPerformingCountdown -= dt;
+        if (_kickPerformingCountdown <= 0){
+            _kickPerformingCountdown = 0;
+            _kickCooldownCountdown = _kickCooldown;
         }
     }
     
-    private Vector3 _lastKickTarget;
-    private void UpdateKick(float dt){
-        if (_kickCooldownTimer > 0){
-            _kickCooldownTimer -= dt;
+    private Collider _kickedCol;
+    private bool _kickedSomething;
+    private void UpdateKick1(float dt){
+        if (_kickCooldownCountdown > 0){
+            _kickCooldownCountdown -= dt;
         }
-        if (_kickCooldownTimer > 0){
+        if (_kickCooldownCountdown > 0){
             return;
         }
     
@@ -693,7 +778,7 @@ public class PlayerController : MonoBehaviour{
             }
             
             if (_kickPerformingCountdown <= 0){
-                _kickCooldownTimer = _kickCooldown;
+                _kickCooldownCountdown = _kickCooldown;
                 _alreadyHitByKick.Clear();
             }
         }
@@ -701,16 +786,16 @@ public class PlayerController : MonoBehaviour{
     }
     
     public Vector3 KickCenter(){
-        return transform.position + CameraTransform().forward * _player.kickHitBoxLength * 0.5f;
+        return transform.position + CameraTransform().forward * kickHitBoxLength * 0.5f;
     }
     
     public Vector3 KickEnd(){
-        return transform.position + CameraTransform().forward * _player.kickHitBoxLength;
+        return transform.position + CameraTransform().forward * kickHitBoxLength;
     }
     
     private Collider[] KickTargets(float mult = 1){
         var kickHitBoxCenter = KickCenter() * mult;
-        Collider[] targets = OverlapBox(kickHitBoxCenter, new Vector3(_player.kickHitBoxWidth * mult, _player.kickHitBoxWidth * mult, _player.kickHitBoxLength * mult) * 0.5f, CameraTransform().rotation, Layers.PlayerKickHitable);
+        Collider[] targets = OverlapBox(kickHitBoxCenter, new Vector3(kickHitBoxWidth * mult, kickHitBoxWidth * mult, kickHitBoxLength * mult) * 0.5f, CameraTransform().rotation, Layers.PlayerKickHitable);
         
         return targets;
     }
@@ -728,14 +813,14 @@ public class PlayerController : MonoBehaviour{
     
     private void Jump(Vector3 wishDirection, float multiplier = 1){
         if (playerVelocity.y < 0) playerVelocity.y = 0;
-        playerVelocity.y += Lerp(_player.minJumpForce, _player.maxJumpForce, _jumpChargeProgress);
-//        playerVelocity += wishDirection * _player.jumpForwardBoost * multiplier;
+        playerVelocity.y += jumpForce;
+//        playerVelocity += wishDirection * jumpForwardBoost * multiplier;
         
         PlayerCameraController.Instance.ShakeCameraLong(0.1f);
         PlayerCameraController.Instance.AddCamVelocity(-transform.up * 80);
         
-        _jumpBufferTimer = 0;
-        _jumpChargeProgress = 0;
+        _jumpBufferCountdown = 0;
+        //_jumpChargeProgress = 0;
         _timeSinceJump = 0;
     }
     
@@ -745,13 +830,13 @@ public class PlayerController : MonoBehaviour{
         ApplyFriction(dt);
         
         var directionDotVelocity = Vector3.Dot(wishDirection, playerVelocity.normalized);
-        var acceleration = directionDotVelocity < 0.5f ? _player.groundDeceleration : _player.groundAcceleration;
+        var acceleration = directionDotVelocity < 0.5f ? groundDeceleration : groundAcceleration;
         
         Accelerate(dt, wishDirection, wishSpeed, acceleration);
         
         _playerSpeed = playerVelocity.magnitude;
         
-        if (_playerSpeed > _player.baseSpeed && directionDotVelocity < 0.1f){
+        if (_playerSpeed > baseSpeed && directionDotVelocity < 0.1f){
             PlayerCameraController.Instance.ShakeCameraRapid(dt * 5);
         }
         
@@ -764,7 +849,7 @@ public class PlayerController : MonoBehaviour{
         var wishSpeed = wishDirection.sqrMagnitude * _currentSpeed;
         
         var directionDotVelocity = Vector3.Dot(wishDirection, playerVelocity.normalized);
-        var acceleration = directionDotVelocity < 0f ? _player.airDeceleration : _player.airAcceleration;
+        var acceleration = directionDotVelocity < 0f ? airDeceleration : airAcceleration;
 
         Accelerate(dt, wishDirection, wishSpeed, acceleration);
         
@@ -799,8 +884,8 @@ public class PlayerController : MonoBehaviour{
     
     private void CalculatePlayerCollisions(ref Vector3 velocity, float dt){
         Vector3 nextPosition = transform.position + velocity * dt;
-        // var sphereCenter1 = nextPosition - transform.up * _collider.height * 0.5f + _collider.radius * transform.up;
-        // var sphereCenter2 = nextPosition + transform.up * _collider.height * 0.5f - _collider.radius * transform.up;
+        // var sphereCenter1 = nextPosition - transform.up * _capsule.height * 0.5f + _capsule.radius * transform.up;
+        // var sphereCenter2 = nextPosition + transform.up * _capsule.height * 0.5f - _capsule.radius * transform.up;
         
         bool foundGround = false;
         
@@ -813,7 +898,7 @@ public class PlayerController : MonoBehaviour{
             wasGrounded = true;
         }
         
-        ColInfo[] groundColliders = ColInfoInCapsule(nextPosition, transform, _collider, velocity, Layers.Environment);
+        ColInfo[] groundColliders = ColInfoInCapsule(nextPosition, transform, _capsule, velocity, Layers.Environment);
         
         for (int i = 0; i < groundColliders.Length; i++){
             if (Vector3.Dot(velocity, groundColliders[i].normal) >= 0){
@@ -854,19 +939,19 @@ public class PlayerController : MonoBehaviour{
     }
     
     private void UpdateBalls(float dt){
-        if (_currentBallCount < _player.maxBallCount){
-            _ballReloadCountdown -= dt;
-            if (_ballReloadCountdown <= 0){
-                _currentBallCount++;
-                if (_ballCounterTextMesh){
-                    _ballCounterTextMesh.text = _currentBallCount.ToString();
-                }
+        // if (_currentBallCount < maxBallCount){
+        //     _ballReloadCountdown -= dt;
+        //     if (_ballReloadCountdown <= 0){
+        //         _currentBallCount++;
+        //         if (_ballCounterTextMesh){
+        //             _ballCounterTextMesh.text = _currentBallCount.ToString();
+        //         }
                 
-                if (_currentBallCount < _player.maxBallCount){
-                    _ballReloadCountdown = _player.ballReloadTime;
-                }
-            }
-        }
+        //         if (_currentBallCount < maxBallCount){
+        //             _ballReloadCountdown = ballReloadTime;
+        //         }
+        //     }
+        // }
     
         if (_shootCooldownTimer > 0){
             _shootCooldownTimer -= dt;
@@ -892,20 +977,21 @@ public class PlayerController : MonoBehaviour{
             //StopHoldingBall(true);
         }
     
-        if (Input.GetMouseButton(1) && Input.GetMouseButtonDown(0) && _shootCooldownTimer <= 0 && _currentBallCount > 0 && !TargetInKickRange() && !_ballInHold){
+        if (Input.GetMouseButton(1) && Input.GetMouseButtonDown(0) && _shootCooldownTimer <= 0 && !TargetInKickRange() && !_ballInHold){
             PlayerBall newBall = SpawnPlayerBall(BallStartPosition());
             //newBall.index = _balls.Count;
             //_balls.Add(newBall);
             
-            _currentBallCount--;
-            if (_ballCounterTextMesh){
-                _ballCounterTextMesh.text = _currentBallCount.ToString();
-            }
-            if (_ballReloadCountdown <= 0){
-                _ballReloadCountdown = _player.ballReloadTime;
-            }
+            //_currentBallCount--;
+            // if (_ballCounterTextMesh){
+            //     _ballCounterTextMesh.text = _currentBallCount.ToString();
+            // }
+            // if (_ballReloadCountdown <= 0){
+            //     _ballReloadCountdown = 0.2f;
+            // }
             
-            _shootCooldownTimer = _player.shootCooldown;
+            //Debug
+            _shootCooldownTimer = 0.2f;
         }
         
         _currentStartAngularVelocity = Vector3.Lerp(_currentStartAngularVelocity, Vector3.zero, _unscaledDelta * angularVelocityDecreaseMultiplier);
@@ -929,10 +1015,10 @@ public class PlayerController : MonoBehaviour{
             return;
         }
     
-        ball.velocity += Vector3.down * _player.ballGravity * dt;
+        ball.velocity += Vector3.down * ballGravity * dt;
         
-        ball.angularVelocity.y = Lerp(ball.angularVelocity.y, 0, dt * _player.angularVelocityDecreaseRate);
-        ball.angularVelocity.x = Lerp(ball.angularVelocity.x, 0, dt * _player.angularVelocityDecreaseRate * 2);
+        ball.angularVelocity.y = Lerp(ball.angularVelocity.y, 0, dt * angularVelocityDecreaseRate);
+        ball.angularVelocity.x = Lerp(ball.angularVelocity.x, 0, dt * angularVelocityDecreaseRate * 2);
         
         ball.velocityNormalized = ball.velocity.normalized;
         
@@ -941,7 +1027,7 @@ public class PlayerController : MonoBehaviour{
         
         ball.speed = ball.velocity.magnitude;
         
-        ball.velocity += (ball.velocityUp * ball.angularVelocity.x + ball.velocityRight * ball.angularVelocity.y) * _player.angularVelocityPower * dt;
+        ball.velocity += (ball.velocityUp * ball.angularVelocity.x + ball.velocityRight * ball.angularVelocity.y) * angularVelocityPower * dt;
         
         ball.transform.forward = ball.velocity;
         
@@ -999,7 +1085,7 @@ public class PlayerController : MonoBehaviour{
         //Ball collect logic
         var playerToBallVector = ball.transform.position - transform.position;
         if (playerToBallVector.sqrMagnitude < ballCollectRadius * ballCollectRadius){
-            if (_currentBallCount < _player.maxBallCount){
+            if (_currentBallCount < maxBallCount){
                 _currentBallCount++;
                 _ballCounterTextMesh.text = _currentBallCount.ToString();
             }
@@ -1166,7 +1252,7 @@ public class PlayerController : MonoBehaviour{
         
         nextPosition = ball.transform.position + ball.velocity * dt;
         
-        (Collider[], int) otherColliders = CollidersInRadius(nextPosition, 0.5f, Layers.Environment | Layers.EnemyProjectile);
+        (Collider[], int) otherColliders = CollidersInRadius(nextPosition, 0.5f, Layers.Environment | Layers.EnemyProjectile | Layers.Player);
         
         for (int i = 0; i < otherColliders.Item2; i++){
             Collider col = otherColliders.Item1[i];
@@ -1237,7 +1323,7 @@ public class PlayerController : MonoBehaviour{
                 _ballInHold.velocity = playerVelocity;
                 GameObject ballObject = _ballInHold.gameObject;
                 //Animations.Instance.MoveObject(ref ballObject, BallStartPosition(), 0.1f, false, 0, (a) => a * a);
-                Animations.Instance.ChangeMaterialColor(ref ballObject, Colors.BallHighlightColor, snappingBallTime);
+                //Animations.Instance.ChangeMaterialColor(ref ballObject, Colors.BallHighlightColor, snappingBallTime);
                 _catchedBallOnInput = true;
             }
 
@@ -1267,7 +1353,7 @@ public class PlayerController : MonoBehaviour{
             }
             
             _holdingBallTime += dt;
-            _ballInHold.transform.position = Vector3.Lerp(_ballInHold.transform.position, BallStartPosition(), dt * ballSnapSpeed * Clamp(_playerSpeed / _player.baseSpeed, 1, 10));
+            _ballInHold.transform.position = Vector3.Lerp(_ballInHold.transform.position, BallStartPosition(), dt * ballSnapSpeed * Clamp(_playerSpeed / baseSpeed, 1, 10));
             MoveSphereOutCollision(_ballInHold.transform, _ballInHold.sphere.radius, Layers.Environment);
             _ballInHold.velocity = playerVelocity;
             
@@ -1303,7 +1389,7 @@ public class PlayerController : MonoBehaviour{
             if (_timeSinceGrounded <= 0.2f || _holdingBallTime <= 0.5f){
                 GameObject ballObject = _ballInHold.gameObject;
                 Animations.Instance.ChangeMaterialColor(ref ballObject, Colors.BallHighlightColor, 0.002f);
-                _ballInHold.transform.position = Vector3.Lerp(_ballInHold.transform.position, BallStartPosition(), dt * 10 * Clamp(_playerSpeed / _player.baseSpeed, 1, 10));
+                _ballInHold.transform.position = Vector3.Lerp(_ballInHold.transform.position, BallStartPosition(), dt * 10 * Clamp(_playerSpeed / baseSpeed, 1, 10));
                 MoveSphereOutCollision(_ballInHold.transform, 0.5f, Layers.Environment);
                 //_holdingBall = true;
                 _ballInHold.inHold = true;
@@ -1318,13 +1404,13 @@ public class PlayerController : MonoBehaviour{
     }
     
     private void PredictAndDrawBallTrajectory(){
-        if (_player.haveScope && Input.GetKey(KeyCode.Mouse1)){
-            _currentStartAngularVelocity += new Vector3(Input.GetAxis("Mouse Y"), Input.GetAxis("Mouse X"), 0) * _player.angularVelocitySense;
-            _currentStartAngularVelocity.x = Clamp(_currentStartAngularVelocity.x, -_player.maxAngularVelocity, _player.maxAngularVelocity);
-            _currentStartAngularVelocity.y = Clamp(_currentStartAngularVelocity.y, -_player.maxAngularVelocity, _player.maxAngularVelocity);
-        }
+        // if (haveScope && Input.GetKey(KeyCode.Mouse1)){
+        //     _currentStartAngularVelocity += new Vector3(Input.GetAxis("Mouse Y"), Input.GetAxis("Mouse X"), 0) * angularVelocitySense;
+        //     _currentStartAngularVelocity.x = Clamp(_currentStartAngularVelocity.x, -maxAngularVelocity, maxAngularVelocity);
+        //     _currentStartAngularVelocity.y = Clamp(_currentStartAngularVelocity.y, -maxAngularVelocity, maxAngularVelocity);
+        // }
         
-        // if (_player.haveScope){
+        // if (haveScope){
         var imaginaryBall = SpawnPlayerBall(BallStartPosition());
         imaginaryBall.imaginary = true;
         
@@ -1335,11 +1421,11 @@ public class PlayerController : MonoBehaviour{
             imaginaryBall.velocity = ballInKickRange.velocity;
         }
         
-        if (ballInKickRange || _player.haveScope && Input.GetKey(KeyCode.Mouse1)){
+        if (ballInKickRange ||  Input.GetKey(KeyCode.Mouse1)){
             SetKickVelocityToBall(ref imaginaryBall);
             //imaginaryBall.gameObject.name += "IMAGINE";
             
-            var iterationCount = _player.haveScope ? 200 : 20;
+            var iterationCount = 200;
             var step = 0.02f;
             
             _ballPredictionLineRenderer.positionCount = iterationCount;
@@ -1408,7 +1494,7 @@ public class PlayerController : MonoBehaviour{
     }
     
     private void SetKickVelocityToBall(ref PlayerBall ball){
-        ball.velocity = CameraTransform().forward * _player.maxBallSpeed + playerVelocity * 0.5f;
+        ball.velocity = CameraTransform().forward * maxBallSpeed + playerVelocity * 0.5f;
         ball.angularVelocity = _currentStartAngularVelocity;
     }
     
@@ -1422,11 +1508,11 @@ public class PlayerController : MonoBehaviour{
     }
     
     private void BulletTime(){
-        if (_currentStamina > 0 && Input.GetKey(_bulletTimeKey)){
+        if (Input.GetKey(_bulletTimeKey)){
             Time.timeScale = 0.05f;
-            _currentStamina -= _unscaledDelta * _player.bulletTimeStaminaDrain;
+            //_currentStamina -= _unscaledDelta * bulletTimeStaminaDrain;
         } 
-        else if (Input.GetKeyUp(_bulletTimeKey) || _currentStamina <= 0){
+        else if (Input.GetKeyUp(_bulletTimeKey)){
             Time.timeScale = 1f;
         }
     }
@@ -1460,17 +1546,17 @@ public class PlayerController : MonoBehaviour{
     private void OnDrawGizmosSelected(){
         Gizmos.color = Color.blue;
         
-        if (_player == null){
-            _player = attackerSettings;
-        }
+        // if (_player == null){
+        //     _player = attackerSettings;
+        // }
         
-        Gizmos.DrawWireSphere(transform.position, _player.ballCollectRadius);
+        //Gizmos.DrawWireSphere(transform.position, ballCollectRadius);
         
         Gizmos.color = Color.red;
         
         
-        var kickHitBoxCenter = transform.position + CameraTransform().forward * _player.kickHitBoxLength * 0.5f;
-        Gizmos.DrawWireCube(kickHitBoxCenter, new Vector3(_player.kickHitBoxWidth, _player.kickHitBoxWidth, _player.kickHitBoxLength));
+        var kickHitBoxCenter = transform.position + CameraTransform().forward * kickHitBoxLength * 0.5f;
+        Gizmos.DrawWireCube(kickHitBoxCenter, new Vector3(kickHitBoxWidth, kickHitBoxWidth, kickHitBoxLength));
     }
     
     private void DebugStuff(){

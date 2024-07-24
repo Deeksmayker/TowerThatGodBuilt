@@ -91,14 +91,7 @@ public class PlayerCameraController : MonoBehaviour{
         _player = FindObjectOfType<PlayerController>();
 
         
-        switch (_player.playerClass){
-            case PlayerClass.Attacker:
-                rmbSenseMultiplier = 1;
-                break;
-            case PlayerClass.Balanced:
-                rmbSenseMultiplier = 0.2f;
-                break;
-        }
+        rmbSenseMultiplier = 1;
     }
     
     private void Update(){
