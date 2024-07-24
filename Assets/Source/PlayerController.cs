@@ -22,8 +22,9 @@ public class PlayerController : MonoBehaviour{
     [SerializeField] private Transform directionTransform;
     
     [NonSerialized] public float baseSpeed = 30; 
-    [NonSerialized] public float sprintSpeed = 60;
-    [NonSerialized] public float sprintStaminaDrain = 10;
+    [NonSerialized] public float sprintSpeed = 80;
+    [NonSerialized] public float sprintTime = 1.5f;
+    //[NonSerialized] public float sprintStaminaDrain = 10;
     [NonSerialized] public float groundAcceleration = 15;
     [NonSerialized] public float groundDeceleration = 5;
     [NonSerialized] public float airAcceleration = 2;
@@ -31,19 +32,9 @@ public class PlayerController : MonoBehaviour{
     [NonSerialized] public float friction = 100;
     [NonSerialized] public float gravity = 80;
     [NonSerialized] public float jumpForce = 60;
-    // public float minJumpForce = 60;
-    // public float maxJumpForce = 60;
-    // public float timeToChargeMaxJump = 3;
-    //public float jumpChargeStaminaDrain = 30;
     [NonSerialized] public float jumpForwardBoost = 0;
     [NonSerialized] public float coyoteTime = 0.2f;
     [NonSerialized] public float jumpBufferTime = 0.05f;
-    //public float maxStamina = 100;
-    //public float staminaRecoveryRate = 5;
-    //public float bulletTimeStaminaDrain = 10;
-    
-    //public float ballReloadTime = 5;
-    //public int   maxBallCount = 3;
     
     //hook
     [NonSerialized] public float hookPullDelay = 0.4f;
@@ -56,9 +47,6 @@ public class PlayerController : MonoBehaviour{
     [NonSerialized] public float kickHitBoxWidth = 20;
     
     [Header("Balls")]
-    //public bool haveScope;
-    //public float ballCollectRadius = 6;
-    //public float shootCooldown = 0.05f;
     [NonSerialized] public float maxBallSpeed = 100;
     [NonSerialized] public float ballGravity = 50;
     [NonSerialized] public float angularVelocityPower = 2;
@@ -86,14 +74,11 @@ public class PlayerController : MonoBehaviour{
     private float _kickCooldown = 0.8f;
     private float _kickPower = 200f;
     
-//    private ParticleSystem _kickModelParticle;
     private ParticleSystem _kickHitParticles;
     
     private float _currentFriction;
-    //private float _currentStamina;
-    //private float _jumpChargeProgress;
     private float _currentSpeed;
-    private float _timeSinceGrounded;
+    private float _airTime;
     private float _timeSinceJump;
     private float _jumpBufferCountdown;
     
@@ -103,11 +88,10 @@ public class PlayerController : MonoBehaviour{
     private bool _catchedBallOnInput;
     private float _holdingBallTime;
     private float _timeSinceHoldingBall;
-    //private float _ballReloadCountdown;
-    //private int   _currentBallCount;
     
     private bool _needToJump;
-    private bool _sprinting;
+    //private bool _sprinting;
+    private float _sprintCountdown;
     
     private Rope _ropePrefab;
     
@@ -160,14 +144,22 @@ public class PlayerController : MonoBehaviour{
     public AudioSource slidingSource;
     public AudioClip landingClip;
     
-    public Sound _sound;
-    public TimeController _time;
-    public Particles _particles;
-    
     [Header("Debug")]
     [SerializeField] private bool showPlayerStats;
     
     private PlayerCameraController _playerCamera;
+    
+    [NonSerialized] public PlayerCameraController pCam;
+    [NonSerialized] public UiManager ui;
+    [NonSerialized] public Sound sound;
+    [NonSerialized] public TimeController time;
+    [NonSerialized] public Particles particles;
+
+    //Input
+    private bool _jumpQueued;
+    private bool _sprintQueued;
+    private bool _hookQueued;
+    private bool _ropeQueued;
     
     private Text _speedText;
     private Text _horizontalSpeedText;
@@ -253,9 +245,11 @@ public class PlayerController : MonoBehaviour{
         
         _lastPosition = transform.position;
         
-        _sound = Sound.Instance;
-        _time = TimeController.Instance;
-        _particles = Particles.Instance;
+        sound = Sound.Instance;
+        time = TimeController.Instance;
+        particles = Particles.Instance;
+        pCam = PlayerCameraController.Instance;
+        ui = UiManager.Instance;
     }
     
     private float _previousDelta;
@@ -265,6 +259,8 @@ public class PlayerController : MonoBehaviour{
         if (GAME_DELTA_SCALE <= 0){
             return;
         }
+        
+                
            // _unscaledDelta = Time.unscaledDeltaTime;
            // UpdateAll(Time.deltaTime);
         MakeFixedUpdate(UpdateAll, ref _previousDelta, ref _unscaledDelta);
@@ -282,18 +278,13 @@ public class PlayerController : MonoBehaviour{
         _playerSpeed = playerVelocity.magnitude;
 
         if (IsGrounded()){
-            //_capsule.height = Lerp(_capsule.height, _startCapsuleHeight, dt * 10f);
-            //_capsule.height = _startCapsuleHeight, dt * 10f);
-        
-            _timeSinceGrounded = 0;
+            _airTime = 0;
         
             GroundMove(dt, wishDirection);
             
             playerVelocity = Vector3.ProjectOnPlane(playerVelocity, _groundNormal);
         } else{
-            //_capsule.height = 1f;
-        
-            _timeSinceGrounded += dt;
+            _airTime += dt;
         
             AirMove(dt, wishDirection);
             
@@ -304,7 +295,7 @@ public class PlayerController : MonoBehaviour{
         
         _timeSinceJump += dt;
         
-        StaminaAbilities(dt, wishDirection);
+        UpdateAbilities(dt, wishDirection);
         UpdateRopeMovement(dt);
                 
         _playerSpeed = playerVelocity.magnitude;
@@ -342,6 +333,20 @@ public class PlayerController : MonoBehaviour{
         //DebugStuff();
         
         _lastPosition = transform.position;
+        
+        //wind sound
+        {
+            float a = 40;
+            float b = 100;
+            float t = InverseLerp(a, b, _playerSpeed);
+            float mult = 2f;
+            if (t < sound.windSource.volume){
+                mult = 6f;
+            }
+            sound.windSource.volume = Lerp(sound.windSource.volume, t * 0.6f, dt * mult);
+            float pitch = Lerp(0.5f, 1.2f, t * t);
+            sound.windSource.pitch = Lerp(sound.windSource.pitch, pitch, dt * 2f);
+        }
     }
     
     private Vector3 _legTarget;
@@ -359,7 +364,7 @@ public class PlayerController : MonoBehaviour{
         Vector3 camTargetLocalPos = _baseCamTargetLocalPos;
                         
         if (IsGrounded() && (moveInput != Vector3.zero && _playerSpeed > EPSILON)){
-            camTargetLocalPos = _baseCamTargetLocalPos + Vector3.down * (_sprinting ? 1.25f : 0.75f);
+            camTargetLocalPos = _baseCamTargetLocalPos + Vector3.down * (_sprintCountdown > 0 ? 1.25f : 0.75f);
         }
         
         bool kick = _kickedSomething;
@@ -436,7 +441,7 @@ public class PlayerController : MonoBehaviour{
                 
                 float horizontalSpeed = (playerVelocity - Vector3.up * playerVelocity.y).magnitude;
                 
-                float t = _timeSinceGrounded / 2f;
+                float t = _airTime / 2f;
                 
                 if (horizontalSpeed < 15){
                     t = 0;
@@ -446,7 +451,7 @@ public class PlayerController : MonoBehaviour{
                 float angle = Lerp(0, 90f, t);// * t);
                 dir = Quaternion.AngleAxis(-angle, velocityRight) * dir;
                 Vector3 targetPos = ikLegs[i].startPoint.position + dir;
-                legs.SetIkTarget(i, Vector3.Lerp(ikLegs[i].lastTarget, targetPos, dt * _playerSpeed * Clamp01(_timeSinceGrounded * 2)));
+                legs.SetIkTarget(i, Vector3.Lerp(ikLegs[i].lastTarget, targetPos, dt * _playerSpeed * Clamp01(_airTime * 2)));
             }
         }
         
@@ -459,7 +464,7 @@ public class PlayerController : MonoBehaviour{
         _distanceWalked += (transform.position - _lastPosition).magnitude;
         _distanceWalked = Mathf.Clamp(_distanceWalked, 0, stepDistance * 2);
         if (_distanceWalked >= stepDistance){
-            float stepPower = _sprinting ? stepCamPower * 2 : stepCamPower;
+            float stepPower = _sprintCountdown > 0 ? stepCamPower * 2 : stepCamPower;
             //walk step
             _distanceWalked -= stepDistance;
             //PlayerSound.Instance.PlaySound(_footstepClips[Random.Range(0, _footstepClips.Length)], 0.1f, Random.Range(1f, 1.5f));
@@ -467,7 +472,7 @@ public class PlayerController : MonoBehaviour{
             randomCamSpeed.z = 0;
             randomCamSpeed.x *= 0.5f;
             randomCamSpeed.y *= 0.1f;//Clamp(randomCamSpeed.y, -stepCamPower, stepCamPower * 0.5f);
-            PlayerCameraController.Instance.AddStepCamVelocity(-transform.up * stepPower + randomCamSpeed);
+            pCam.AddStepCamVelocity(-transform.up * stepPower + randomCamSpeed);
         }
     }
     
@@ -500,28 +505,7 @@ public class PlayerController : MonoBehaviour{
     }
 
     
-    private void StaminaAbilities(float dt, Vector3 wishDirection){
-        // if (Input.GetKey(KeyCode.Space)){   
-        //     if (_currentStamina > 0 && _jumpChargeProgress < 1){
-        //         _jumpChargeProgress += _unscaledDelta / timeToChargeMaxJump;
-        //         _currentStamina -= _unscaledDelta * jumpChargeStaminaDrain;
-        //         _jumpBufferCountdown = 0;
-        //         _currentFriction = friction * 0.5f;
-        //     } else{
-        //         _currentFriction = friction;
-        //     }
-        // } 
-        // if (Input.GetKey(KeyCode.LeftShift)){
-        //     if (_currentStamina > 0){
-        //         _currentSpeed = sprintSpeed;
-        //         _sprinting = true;
-        //         _currentStamina -= dt * sprintStaminaDrain;
-        //     } else {
-        //         _currentSpeed = baseSpeed;
-        //         _sprinting = false;
-        //     }
-        // }
-        
+    private void UpdateAbilities(float dt, Vector3 wishDirection){
         if (_jumpBufferCountdown > 0){
             _jumpBufferCountdown -= dt;
             if (_jumpBufferCountdown <= 0){
@@ -531,7 +515,8 @@ public class PlayerController : MonoBehaviour{
         }
         
         if (Input.GetKeyDown(KeyCode.Space)){
-            if (IsGrounded() || (_timeSinceGrounded <= coyoteTime && _timeSinceJump > 1f)){
+            //Coyote jump
+            if (IsGrounded() || (_airTime <= coyoteTime && _timeSinceJump > 1f)){
                 Jump(wishDirection);
             } else{
                 _jumpBufferCountdown = jumpBufferTime;
@@ -541,14 +526,37 @@ public class PlayerController : MonoBehaviour{
             Jump(wishDirection);
         }
         
-        // if (Input.GetKeyUp(KeyCode.LeftShift)){
-        //     _currentSpeed = baseSpeed;
-        //     _sprinting = false;
-        // }
+        //Sprint logic
+        if (_sprintCountdown > 0){
+            _sprintCountdown -= dt;
+            if (_sprintCountdown <= 0){
+                _sprintCountdown = 0;
+                _currentSpeed = baseSpeed;
+            }
+            
+            Color vColor = ui.speedVignette.color;
+            float t = 1f - (_sprintCountdown / sprintTime);
+            float grow = 0.1f;
+            
+            if (t <= grow){
+                vColor.a = Lerp(0f, .7f, EaseInOutCubic(t / grow));
+            } else{
+                vColor.a = Lerp(.7f, 0f, EaseInCubic((t - grow) / (1f - grow)));
+            }
+            
+            ui.speedVignette.color = vColor;
+        }
         
-        // if (/*!Input.GetKey(KeyCode.Space) &&*/ !Input.GetKey(KeyCode.LeftShift) && !Input.GetKey(_bulletTimeKey)){
-        //     _currentStamina = Clamp(_currentStamina + staminaRecoveryRate * dt, 0, maxStamina);
-        // }
+        if (_sprintCountdown <= 0 && Input.GetKeyDown(KeyCode.LeftShift)){
+            _sprintCountdown = sprintTime;
+            _currentSpeed = sprintSpeed;
+            pCam.ShakeCameraRapid(1f);
+            // Color vColor = ui.speedVignette.color;
+            // vColor.a = 1f;
+            // ui.speedVignette.color = vColor;
+            
+            sound.Play(sound.sprintActivation, .15f, 1.75f);
+        }
         
         //Rope logics
         if (Input.GetKeyDown(KeyCode.C)){
@@ -627,10 +635,6 @@ public class PlayerController : MonoBehaviour{
                 _hookFlyTimer = 0;
             }
         }
-        
-        // if (_staminaSlider){
-        //      _staminaSlider.value = _currentStamina / maxStamina;
-        // }
     }
     
     private void UpdateKick(float dt){
@@ -672,8 +676,8 @@ public class PlayerController : MonoBehaviour{
                 StopHoldingBall();
                 SetKickVelocityToBall(ref ball);
                 
-                _time.AddHitStop(0.05f);
-                PlayerCameraController.Instance.ShakeCameraBase(0.7f);
+                time.AddHitStop(0.05f);
+                pCam.ShakeCameraBase(0.7f);
                 
                 Vector3 targetScale = Vector3.one * 0.5f;
                 targetScale.z *= ball.velocity.magnitude * 0.2f;
@@ -753,8 +757,8 @@ public class PlayerController : MonoBehaviour{
                     StopHoldingBall();
                     SetKickVelocityToBall(ref ball);
                     
-                    _time.AddHitStop(0.05f);
-                    PlayerCameraController.Instance.ShakeCameraBase(0.7f);
+                    time.AddHitStop(0.05f);
+                    pCam.ShakeCameraBase(0.7f);
                     
                     Vector3 targetScale = Vector3.one * 0.5f;
                     targetScale.z *= ball.velocity.magnitude * 0.2f;
@@ -768,8 +772,8 @@ public class PlayerController : MonoBehaviour{
                 var enemy = targets[i].GetComponentInParent<Enemy>();
                 if (enemy){
                     enemy.TakeKick(CameraTransform().forward * _kickPower, targets[i].ClosestPoint(KickCenter()));
-                    PlayerCameraController.Instance.ShakeCameraBase(0.8f);
-                    _time.AddHitStop(0.1f);
+                    pCam.ShakeCameraBase(0.8f);
+                    time.AddHitStop(0.1f);
                 }
                 
                 if (targets[i].TryGetComponent<RopeNode>(out var ropeNode)){
@@ -816,8 +820,8 @@ public class PlayerController : MonoBehaviour{
         playerVelocity.y += jumpForce;
 //        playerVelocity += wishDirection * jumpForwardBoost * multiplier;
         
-        PlayerCameraController.Instance.ShakeCameraLong(0.1f);
-        PlayerCameraController.Instance.AddCamVelocity(-transform.up * 80);
+        pCam.ShakeCameraLong(0.1f);
+        pCam.AddCamVelocity(-transform.up * 80);
         
         _jumpBufferCountdown = 0;
         //_jumpChargeProgress = 0;
@@ -837,7 +841,7 @@ public class PlayerController : MonoBehaviour{
         _playerSpeed = playerVelocity.magnitude;
         
         if (_playerSpeed > baseSpeed && directionDotVelocity < 0.1f){
-            PlayerCameraController.Instance.ShakeCameraRapid(dt * 5);
+            pCam.ShakeCameraRapid(dt * 5);
         }
         
         if (_playerSpeed <= EPSILON){
@@ -913,12 +917,12 @@ public class PlayerController : MonoBehaviour{
                 _groundNormal = groundColliders[i].normal;
             
                 foundGround = true;
-                if (!_grounded && _timeSinceGrounded > 0.1f){
+                if (!_grounded && _airTime > 0.1f){
                     var landingSpeedProgress = -velocity.y / 75; 
-                    PlayerCameraController.Instance.ShakeCameraLong(landingSpeedProgress);
-                    PlayerCameraController.Instance.AddCamVelocity(-transform.up * 30 * landingSpeedProgress + Random.insideUnitSphere * 10 * landingSpeedProgress);
+                    pCam.ShakeCameraLong(landingSpeedProgress);
+                    pCam.AddCamVelocity(-transform.up * 30 * landingSpeedProgress + Random.insideUnitSphere * 10 * landingSpeedProgress);
                     
-                    _sound.Play(landingClip, Lerp(0, 0.3f, playerVelocity.y / -100f));
+                    sound.Play(landingClip, Lerp(0, 0.3f, playerVelocity.y / -100f));
                     justGrounded = true;
                     Vector3 normal = groundColliders[i].normal;
                     velocity = Vector3.ProjectOnPlane(velocity, normal);
@@ -963,7 +967,7 @@ public class PlayerController : MonoBehaviour{
             _currentStartAngularVelocity = Vector3.zero;
         }
         
-        HoldBallLogic(dt);
+        UpdateHoldBall(dt);
         PredictAndDrawBallTrajectory();
         
         if (Input.GetMouseButton(1)){
@@ -1190,8 +1194,8 @@ public class PlayerController : MonoBehaviour{
                             hitStopMultiplier = 3.0f;
                         }
                         
-                        _time.AddHitStop(0.05f * hitStopMultiplier);
-                        PlayerCameraController.Instance.ShakeCameraBase(0.3f);
+                        time.AddHitStop(0.05f * hitStopMultiplier);
+                        pCam.ShakeCameraBase(0.3f);
                     }
 
                     switch (enemy.type){
@@ -1308,7 +1312,7 @@ public class PlayerController : MonoBehaviour{
         return null;
     }
     
-    private void HoldBallLogic(float dt){
+    private void UpdateHoldBall(float dt){
         //_holdingBall = false;
         
         // if (Input.GetMouseButtonDown(1)){
@@ -1356,51 +1360,7 @@ public class PlayerController : MonoBehaviour{
             _ballInHold.transform.position = Vector3.Lerp(_ballInHold.transform.position, BallStartPosition(), dt * ballSnapSpeed * Clamp(_playerSpeed / baseSpeed, 1, 10));
             MoveSphereOutCollision(_ballInHold.transform, _ballInHold.sphere.radius, Layers.Environment);
             _ballInHold.velocity = playerVelocity;
-            
-            // if (_holdingBallTime >= maxHoldTime){
-            //     StopHoldingBall(true);
-            // }
         }
-        /*
-        return;
-
-        if (!_ballInHold && (_timeSinceGrounded <= 0.3f || _timeSinceHoldingBall >= 0.5f)){
-            var kickTargets = KickTargets(2f);
-            for (int i = 0; i < kickTargets.Length; i++){
-                var ball = kickTargets[i].GetComponentInParent<PlayerBall>();
-                if (ball && ball.lifeTime > 1){
-                    //if (_timeSinceGrounded <= 0.3f){
-                    _ballInHold = ball;
-                    //AirCatch
-                    if (_timeSinceGrounded >= 0.3f){
-                        GameObject ballObject = _ballInHold.gameObject;
-                        //Animations.Instance.ChangeMaterialColor(ref ballObject, Colors.BallHighlightColor, 0.2f);
-                    }
-                    //} else{
-                        //ball.velocity = playerVelocity;
-                    //}
-                    break;
-                }
-            }
-        } 
-        
-        if (_ballInHold){
-            _holdingBallTime += dt;
-            if (_timeSinceGrounded <= 0.2f || _holdingBallTime <= 0.5f){
-                GameObject ballObject = _ballInHold.gameObject;
-                Animations.Instance.ChangeMaterialColor(ref ballObject, Colors.BallHighlightColor, 0.002f);
-                _ballInHold.transform.position = Vector3.Lerp(_ballInHold.transform.position, BallStartPosition(), dt * 10 * Clamp(_playerSpeed / baseSpeed, 1, 10));
-                MoveSphereOutCollision(_ballInHold.transform, 0.5f, Layers.Environment);
-                //_holdingBall = true;
-                _ballInHold.inHold = true;
-            } else{
-                StopHoldingBall(true);
-            }
-
-        } else if (_ballInHold){
-            StopHoldingBall(true);
-        }
-        */
     }
     
     private void PredictAndDrawBallTrajectory(){
@@ -1518,7 +1478,7 @@ public class PlayerController : MonoBehaviour{
     }
     
     public void Win(Vector3 pos){
-        _time.SlowToZero();
+        time.SlowToZero();
         for (int i = 0; i < 100; i++){
             Particles.Instance.SpawnAndPlay(_ballHitParticles, pos);
         }
@@ -1540,7 +1500,7 @@ public class PlayerController : MonoBehaviour{
     }
     
     public float TimeSinceGrounded(){
-        return _timeSinceGrounded;
+        return _airTime;
     }
     
     private void OnDrawGizmosSelected(){
@@ -1561,29 +1521,29 @@ public class PlayerController : MonoBehaviour{
     
     private void DebugStuff(){
         if (Input.GetKeyDown(KeyCode.Keypad5)){
-            _time.SetDebugTimeScale(5);
+            time.SetDebugTimeScale(5);
         }
         if (Input.GetKeyDown(KeyCode.Keypad2)){
-            _time.SetDebugTimeScale(2);
+            time.SetDebugTimeScale(2);
         }
         
         if (Input.GetKeyDown(KeyCode.Keypad3)){
-            _time.SetDebugTimeScale(0.5f);
+            time.SetDebugTimeScale(0.5f);
         }
         if (Input.GetKeyDown(KeyCode.Keypad4)){
-            _time.SetDebugTimeScale(0.1f);
+            time.SetDebugTimeScale(0.1f);
         }
         //No other keys
         if (Input.GetKeyDown(KeyCode.L)){
-            PlayerCameraController.Instance.ShakeCameraLong(1);
+            pCam.ShakeCameraLong(1);
         }
         
         if (Input.GetKeyDown(KeyCode.K)){
-            PlayerCameraController.Instance.ShakeCameraRapid(1);
+            pCam.ShakeCameraRapid(1);
         }
         
         if (Input.GetKeyDown(KeyCode.J)){
-            PlayerCameraController.Instance.ShakeCameraBase(1);
+            pCam.ShakeCameraBase(1);
         }
         
         if (Input.GetKeyDown(KeyCode.T)){

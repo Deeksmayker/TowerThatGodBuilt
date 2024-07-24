@@ -5,6 +5,10 @@ using System.Linq;
 public class Sound : MonoBehaviour{
     public static Sound Instance;
     
+    public AudioClip sprintActivation;
+    
+    public AudioSource windSource;
+    
     private AudioSource _baseAudioSource, _base3DAudioSource;
     
     private List<ASource> _sources = new();

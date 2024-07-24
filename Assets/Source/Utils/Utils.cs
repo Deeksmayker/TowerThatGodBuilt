@@ -365,6 +365,10 @@ namespace Source.Utils
             return 1f - Pow(1 - x, 5);
         }
         
+        public static float EaseInCubic(float x){
+            return x * x * x;
+        }
+        
         public static float EaseOutCubic(float x){
             return 1f - Pow(1 - x, 3);
         }
