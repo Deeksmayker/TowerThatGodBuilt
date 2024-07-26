@@ -6,6 +6,7 @@ public class Sound : MonoBehaviour{
     public static Sound Instance;
     
     public AudioClip sprintActivation;
+    public AudioClip sprintEnd;
     
     public AudioSource windSource;
     
@@ -34,13 +35,23 @@ public class Sound : MonoBehaviour{
         }
     }
     
-    public void Play(AudioClip clip, float volume = 1, float pitch = 1, float lifeTime1 = 1){
+    public void Play(AudioClip clip, float volume = 1, float pitch = 1, bool random = true, float lifeTime1 = 1){
         var source1 = Instantiate(_baseAudioSource, transform);
-        source1.volume = Random.Range(volume - 0.1f, volume + 0.1f);
-        source1.pitch = Random.Range(pitch - 0.1f, pitch + 0.1f);
+        float v = volume;
+        float p = pitch;
+        if (random){
+            v = Random.Range(volume - 0.1f, volume + 0.1f);
+            p = Random.Range(pitch - 0.1f, pitch + 0.1f);
+        }
+        source1.volume = v;
+        source1.pitch = p;
         source1.clip = clip;
         source1.Play();
         _sources.Add(new ASource(){source = source1, lifeTime = lifeTime1});
+    }
+    
+    public void Play(AudioClip[] clips, float volume = 1, float pitch = 1, bool random = true, float lifeTime1 = 1){
+        Play(clips[Random.Range(0, clips.Length)], volume, pitch, random, lifeTime1);
     }
     
     public void AtPos(AudioClip clip, Vector3 position, float volume = 1, float pitch = 1, float lifeTime1 = 1){

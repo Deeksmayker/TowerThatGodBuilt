@@ -10,6 +10,8 @@ public class RopeLegs : MonoBehaviour{
     [SerializeField] private float checkRadius = 25f;
     [SerializeField] private float moveTime = 0.5f;
     [SerializeField] private float stepHeight = 1f;
+    public bool atPos = true;
+    public float soundVolume = 0.15f;
     
     public float speedThreshold = 30;
     public float beforeThresholdAngle = 60;
@@ -124,7 +126,11 @@ public class RopeLegs : MonoBehaviour{
                     }
                     
                     if (footsteps != null && footsteps.Length > 0){
-                        sound.AtPos(footsteps, currentEndPos, 0.2f);
+                        if (atPos){
+                            sound.AtPos(footsteps, currentEndPos, soundVolume);
+                        } else{
+                            sound.Play(footsteps, soundVolume);
+                        }   
                     }
                     if (stepParticles){
                         Instantiate(stepParticles, currentEndPos, Quaternion.identity);

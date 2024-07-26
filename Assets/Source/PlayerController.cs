@@ -24,6 +24,9 @@ public class PlayerController : MonoBehaviour{
     [NonSerialized] public float baseSpeed = 30; 
     [NonSerialized] public float sprintSpeed = 80;
     [NonSerialized] public float sprintTime = 1.5f;
+    
+    public int sprintCount = 3;
+    
     //[NonSerialized] public float sprintStaminaDrain = 10;
     [NonSerialized] public float groundAcceleration = 15;
     [NonSerialized] public float groundDeceleration = 5;
@@ -34,7 +37,7 @@ public class PlayerController : MonoBehaviour{
     [NonSerialized] public float jumpForce = 60;
     [NonSerialized] public float jumpForwardBoost = 0;
     [NonSerialized] public float coyoteTime = 0.2f;
-    [NonSerialized] public float jumpBufferTime = 0.05f;
+    [NonSerialized] public float jumpBufferTime = 0.1f;
     
     //hook
     [NonSerialized] public float hookPullDelay = 0.4f;
@@ -157,6 +160,8 @@ public class PlayerController : MonoBehaviour{
 
     //Input
     private bool _jumpQueued;
+    private bool _kickQueued;
+    private bool _scopeCanceled;
     private bool _sprintQueued;
     private bool _hookQueued;
     private bool _ropeQueued;
@@ -250,6 +255,8 @@ public class PlayerController : MonoBehaviour{
         particles = Particles.Instance;
         pCam = PlayerCameraController.Instance;
         ui = UiManager.Instance;
+        
+        ui.SetSprintCharges(sprintCount);
     }
     
     private float _previousDelta;
@@ -259,7 +266,25 @@ public class PlayerController : MonoBehaviour{
         if (GAME_DELTA_SCALE <= 0){
             return;
         }
-        
+                
+        if (Input.GetKeyDown(KeyCode.Space)){
+            _jumpQueued = true;
+        }
+        if (Input.GetKeyDown(KeyCode.Mouse0)){
+            _kickQueued = true;
+        }
+        if (Input.GetKeyUp(KeyCode.Mouse1)){
+            _scopeCanceled = true;
+        }
+        if (Input.GetKeyDown(KeyCode.LeftShift)){
+            _sprintQueued = true;
+        }
+        if (Input.GetKeyDown(KeyCode.V)){
+            _hookQueued = true;
+        }
+        if (Input.GetKeyDown(KeyCode.C)){
+            _ropeQueued = true;
+        }
                 
            // _unscaledDelta = Time.unscaledDeltaTime;
            // UpdateAll(Time.deltaTime);
@@ -347,6 +372,13 @@ public class PlayerController : MonoBehaviour{
             float pitch = Lerp(0.5f, 1.2f, t * t);
             sound.windSource.pitch = Lerp(sound.windSource.pitch, pitch, dt * 2f);
         }
+        
+        _jumpQueued = false;
+        _kickQueued = false;
+        _scopeCanceled = false;
+        _sprintQueued = false;
+        _hookQueued = false;
+        _ropeQueued = false;
     }
     
     private Vector3 _legTarget;
@@ -514,7 +546,7 @@ public class PlayerController : MonoBehaviour{
             }
         }
         
-        if (Input.GetKeyDown(KeyCode.Space)){
+        if (_jumpQueued){
             //Coyote jump
             if (IsGrounded() || (_airTime <= coyoteTime && _timeSinceJump > 1f)){
                 Jump(wishDirection);
@@ -529,13 +561,22 @@ public class PlayerController : MonoBehaviour{
         //Sprint logic
         if (_sprintCountdown > 0){
             _sprintCountdown -= dt;
+            float t = 1f - (_sprintCountdown / sprintTime);
+            //Sprint End
             if (_sprintCountdown <= 0){
                 _sprintCountdown = 0;
                 _currentSpeed = baseSpeed;
-            }
+                
+                sound.Play(sound.sprintEnd, .15f, 1.6f, false);
+                pCam.ShakeCameraRapid(1f);
+                
+                ui.KillSprintCharge(sprintCount - 1);
+                sprintCount--;
+            } else{
+                ui.SetSprintChargeProgress(sprintCount - 1, t);
+            }  
             
             Color vColor = ui.speedVignette.color;
-            float t = 1f - (_sprintCountdown / sprintTime);
             float grow = 0.1f;
             
             if (t <= grow){
@@ -547,7 +588,7 @@ public class PlayerController : MonoBehaviour{
             ui.speedVignette.color = vColor;
         }
         
-        if (_sprintCountdown <= 0 && Input.GetKeyDown(KeyCode.LeftShift)){
+        if (sprintCount > 0 && _sprintCountdown <= 0 && _sprintQueued){
             _sprintCountdown = sprintTime;
             _currentSpeed = sprintSpeed;
             pCam.ShakeCameraRapid(1f);
@@ -555,11 +596,11 @@ public class PlayerController : MonoBehaviour{
             // vColor.a = 1f;
             // ui.speedVignette.color = vColor;
             
-            sound.Play(sound.sprintActivation, .15f, 1.75f);
-        }
+            sound.Play(sound.sprintActivation, .15f, 1.75f, false);
+        }        
         
         //Rope logics
-        if (Input.GetKeyDown(KeyCode.C)){
+        if (_ropeQueued){
             Rope rope = Instantiate(_ropePrefab, BallStartPosition(), Quaternion.identity);
             rope.SetVelocityToFirstNode(CameraTransform().forward * maxBallSpeed + playerVelocity * 0.5f);
         }
@@ -586,7 +627,7 @@ public class PlayerController : MonoBehaviour{
                 _scopeObject.transform.position = CameraTransform().position + CameraTransform().forward * 1000;
             }
             
-            if (Input.GetKeyDown(KeyCode.V) && _hookTimer <= 0){
+            if (_hookQueued && _hookTimer <= 0){
                 if (foundGroundPoint || ballInHookRange){
                     //hookTargetPos = _hookTargetPoint;
                     _hookRope = Instantiate(_ropePrefab, transform.position - transform.forward, Quaternion.identity);
@@ -650,7 +691,7 @@ public class PlayerController : MonoBehaviour{
             return;
         }
         
-        if (_kickPerformingCountdown <= 0 && Input.GetMouseButtonDown(0)){
+        if (_kickPerformingCountdown <= 0 && _kickQueued){
             _kickPerformingCountdown = _kickDuration;
             //_kickModelParticle.Emit(1);
         }
@@ -981,7 +1022,7 @@ public class PlayerController : MonoBehaviour{
             //StopHoldingBall(true);
         }
     
-        if (Input.GetMouseButton(1) && Input.GetMouseButtonDown(0) && _shootCooldownTimer <= 0 && !TargetInKickRange() && !_ballInHold){
+        if (Input.GetMouseButton(1) && _kickQueued && _shootCooldownTimer <= 0 && !TargetInKickRange() && !_ballInHold){
             PlayerBall newBall = SpawnPlayerBall(BallStartPosition());
             //newBall.index = _balls.Count;
             //_balls.Add(newBall);
@@ -1340,7 +1381,7 @@ public class PlayerController : MonoBehaviour{
             // }
         }
         
-        if (Input.GetMouseButtonUp(1)){
+        if (_scopeCanceled){
             _catchedBallOnInput = false;
             //StopHoldingBall(true);
             StopHoldingBall(true);
